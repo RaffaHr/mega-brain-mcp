@@ -1,0 +1,162 @@
+{
+  "feature": "mega-brain-mcp-v1",
+  "timestamp": "2026-08-24T18:01:47.717Z",
+  "gitRev": "afb101b",
+  "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
+  "reporter": "vitest-json",
+  "exitCode": 1,
+  "testsParsed": 31,
+  "results": {
+    "AC-001": {
+      "status": "fail",
+      "testName": "AC-001: instalação cria runtime isolado e verificável @spec:AC-001 AC-001: instalação cria runtime isolado e verificável @spec:AC-001",
+      "method": "vitest-json"
+    },
+    "AC-002": {
+      "status": "fail",
+      "testName": "AC-002: o host enxerga somente as seis tools do Mega Brain @spec:AC-002 AC-002: o host enxerga somente as seis tools do Mega Brain @spec:AC-002",
+      "method": "vitest-json"
+    },
+    "AC-003": {
+      "status": "fail",
+      "testName": "AC-003: configuração dos backends é encaminhada com segurança @spec:AC-003 AC-003: configuração dos backends é encaminhada com segurança @spec:AC-003",
+      "method": "vitest-json"
+    },
+    "AC-004": {
+      "status": "fail",
+      "testName": "AC-004: recall escolhe fontes conforme a intenção @spec:AC-004 AC-004: recall escolhe fontes conforme a intenção @spec:AC-004",
+      "method": "vitest-json"
+    },
+    "AC-005": {
+      "status": "fail",
+      "testName": "AC-005: recall respeita orçamento e contrato de resposta @spec:AC-005 AC-005: recall respeita orçamento e contrato de resposta @spec:AC-005",
+      "method": "vitest-json"
+    },
+    "AC-006": {
+      "status": "fail",
+      "testName": "AC-006: recall degrada sem esconder indisponibilidade @spec:AC-006 AC-006: recall degrada sem esconder indisponibilidade @spec:AC-006",
+      "method": "vitest-json"
+    },
+    "AC-007": {
+      "status": "fail",
+      "testName": "AC-007: evidência define autoridade e confiança @spec:AC-007 AC-007: evidência define autoridade e confiança @spec:AC-007",
+      "method": "vitest-json"
+    },
+    "AC-008": {
+      "status": "fail",
+      "testName": "AC-008: duplicatas e contradições evoluem sem apagar história @spec:AC-008 AC-008: duplicatas e contradições evoluem sem apagar história @spec:AC-008",
+      "method": "vitest-json"
+    },
+    "AC-009": {
+      "status": "fail",
+      "testName": "AC-009: conteúdo sensível não alcança a memória @spec:AC-009 AC-009: conteúdo sensível não alcança a memória @spec:AC-009",
+      "method": "vitest-json"
+    },
+    "AC-010": {
+      "status": "fail",
+      "testName": "AC-010: mudança não relacionada preserva memória válida @spec:AC-010 AC-010: mudança não relacionada preserva memória válida @spec:AC-010",
+      "method": "vitest-json"
+    },
+    "AC-011": {
+      "status": "fail",
+      "testName": "AC-011: mudança direta indireta ou não commitada invalida confiança @spec:AC-011 AC-011: mudança direta indireta ou não commitada invalida confiança @spec:AC-011",
+      "method": "vitest-json"
+    },
+    "AC-012": {
+      "status": "fail",
+      "testName": "AC-012: remoção contradição e substituição têm estados distintos @spec:AC-012 AC-012: remoção contradição e substituição têm estados distintos @spec:AC-012",
+      "method": "vitest-json"
+    },
+    "AC-013": {
+      "status": "fail",
+      "testName": "AC-013: contexto de mudança reúne impacto e experiência @spec:AC-013 AC-013: contexto de mudança reúne impacto e experiência @spec:AC-013",
+      "method": "vitest-json"
+    },
+    "AC-014": {
+      "status": "fail",
+      "testName": "AC-014: histórico combina memória e Git sem reescrever o passado @spec:AC-014 AC-014: histórico combina memória e Git sem reescrever o passado @spec:AC-014",
+      "method": "vitest-json"
+    },
+    "AC-015": {
+      "status": "fail",
+      "testName": "AC-015: validação atualiza estado e não conteúdo @spec:AC-015 AC-015: validação atualiza estado e não conteúdo @spec:AC-015",
+      "method": "vitest-json"
+    },
+    "AC-016": {
+      "status": "fail",
+      "testName": "AC-016: status mostra saúde sem expor secrets @spec:AC-016 AC-016: status mostra saúde sem expor secrets @spec:AC-016",
+      "method": "vitest-json"
+    },
+    "AC-017": {
+      "status": "fail",
+      "testName": "AC-017: eventos de host e Git são normalizados e idempotentes @spec:AC-017 AC-017: eventos de host e Git são normalizados e idempotentes @spec:AC-017",
+      "method": "vitest-json"
+    },
+    "AC-018": {
+      "status": "fail",
+      "testName": "AC-018: instalação e remoção preservam hooks existentes @spec:AC-018 AC-018: instalação e remoção preservam hooks existentes @spec:AC-018",
+      "method": "vitest-json"
+    },
+    "AC-019": {
+      "status": "fail",
+      "testName": "AC-019: falha de hook não bloqueia o trabalho @spec:AC-019 AC-019: falha de hook não bloqueia o trabalho @spec:AC-019",
+      "method": "vitest-json"
+    },
+    "AC-020": {
+      "status": "fail",
+      "testName": "AC-020: leitura direta permanece dentro do repositório autorizado @spec:AC-020 AC-020: leitura direta permanece dentro do repositório autorizado @spec:AC-020",
+      "method": "vitest-json"
+    },
+    "AC-021": {
+      "status": "fail",
+      "testName": "AC-021: cloud e tools mutantes permanecem desabilitados por padrão @spec:AC-021 AC-021: cloud e tools mutantes permanecem desabilitados por padrão @spec:AC-021",
+      "method": "vitest-json"
+    },
+    "AC-022": {
+      "status": "fail",
+      "testName": "AC-022: doctor comprova o ciclo real dos backends @spec:AC-022 AC-022: doctor comprova o ciclo real dos backends @spec:AC-022",
+      "method": "vitest-json"
+    },
+    "AC-023": {
+      "status": "fail",
+      "testName": "AC-023: upgrade e uninstall são reversíveis @spec:AC-023 AC-023: upgrade e uninstall são reversíveis @spec:AC-023",
+      "method": "vitest-json"
+    },
+    "AC-024": {
+      "status": "fail",
+      "testName": "AC-024: benchmark comprova economia sem reduzir qualidade @spec:AC-024 AC-024: benchmark comprova economia sem reduzir qualidade @spec:AC-024",
+      "method": "vitest-json"
+    },
+    "AC-025": {
+      "status": "fail",
+      "testName": "AC-025: release exige matriz suportada e audit limpo @spec:AC-025 AC-025: release exige matriz suportada e audit limpo @spec:AC-025",
+      "method": "vitest-json"
+    }
+  },
+  "principles": {
+    "P-004": {
+      "status": "fail",
+      "testName": "P-004: tools públicas de consulta não alteram o repositório @principle:P-004 P-004: tools públicas de consulta não alteram o repositório @principle:P-004"
+    },
+    "P-005": {
+      "status": "fail",
+      "testName": "P-005: backends permanecem privados e com privilégio mínimo @principle:P-005 P-005: backends permanecem privados e com privilégio mínimo @principle:P-005"
+    },
+    "P-003": {
+      "status": "fail",
+      "testName": "P-003: freshness exige evidência atual @principle:P-003 P-003: freshness exige evidência atual @principle:P-003"
+    },
+    "P-006": {
+      "status": "fail",
+      "testName": "P-006: hooks preservam integrações e falham de forma aberta @principle:P-006 P-006: hooks preservam integrações e falham de forma aberta @principle:P-006"
+    },
+    "P-007": {
+      "status": "fail",
+      "testName": "P-007: egress e consumo de LLM são opt-in @principle:P-007 P-007: egress e consumo de LLM são opt-in @principle:P-007"
+    },
+    "P-002": {
+      "status": "fail",
+      "testName": "P-002: segredos nunca são persistidos nem expostos @principle:P-002 P-002: segredos nunca são persistidos nem expostos @principle:P-002"
+    }
+  }
+}
