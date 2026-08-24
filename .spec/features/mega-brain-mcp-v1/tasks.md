@@ -4,7 +4,7 @@
 
 ## Fase 1 — Fundação e contratos
 
-## T-001 — Criar pacote TypeScript, servidor MCP e harness de testes [pendente]
+## T-001 — Criar pacote TypeScript, servidor MCP e harness de testes [concluida]
 - Refs: US-001, AC-002, US-010
 - Arquivos: package.json, package-lock.json, tsconfig.json, vitest.config.ts, src/server/index.ts, src/server/envelope.ts, tests/contract/public-surface.test.ts
 - Modelo: gpt-5.6-terra
