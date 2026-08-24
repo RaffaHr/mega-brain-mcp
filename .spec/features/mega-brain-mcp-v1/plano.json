@@ -1,0 +1,303 @@
+{
+  "runId": "mega-brain-mcp-mega-brain-mcp-v1-mt7kod3j",
+  "feature": "mega-brain-mcp-v1",
+  "agent": "codex",
+  "modo": "sequencial",
+  "paralelizar": null,
+  "modeloForcado": null,
+  "esforcoForcado": null,
+  "geradoEm": "2026-08-24 18:31",
+  "branchTrabalho": "spec/mega-brain-mcp-v1",
+  "baseDir": ".spec/features/mega-brain-mcp-v1",
+  "specDir": ".spec",
+  "repoName": "mega-brain-mcp",
+  "logsDir": "../onp-worktrees/mega-brain-mcp-mega-brain-mcp-v1-logs",
+  "ondas": [],
+  "faixas": [],
+  "sequenciais": [
+    {
+      "id": "T-003",
+      "titulo": "Criar fixtures e gate de compatibilidade dos backends",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "high",
+      "arquivos": [
+        "compatibility/agentmemory-0.9.29.json",
+        "compatibility/crg-2.3.7.json",
+        "src/compatibility/manifest.ts",
+        "src/compatibility/negotiate.ts",
+        "tests/contract/compatibility.test.ts"
+      ],
+      "refs": [
+        "US-001",
+        "US-006",
+        "US-009"
+      ]
+    },
+    {
+      "id": "T-004",
+      "titulo": "Implementar installer e supervisor de runtimes gerenciados",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "high",
+      "arquivos": [
+        "src/cli/install.ts",
+        "src/cli/start.ts",
+        "src/cli/stop.ts",
+        "src/runtime/layout.ts",
+        "src/runtime/supervisor.ts",
+        "src/runtime/lock-manifest.ts",
+        "tests/integration/runtime-manager.test.ts"
+      ],
+      "refs": [
+        "US-001",
+        "AC-001",
+        "US-009"
+      ]
+    },
+    {
+      "id": "T-005",
+      "titulo": "Implementar adapter REST do AgentMemory",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "high",
+      "arquivos": [
+        "src/adapters/agentmemory/client.ts",
+        "src/adapters/agentmemory/schemas.ts",
+        "src/adapters/agentmemory/capabilities.ts",
+        "tests/contract/agentmemory.test.ts"
+      ],
+      "refs": [
+        "US-002",
+        "US-003",
+        "US-006"
+      ]
+    },
+    {
+      "id": "T-006",
+      "titulo": "Implementar adapter MCP privado do Code Review Graph",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "high",
+      "arquivos": [
+        "src/adapters/code-review-graph/client.ts",
+        "src/adapters/code-review-graph/allowlist.ts",
+        "src/adapters/code-review-graph/schemas.ts",
+        "tests/contract/code-review-graph.test.ts"
+      ],
+      "refs": [
+        "US-002",
+        "US-004",
+        "US-005",
+        "US-006"
+      ]
+    },
+    {
+      "id": "T-007",
+      "titulo": "Implementar adapter Git e leitura tracked restrita",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "high",
+      "arquivos": [
+        "src/adapters/git/repository.ts",
+        "src/adapters/git/blobs.ts",
+        "src/adapters/git/history.ts",
+        "src/adapters/git/safe-read.ts",
+        "tests/integration/git-adapter.test.ts",
+        "tests/security/path-boundary.test.ts"
+      ],
+      "refs": [
+        "US-004",
+        "US-005",
+        "US-008",
+        "AC-020"
+      ]
+    },
+    {
+      "id": "T-008",
+      "titulo": "Implementar metadata SQLite, provenance e freshness",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "xhigh",
+      "arquivos": [
+        "src/provenance/database.ts",
+        "src/provenance/migrations.ts",
+        "src/provenance/repository.ts",
+        "src/provenance/freshness.ts",
+        "src/provenance/conflicts.ts",
+        "tests/integration/freshness.test.ts"
+      ],
+      "refs": [
+        "US-003",
+        "US-004",
+        "AC-010",
+        "AC-011",
+        "AC-012",
+        "US-006"
+      ]
+    },
+    {
+      "id": "T-009",
+      "titulo": "Implementar router, ranking, context builder, recall e status",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "xhigh",
+      "arquivos": [
+        "src/orchestration/intent.ts",
+        "src/orchestration/router.ts",
+        "src/orchestration/ranking.ts",
+        "src/orchestration/context-builder.ts",
+        "src/tools/brain-recall.ts",
+        "src/tools/brain-status.ts",
+        "tests/integration/recall-status.test.ts"
+      ],
+      "refs": [
+        "US-002",
+        "AC-004",
+        "AC-005",
+        "AC-006",
+        "US-006"
+      ]
+    },
+    {
+      "id": "T-010",
+      "titulo": "Implementar aprendizado e validação",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "xhigh",
+      "arquivos": [
+        "src/learning/taxonomy.ts",
+        "src/learning/promotion.ts",
+        "src/learning/deduplication.ts",
+        "src/tools/brain-learn.ts",
+        "src/tools/brain-validate.ts",
+        "tests/integration/learn-validate.test.ts"
+      ],
+      "refs": [
+        "US-003",
+        "AC-007",
+        "AC-008",
+        "AC-009",
+        "US-004",
+        "US-006",
+        "AC-015"
+      ]
+    },
+    {
+      "id": "T-011",
+      "titulo": "Implementar contexto de mudança e histórico",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "high",
+      "arquivos": [
+        "src/orchestration/change-context.ts",
+        "src/orchestration/history.ts",
+        "src/tools/brain-change-context.ts",
+        "src/tools/brain-history.ts",
+        "tests/integration/change-history.test.ts"
+      ],
+      "refs": [
+        "US-005",
+        "AC-013",
+        "AC-014"
+      ]
+    },
+    {
+      "id": "T-012",
+      "titulo": "Implementar dispatcher de hooks de Codex e Claude Code",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "xhigh",
+      "arquivos": [
+        "src/hooks/events.ts",
+        "src/hooks/dispatcher.ts",
+        "src/hooks/queue.ts",
+        "src/hooks/hosts/codex.ts",
+        "src/hooks/hosts/claude.ts",
+        "tests/integration/host-hooks.test.ts"
+      ],
+      "refs": [
+        "US-007",
+        "AC-018",
+        "AC-019"
+      ]
+    },
+    {
+      "id": "T-013",
+      "titulo": "Implementar redaction, política de egress e métricas locais",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "high",
+      "arquivos": [
+        "src/security/redaction.ts",
+        "src/security/secret-patterns.ts",
+        "src/security/egress-policy.ts",
+        "src/observability/metrics.ts",
+        "src/observability/logger.ts",
+        "tests/security/redaction.test.ts",
+        "tests/security/egress.test.ts"
+      ],
+      "refs": [
+        "US-003",
+        "US-007",
+        "US-008",
+        "AC-021"
+      ]
+    },
+    {
+      "id": "T-014",
+      "titulo": "Implementar multiplexer Git e invalidação incremental",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "xhigh",
+      "arquivos": [
+        "src/hooks/git/multiplexer.ts",
+        "src/hooks/git/install.ts",
+        "src/lifecycle/commit-handler.ts",
+        "src/lifecycle/revalidation.ts",
+        "tests/integration/git-hooks.test.ts"
+      ],
+      "refs": [
+        "US-004",
+        "US-007",
+        "AC-017"
+      ]
+    },
+    {
+      "id": "T-015",
+      "titulo": "Implementar doctor, upgrade e uninstall reversíveis",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "high",
+      "arquivos": [
+        "src/cli/doctor.ts",
+        "src/cli/upgrade.ts",
+        "src/cli/uninstall.ts",
+        "src/runtime/transaction.ts",
+        "tests/e2e/lifecycle.test.ts"
+      ],
+      "refs": [
+        "US-006",
+        "AC-016",
+        "US-009",
+        "AC-022",
+        "AC-023"
+      ]
+    },
+    {
+      "id": "T-016",
+      "titulo": "Criar benchmark, CI, documentação e pacote de release",
+      "modelo": "gpt-5.6-terra",
+      "esforco": "high",
+      "arquivos": [
+        "benchmark/questions.json",
+        "benchmark/runner.ts",
+        "tests/e2e/benchmark.test.ts",
+        ".github/workflows/ci.yml",
+        ".github/workflows/release.yml",
+        "README.md",
+        "docs/configuration.md",
+        "docs/security.md",
+        "docs/troubleshooting.md",
+        "LICENSE"
+      ],
+      "refs": [
+        "US-010",
+        "AC-024",
+        "AC-025"
+      ]
+    }
+  ],
+  "concluidas": [
+    "T-001",
+    "T-002"
+  ],
+  "avisos": []
+}

@@ -1,0 +1,82 @@
+{
+  "runId": "mega-brain-mcp-agentmemory-runtime-config-mt7p8kgd",
+  "feature": "agentmemory-runtime-config",
+  "agent": "codex",
+  "modo": "sequencial",
+  "paralelizar": null,
+  "modeloForcado": null,
+  "esforcoForcado": null,
+  "geradoEm": "2026-08-24 20:39",
+  "branchTrabalho": "spec/agentmemory-runtime-config",
+  "baseDir": ".spec/features/agentmemory-runtime-config",
+  "specDir": ".spec",
+  "repoName": "mega-brain-mcp",
+  "logsDir": "../onp-worktrees/mega-brain-mcp-agentmemory-runtime-config-logs",
+  "ondas": [],
+  "faixas": [],
+  "sequenciais": [
+    {
+      "id": "T-017",
+      "titulo": "Modelar perfis remoto e gerenciado",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "high",
+      "arquivos": [
+        "src/config/schema.ts",
+        "src/config/load.ts",
+        "tests/unit/config.test.ts",
+        ".env.example",
+        "docs/configuration.md"
+      ],
+      "refs": [
+        "US-011",
+        "AC-026",
+        "AC-027",
+        "AC-028"
+      ]
+    },
+    {
+      "id": "T-018",
+      "titulo": "Propagar configuração somente ao runtime gerenciado",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "high",
+      "arquivos": [
+        "src/cli/index.ts",
+        "src/cli/install.ts",
+        "src/cli/start.ts",
+        "src/cli/upgrade.ts",
+        "src/runtime/lock-manifest.ts",
+        "src/runtime/supervisor.ts",
+        "src/runtime/types.ts",
+        "tests/integration/runtime-manager.test.ts",
+        "tests/e2e/lifecycle.test.ts"
+      ],
+      "refs": [
+        "US-011",
+        "AC-026",
+        "AC-027",
+        "AC-028"
+      ]
+    },
+    {
+      "id": "T-019",
+      "titulo": "Certificar Node 22.22+ e atualizar a matriz",
+      "modelo": "gpt-5.6-terra",
+      "esforco": "medium",
+      "arquivos": [
+        "package.json",
+        "package-lock.json",
+        "README.md",
+        "docs/troubleshooting.md",
+        ".github/workflows/ci.yml",
+        ".github/workflows/release.yml",
+        "tests/contract/node-compatibility.test.ts"
+      ],
+      "refs": [
+        "US-012",
+        "AC-029"
+      ]
+    }
+  ],
+  "concluidas": [],
+  "avisos": []
+}

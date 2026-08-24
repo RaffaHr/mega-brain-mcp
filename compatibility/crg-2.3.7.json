@@ -1,0 +1,19 @@
+{
+  "backend": "code-review-graph",
+  "distribution": "code-review-graph",
+  "version": "2.3.7",
+  "transport": "stdio",
+  "protocol": "mcp",
+  "allowAdditionalCapabilities": false,
+  "capabilities": [
+    { "name": "get_minimal_context_tool", "mutating": false, "inputSchema": { "type": "object" }, "outputSchema": { "type": "object" }, "schemaHash": "sha256:cf31d309b74c082e2ea1e4d62c858e812d98f6df36f9ea5692225b3bcfb43b9b" },
+    { "name": "query_graph_tool", "mutating": false, "inputSchema": { "type": "object" }, "outputSchema": { "type": "object" }, "schemaHash": "sha256:cf31d309b74c082e2ea1e4d62c858e812d98f6df36f9ea5692225b3bcfb43b9b" },
+    { "name": "semantic_search_nodes_tool", "mutating": false, "inputSchema": { "type": "object" }, "outputSchema": { "type": "object" }, "schemaHash": "sha256:cf31d309b74c082e2ea1e4d62c858e812d98f6df36f9ea5692225b3bcfb43b9b" },
+    { "name": "get_flow_tool", "mutating": false, "inputSchema": { "type": "object" }, "outputSchema": { "type": "object" }, "schemaHash": "sha256:cf31d309b74c082e2ea1e4d62c858e812d98f6df36f9ea5692225b3bcfb43b9b" },
+    { "name": "get_affected_flows_tool", "mutating": false, "inputSchema": { "type": "object" }, "outputSchema": { "type": "object" }, "schemaHash": "sha256:cf31d309b74c082e2ea1e4d62c858e812d98f6df36f9ea5692225b3bcfb43b9b" },
+    { "name": "detect_changes_tool", "mutating": false, "inputSchema": { "type": "object" }, "outputSchema": { "type": "object" }, "schemaHash": "sha256:cf31d309b74c082e2ea1e4d62c858e812d98f6df36f9ea5692225b3bcfb43b9b" },
+    { "name": "get_impact_radius_tool", "mutating": false, "inputSchema": { "type": "object" }, "outputSchema": { "type": "object" }, "schemaHash": "sha256:cf31d309b74c082e2ea1e4d62c858e812d98f6df36f9ea5692225b3bcfb43b9b" },
+    { "name": "get_architecture_overview_tool", "mutating": false, "inputSchema": { "type": "object" }, "outputSchema": { "type": "object" }, "schemaHash": "sha256:cf31d309b74c082e2ea1e4d62c858e812d98f6df36f9ea5692225b3bcfb43b9b" }
+  ],
+  "contractHash": "sha256:74fac70cf69408244c858ed65a0981e062b9046b0ae1cb17ca988bcf8daa6237"
+}

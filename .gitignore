@@ -1,0 +1,16 @@
+node_modules/
+dist/
+coverage/
+*.log
+
+.env
+.env.*
+!.env.example
+
+.code-review-graph/
+.mega-brain/
+.spec/verification/vitest-results.json
+
+.DS_Store
+Thumbs.db
+.onp-bin/
