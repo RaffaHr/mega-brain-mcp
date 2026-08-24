@@ -8,6 +8,7 @@ export const megaBrainConfigSchema = z.object({
   allowEgress: z.boolean().default(false),
   allowLlm: z.boolean().default(false),
   agentMemory: z.object({
+    mode: z.enum(['managed', 'remote']).default('managed'),
     baseUrl: z.url(),
     authToken: z.string().min(1).optional(),
     environment: z.record(z.string(), z.string()).default({}),
@@ -29,6 +30,7 @@ export const DEFAULT_CONFIG = {
   allowEgress: false,
   allowLlm: false,
   agentMemory: {
+    mode: 'managed',
     baseUrl: 'http://127.0.0.1:3111',
     environment: {},
   },
