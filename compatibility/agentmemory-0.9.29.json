@@ -1,0 +1,39 @@
+{
+  "backend": "agentmemory",
+  "distribution": "@agentmemory/agentmemory",
+  "version": "0.9.29",
+  "transport": "rest",
+  "protocol": "http-json",
+  "allowAdditionalCapabilities": true,
+  "capabilities": [
+    {
+      "name": "GET /agentmemory/livez",
+      "mutating": false,
+      "inputSchema": { "type": "object", "additionalProperties": false },
+      "outputSchema": { "type": "object" },
+      "schemaHash": "sha256:03fba4363aa19f37b5cd6bba63917fb7634ab61e0e50c10611458c4d5f16f417"
+    },
+    {
+      "name": "GET /agentmemory/health",
+      "mutating": false,
+      "inputSchema": { "type": "object", "additionalProperties": false },
+      "outputSchema": { "type": "object" },
+      "schemaHash": "sha256:03fba4363aa19f37b5cd6bba63917fb7634ab61e0e50c10611458c4d5f16f417"
+    },
+    {
+      "name": "POST /agentmemory/smart-search",
+      "mutating": false,
+      "inputSchema": { "type": "object", "required": ["query"], "properties": { "query": { "type": "string" }, "limit": { "type": "integer" } } },
+      "outputSchema": { "type": "object" },
+      "schemaHash": "sha256:f72a3078e515f7eb187a742f57fef933605d0e94d752adbe933cbbda6e9dd1d4"
+    },
+    {
+      "name": "POST /agentmemory/remember",
+      "mutating": true,
+      "inputSchema": { "type": "object", "required": ["content"], "properties": { "content": { "type": "string" }, "concepts": { "type": "array", "items": { "type": "string" } } } },
+      "outputSchema": { "type": "object" },
+      "schemaHash": "sha256:768001a8c77cc73d5df7390c6b91adfceefafffb987246aed039681d2ae7b044"
+    }
+  ],
+  "contractHash": "sha256:cb93e2c5b37c8a4024890ece680cc8340be932460fa3cd5557fd5b19bbc343bc"
+}

@@ -18,8 +18,7 @@
 - Esforço: medio
 - Notas: Implementar precedência, env maps, denylist, aliases e identidade remote/root/worktree. Dependência: T-001.
 
-## T-003 — Criar fixtures e gate de compatibilidade dos backends [pendente]
-
+## T-003 — Criar fixtures e gate de compatibilidade dos backends [concluida]
 - Refs: US-001, US-006, US-009
 - Arquivos: compatibility/agentmemory-0.9.29.json, compatibility/crg-2.3.7.json, src/compatibility/manifest.ts, src/compatibility/negotiate.ts, tests/contract/compatibility.test.ts
 - Modelo: gpt-5.6-sol
