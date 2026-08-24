@@ -1,0 +1,27 @@
+{
+  "testCommand": "npm run test:spec",
+  "reporter": "vitest-json",
+  "reporterOutputFile": ".spec/verification/vitest-results.json",
+  "testGlobs": [
+    "tests/**",
+    "src/**/*.test.ts",
+    "src/**/*.spec.ts"
+  ],
+  "srcGlobs": [
+    "src/**"
+  ],
+  "ignoreGlobs": [
+    "node_modules/**",
+    ".git/**",
+    "dist/**",
+    "coverage/**",
+    ".spec/**"
+  ],
+  "paralelo": {
+    "maxParalelas": 3,
+    "model": "gpt-5.6-terra",
+    "esforco": "medium",
+    "sandbox": "workspace-write",
+    "resumoModel": "gpt-5.6-luna"
+  }
+}
