@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# executar-tarefas.sh — gerado por `onp-spec plano mega-brain-mcp-v1` em 2026-08-24 18:09
+# executar-tarefas.sh — gerado por `onp-spec plano mega-brain-mcp-v1` em 2026-08-24 18:31
 # NÃO edite à mão: mudou tasks.md ou a config, regenere o plano.
 #
 # uso:
@@ -14,7 +14,7 @@
 set -u
 set -o pipefail
 
-RUN_ID='mega-brain-mcp-mega-brain-mcp-v1-mt7jwgl8'
+RUN_ID='mega-brain-mcp-mega-brain-mcp-v1-mt7kod3j'
 FEATURE='mega-brain-mcp-v1'
 BASE_BRANCH='spec/mega-brain-mcp-v1'
 ENGINE='C:\Users\raphael.moreira\.agents\skills\onp-spec-driven\scripts\onp-spec.mjs'
@@ -168,70 +168,6 @@ iniciar_resumos() {
   trap 'parar_resumos; node "$ENGINE" resumo "$FEATURE" --gravar >/dev/null 2>&1 || true' EXIT
 }
 
-# ── sequencial T-001 (ordem do tasks.md) ──
-executar_seq_T_001() {
-  info 'sequencial T-001 — Criar pacote TypeScript, servidor MCP e harness de testes'
-  if rodar_tarefa seq 'T-001' 'Você executa UMA tarefa da feature "mega-brain-mcp-v1" (fluxo onp-spec, spec-anchored).
-Leia primeiro: .spec/features/mega-brain-mcp-v1/spec.md, .spec/features/mega-brain-mcp-v1/tasks.md e .spec/constituicao.md.
-
-Sua tarefa (somente ela):
-T-001 — "Criar pacote TypeScript, servidor MCP e harness de testes"
-  critérios/refs: AC-002 (O host enxerga somente o Mega Brain)
-  arquivos permitidos (e seus testes): package.json, package-lock.json, tsconfig.json, vitest.config.ts, src/server/index.ts, src/server/envelope.ts, tests/contract/public-surface.test.ts
-  mensagem de commit: "T-001 mega-brain-mcp-v1: Criar pacote TypeScript, servidor MCP e harness de testes"
-
-Regras inegociáveis:
-- Todo critério de aceite referenciado vira teste com @spec:AC-xxx no título.
-- NUNCA enfraqueça, pule (skip/todo) ou apague um teste para passar — teste pulado não é prova e o audit acusa.
-- Rode os testes localmente com `npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json` até passarem.
-- NÃO edite tasks.md, NÃO rode onp-spec verify/audit e NÃO toque em outras tarefas — o orquestrador cuida disso.
-- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-terra' medium >> "$LOG_DIR/seq.log" 2>&1; then
-    # commit de segurança se o agente esqueceu (rastreabilidade > perfeição)
-    if [ -n "$(git status --porcelain)" ]; then
-      git add -A && git commit -q -m 'T-001 mega-brain-mcp-v1: Criar pacote TypeScript, servidor MCP e harness de testes (auto-commit do plano)'
-    fi
-    marcar_concluidas T-001
-    verde "✔ T-001 concluída"
-    return 0
-  fi
-  vermelho "✘ T-001 falhou (log: $LOG_DIR/seq.log)"
-  amarelo "  reexecute só ela: bash .spec/features/mega-brain-mcp-v1/executar-tarefas.sh --seq T-001"
-  FALHAS="$FALHAS T-001"
-  return 1
-}
-
-# ── sequencial T-002 (ordem do tasks.md) ──
-executar_seq_T_002() {
-  info 'sequencial T-002 — Implementar configuração tipada e registro seguro de projetos'
-  if rodar_tarefa seq 'T-002' 'Você executa UMA tarefa da feature "mega-brain-mcp-v1" (fluxo onp-spec, spec-anchored).
-Leia primeiro: .spec/features/mega-brain-mcp-v1/spec.md, .spec/features/mega-brain-mcp-v1/tasks.md e .spec/constituicao.md.
-
-Sua tarefa (somente ela):
-T-002 — "Implementar configuração tipada e registro seguro de projetos"
-  critérios/refs: AC-003 (Configuração dos backends é encaminhada com segurança)
-  arquivos permitidos (e seus testes): src/config/schema.ts, src/config/load.ts, src/projects/identity.ts, src/projects/registry.ts, tests/unit/config.test.ts, tests/unit/project-identity.test.ts
-  mensagem de commit: "T-002 mega-brain-mcp-v1: Implementar configuração tipada e registro seguro de projetos"
-
-Regras inegociáveis:
-- Todo critério de aceite referenciado vira teste com @spec:AC-xxx no título.
-- NUNCA enfraqueça, pule (skip/todo) ou apague um teste para passar — teste pulado não é prova e o audit acusa.
-- Rode os testes localmente com `npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json` até passarem.
-- NÃO edite tasks.md, NÃO rode onp-spec verify/audit e NÃO toque em outras tarefas — o orquestrador cuida disso.
-- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-terra' medium >> "$LOG_DIR/seq.log" 2>&1; then
-    # commit de segurança se o agente esqueceu (rastreabilidade > perfeição)
-    if [ -n "$(git status --porcelain)" ]; then
-      git add -A && git commit -q -m 'T-002 mega-brain-mcp-v1: Implementar configuração tipada e registro seguro de projetos (auto-commit do plano)'
-    fi
-    marcar_concluidas T-002
-    verde "✔ T-002 concluída"
-    return 0
-  fi
-  vermelho "✘ T-002 falhou (log: $LOG_DIR/seq.log)"
-  amarelo "  reexecute só ela: bash .spec/features/mega-brain-mcp-v1/executar-tarefas.sh --seq T-002"
-  FALHAS="$FALHAS T-002"
-  return 1
-}
-
 # ── sequencial T-003 (ordem do tasks.md) ──
 executar_seq_T_003() {
   info 'sequencial T-003 — Criar fixtures e gate de compatibilidade dos backends'
@@ -241,7 +177,7 @@ Leia primeiro: .spec/features/mega-brain-mcp-v1/spec.md, .spec/features/mega-bra
 Sua tarefa (somente ela):
 T-003 — "Criar fixtures e gate de compatibilidade dos backends"
   critérios/refs: US-001, US-006, US-009
-  arquivos permitidos (e seus testes): compatibility/agentmemory-0.9.29.json, compatibility/crg-2.3.8.json, src/compatibility/manifest.ts, src/compatibility/negotiate.ts, tests/contract/compatibility.test.ts
+  arquivos permitidos (e seus testes): compatibility/agentmemory-0.9.29.json, compatibility/crg-2.3.7.json, src/compatibility/manifest.ts, src/compatibility/negotiate.ts, tests/contract/compatibility.test.ts
   mensagem de commit: "T-003 mega-brain-mcp-v1: Criar fixtures e gate de compatibilidade dos backends"
 
 Regras inegociáveis:
@@ -733,8 +669,6 @@ executar_tudo() {
   iniciar_resumos
   info "logs em: $LOG_DIR"
   info "resumo geral de andamento: a cada 1 min aqui no terminal (e via: onp-spec resumo)"
-  executar_seq_T_001 || true
-  executar_seq_T_002 || true
   executar_seq_T_003 || true
   executar_seq_T_004 || true
   executar_seq_T_005 || true
@@ -754,8 +688,6 @@ executar_tudo() {
 
 listar() {
   echo "execução: $RUN_ID (feature $FEATURE, branch $BASE_BRANCH)"
-  echo "  seq       T-001 (sequencial)"
-  echo "  seq       T-002 (sequencial)"
   echo "  seq       T-003 (sequencial)"
   echo "  seq       T-004 (sequencial)"
   echo "  seq       T-005 (sequencial)"
@@ -804,8 +736,6 @@ case "$MODO" in
     esac ;;
   seq)
     case "$ALVO" in
-      T-001) evento --tipo inicio --escopo "seq:T-001"; iniciar_resumos; executar_seq_T_001 || true; encerrar "seq:T-001" ;;
-      T-002) evento --tipo inicio --escopo "seq:T-002"; iniciar_resumos; executar_seq_T_002 || true; encerrar "seq:T-002" ;;
       T-003) evento --tipo inicio --escopo "seq:T-003"; iniciar_resumos; executar_seq_T_003 || true; encerrar "seq:T-003" ;;
       T-004) evento --tipo inicio --escopo "seq:T-004"; iniciar_resumos; executar_seq_T_004 || true; encerrar "seq:T-004" ;;
       T-005) evento --tipo inicio --escopo "seq:T-005"; iniciar_resumos; executar_seq_T_005 || true; encerrar "seq:T-005" ;;

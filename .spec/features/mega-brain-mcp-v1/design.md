@@ -21,7 +21,7 @@ Mega Brain decide como consultar, validar e evoluir conhecimento.
 O pacote npm `mega-brain-mcp` não executa instalação no `postinstall`. O comando
 explícito `mega-brain install --repo . --hosts codex,claude` cria runtimes
 isolados, lock manifest e backups. A primeira matriz fixa AgentMemory 0.9.29 e
-CRG 2.3.8. O scaffold deve inspecionar a versão estável instalada de `mcp-use`,
+CRG 2.3.7. O scaffold deve inspecionar a versão estável instalada de `mcp-use`,
 compilar contra suas declarations e travar essa versão.
 
 Startup executa capability negotiation: REST liveness/config no AgentMemory e

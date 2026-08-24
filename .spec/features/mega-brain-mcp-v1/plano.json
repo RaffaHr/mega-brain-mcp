@@ -1,12 +1,12 @@
 {
-  "runId": "mega-brain-mcp-mega-brain-mcp-v1-mt7jwgl8",
+  "runId": "mega-brain-mcp-mega-brain-mcp-v1-mt7kod3j",
   "feature": "mega-brain-mcp-v1",
   "agent": "codex",
   "modo": "sequencial",
   "paralelizar": null,
   "modeloForcado": null,
   "esforcoForcado": null,
-  "geradoEm": "2026-08-24 18:09",
+  "geradoEm": "2026-08-24 18:31",
   "branchTrabalho": "spec/mega-brain-mcp-v1",
   "baseDir": ".spec/features/mega-brain-mcp-v1",
   "specDir": ".spec",
@@ -16,52 +16,13 @@
   "faixas": [],
   "sequenciais": [
     {
-      "id": "T-001",
-      "titulo": "Criar pacote TypeScript, servidor MCP e harness de testes",
-      "modelo": "gpt-5.6-terra",
-      "esforco": "medium",
-      "arquivos": [
-        "package.json",
-        "package-lock.json",
-        "tsconfig.json",
-        "vitest.config.ts",
-        "src/server/index.ts",
-        "src/server/envelope.ts",
-        "tests/contract/public-surface.test.ts"
-      ],
-      "refs": [
-        "US-001",
-        "AC-002",
-        "US-010"
-      ]
-    },
-    {
-      "id": "T-002",
-      "titulo": "Implementar configuração tipada e registro seguro de projetos",
-      "modelo": "gpt-5.6-terra",
-      "esforco": "medium",
-      "arquivos": [
-        "src/config/schema.ts",
-        "src/config/load.ts",
-        "src/projects/identity.ts",
-        "src/projects/registry.ts",
-        "tests/unit/config.test.ts",
-        "tests/unit/project-identity.test.ts"
-      ],
-      "refs": [
-        "US-001",
-        "AC-003",
-        "US-008"
-      ]
-    },
-    {
       "id": "T-003",
       "titulo": "Criar fixtures e gate de compatibilidade dos backends",
       "modelo": "gpt-5.6-sol",
       "esforco": "high",
       "arquivos": [
         "compatibility/agentmemory-0.9.29.json",
-        "compatibility/crg-2.3.8.json",
+        "compatibility/crg-2.3.7.json",
         "src/compatibility/manifest.ts",
         "src/compatibility/negotiate.ts",
         "tests/contract/compatibility.test.ts"
@@ -334,6 +295,9 @@
       ]
     }
   ],
-  "concluidas": [],
+  "concluidas": [
+    "T-001",
+    "T-002"
+  ],
   "avisos": []
 }

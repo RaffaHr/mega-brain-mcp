@@ -21,7 +21,7 @@
 ## T-003 — Criar fixtures e gate de compatibilidade dos backends [pendente]
 
 - Refs: US-001, US-006, US-009
-- Arquivos: compatibility/agentmemory-0.9.29.json, compatibility/crg-2.3.8.json, src/compatibility/manifest.ts, src/compatibility/negotiate.ts, tests/contract/compatibility.test.ts
+- Arquivos: compatibility/agentmemory-0.9.29.json, compatibility/crg-2.3.7.json, src/compatibility/manifest.ts, src/compatibility/negotiate.ts, tests/contract/compatibility.test.ts
 - Modelo: gpt-5.6-sol
 - Esforço: alto
 - Notas: Capturar capabilities e hashes de schemas; nenhuma adaptação silenciosa. Dependência: T-001.

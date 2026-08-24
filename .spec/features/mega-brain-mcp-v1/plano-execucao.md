@@ -1,11 +1,11 @@
 # Plano de execução — mega-brain-mcp-v1
 
-> gerado por `onp-spec plano` em 2026-08-24 18:09 — NÃO edite à mão;
+> gerado por `onp-spec plano` em 2026-08-24 18:31 — NÃO edite à mão;
 > mudou tasks.md ou a config? Regenere: `onp-spec plano mega-brain-mcp-v1 --sequencial`
 
 ## Resumo — o que vai acontecer
 
-- **modo SEQUENCIAL (escolha do usuário)**: 16 tarefa(s) pendente(s), UMA APÓS A OUTRA, na árvore principal
+- **modo SEQUENCIAL (escolha do usuário)**: 14 tarefa(s) pendente(s), UMA APÓS A OUTRA, na árvore principal (2 já concluída(s): T-001, T-002)
 - sem worktrees e sem paralelismo — cada tarefa roda numa janela de contexto limpa, na ordem do tasks.md
 - tudo acontece na branch de trabalho `spec/mega-brain-mcp-v1`; levar para a main é decisão sua
 
@@ -13,8 +13,6 @@
 
 | tarefa | título | modelo | esforço |
 |---|---|---|---|
-| T-001 | Criar pacote TypeScript, servidor MCP e harness de testes | `gpt-5.6-terra` | medium |
-| T-002 | Implementar configuração tipada e registro seguro de projetos | `gpt-5.6-terra` | medium |
 | T-003 | Criar fixtures e gate de compatibilidade dos backends | `gpt-5.6-sol` | high |
 | T-004 | Implementar installer e supervisor de runtimes gerenciados | `gpt-5.6-sol` | high |
 | T-005 | Implementar adapter REST do AgentMemory | `gpt-5.6-sol` | high |
