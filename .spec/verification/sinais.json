@@ -680,199 +680,199 @@
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-004",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.788Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-005": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-005",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.788Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-006": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-006",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.788Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-007": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-007",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.788Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-008": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-008",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.788Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-009": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-009",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.788Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-010": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-010",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.788Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-011": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-011",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-012": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-012",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-013": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-013",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-014": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-014",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-015": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-015",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-016": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-016",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-017": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-017",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-018": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-018",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-019": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-019",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-020": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-020",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-021": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-021",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-022": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-022",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-023": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-023",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-024": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-024",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-025": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-025",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::P-004": {
       "codigo": "VERIFY_FALHOU",
@@ -896,37 +896,37 @@
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "P-003",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::P-006": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "P-006",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::P-007": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "P-007",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::P-002": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "P-002",
-      "ocorrencias": 5,
+      "ocorrencias": 6,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T18:29:46.144Z",
-      "gitRev": "fd09983"
+      "ultimaVez": "2026-08-24T18:40:14.959Z",
+      "gitRev": "590d4b7"
     },
     "TASK_CONCLUIDA_SEM_PROVA::mega-brain-mcp-v1::T-001": {
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",

@@ -27,8 +27,7 @@
 
 ## Fase 2 — Runtime e adapters
 
-## T-004 — Implementar installer e supervisor de runtimes gerenciados [pendente]
-
+## T-004 — Implementar installer e supervisor de runtimes gerenciados [concluida]
 - Refs: US-001, AC-001, US-009
 - Arquivos: src/cli/install.ts, src/cli/start.ts, src/cli/stop.ts, src/runtime/layout.ts, src/runtime/supervisor.ts, src/runtime/lock-manifest.ts, tests/integration/runtime-manager.test.ts
 - Modelo: gpt-5.6-sol
