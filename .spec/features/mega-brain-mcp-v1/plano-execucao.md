@@ -1,6 +1,6 @@
 # Plano de execução — mega-brain-mcp-v1
 
-> gerado por `onp-spec plano` em 2026-08-24 17:58 — NÃO edite à mão;
+> gerado por `onp-spec plano` em 2026-08-24 18:09 — NÃO edite à mão;
 > mudou tasks.md ou a config? Regenere: `onp-spec plano mega-brain-mcp-v1 --sequencial`
 
 ## Resumo — o que vai acontecer

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# executar-tarefas.sh — gerado por `onp-spec plano mega-brain-mcp-v1` em 2026-08-24 17:58
+# executar-tarefas.sh — gerado por `onp-spec plano mega-brain-mcp-v1` em 2026-08-24 18:09
 # NÃO edite à mão: mudou tasks.md ou a config, regenere o plano.
 #
 # uso:
@@ -14,7 +14,7 @@
 set -u
 set -o pipefail
 
-RUN_ID='mega-brain-mcp-mega-brain-mcp-v1-mt7jigp2'
+RUN_ID='mega-brain-mcp-mega-brain-mcp-v1-mt7jwgl8'
 FEATURE='mega-brain-mcp-v1'
 BASE_BRANCH='spec/mega-brain-mcp-v1'
 ENGINE='C:\Users\raphael.moreira\.agents\skills\onp-spec-driven\scripts\onp-spec.mjs'
