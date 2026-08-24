@@ -6,6 +6,7 @@ import { AgentMemoryClient } from '../adapters/agentmemory/client.js';
 import { CodeReviewGraphClient } from '../adapters/code-review-graph/client.js';
 import { GitRepository } from '../adapters/git/repository.js';
 import { loadConfig } from '../config/load.js';
+import type { MegaBrainConfig } from '../config/schema.js';
 import { discoverProjectIdentity } from '../projects/identity.js';
 import { openProvenanceDatabase } from '../provenance/database.js';
 import { ProvenanceRepository } from '../provenance/repository.js';
@@ -46,9 +47,20 @@ async function readStdin(): Promise<Record<string, unknown>> {
 async function projectContext(args: string[]) {
   const repo = path.resolve(option(args, '--repo') ?? process.cwd());
   const configPath = option(args, '--config');
-  const config = await loadConfig(configPath ? { filePath: configPath } : {});
+  const config = await loadConfig({ repoPath: repo, ...(configPath ? { filePath: configPath } : {}) });
   const identity = await discoverProjectIdentity(repo);
   return { repo, config, identity };
+}
+
+export function createAgentMemoryClient(
+  config: MegaBrainConfig,
+  fetch?: typeof globalThis.fetch,
+): AgentMemoryClient {
+  return new AgentMemoryClient({
+    baseUrl: config.agentMemory.baseUrl,
+    ...(config.agentMemory.authToken ? { authToken: config.agentMemory.authToken } : {}),
+    ...(fetch ? { fetch } : {}),
+  });
 }
 
 export async function main(args = process.argv.slice(2), output: (value: string) => void = console.log): Promise<void> {
@@ -58,10 +70,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid --port');
     const { config, identity } = await projectContext(args);
     const git = await GitRepository.discover(identity.root);
-    const agentMemory = new AgentMemoryClient({
-      baseUrl: config.agentMemory.baseUrl,
-      ...(config.agentMemory.authToken ? { authToken: config.agentMemory.authToken } : {}),
-    });
+    const agentMemory = createAgentMemoryClient(config);
     const installed = await inspectManagedRuntime(config.dataDir, identity).catch(() => null);
     const crgRuntime = installed?.manifest.backends.codeReviewGraph;
     const codeReviewGraph = new CodeReviewGraphClient({
@@ -119,7 +128,11 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     const repository = await GitRepository.discover(identity.root);
     const managedHooksPath = path.join(layout.projectRoot, 'hooks', 'git');
     const hostBackupDir = path.join(layout.projectRoot, 'integration-backups');
-    const manifest = await installManagedRuntime({ dataDir: config.dataDir, identity });
+    const manifest = await installManagedRuntime({
+      dataDir: config.dataDir,
+      identity,
+      agentMemoryMode: config.agentMemory.mode,
+    });
     try {
       await installHostHookFiles({ root: identity.root, backupDir: hostBackupDir, hosts });
       await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: ['mega-brain'] });
@@ -132,7 +145,10 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     return;
   }
   if (command === 'start') {
-    output(JSON.stringify(await startManagedRuntime(config.dataDir, identity)));
+    output(JSON.stringify(await startManagedRuntime(config.dataDir, identity, {
+      agentMemoryMode: config.agentMemory.mode,
+      agentMemoryEnvironment: config.agentMemory.environment,
+    })));
     return;
   }
   if (command === 'stop') {
@@ -141,7 +157,11 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     return;
   }
   if (command === 'upgrade') {
-    output(JSON.stringify(await upgradeManagedRuntime({ dataDir: config.dataDir, identity })));
+    output(JSON.stringify(await upgradeManagedRuntime({
+      dataDir: config.dataDir,
+      identity,
+      agentMemoryMode: config.agentMemory.mode,
+    })));
     return;
   }
   if (command === 'uninstall') {
@@ -169,10 +189,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
   if (command === 'doctor') {
     const inspection = await inspectManagedRuntime(config.dataDir, identity);
     const repository = await GitRepository.discover(identity.root);
-    const agentMemory = new AgentMemoryClient({
-      baseUrl: config.agentMemory.baseUrl,
-      ...(config.agentMemory.authToken ? { authToken: config.agentMemory.authToken } : {}),
-    });
+    const agentMemory = createAgentMemoryClient(config);
     const crgCommand = inspection.manifest.backends.codeReviewGraph;
     const codeReviewGraph = new CodeReviewGraphClient({
       command: crgCommand.command,

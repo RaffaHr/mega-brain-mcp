@@ -1,11 +1,14 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { afterEach, expect, test } from 'vitest';
 
 import { installManagedRuntime, inspectManagedRuntime, type CommandRunner } from '../../src/cli/install.js';
+import { startManagedRuntime } from '../../src/cli/start.js';
 import { deriveProjectIdentity } from '../../src/projects/identity.js';
+import { runtimeLayout } from '../../src/runtime/layout.js';
+import type { ProcessController } from '../../src/runtime/supervisor.js';
 
 const temporaryDirectories: string[] = [];
 
@@ -44,4 +47,89 @@ test('AC-001: instalação cria runtime isolado e verificável @spec:AC-001', as
   expect(inspection.healthy).toBe(true);
   expect(inspection.checks).toEqual({ project: true, agentMemory: true, codeReviewGraph: true });
   expect(manifest.backends.codeReviewGraph.lifecycle).toBe('on-demand');
+});
+
+test('AC-026: modo remoto instala somente Code Review Graph e nunca inicia AgentMemory local @spec:AC-026', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-remote-runtime-'));
+  temporaryDirectories.push(dataDir);
+  const identity = deriveProjectIdentity({
+    root: path.join(dataDir, 'repo'),
+    gitDir: '.git',
+    commonGitDir: '.git',
+  });
+  const commands: Array<{ command: string; args: string[] }> = [];
+  const runner: CommandRunner = {
+    async run(command, args) {
+      commands.push({ command, args });
+    },
+  };
+
+  const manifest = await installManagedRuntime({
+    dataDir,
+    identity,
+    agentMemoryMode: 'remote',
+    runner,
+    now: new Date('2026-08-24T12:00:00.000Z'),
+  });
+  const inspection = await inspectManagedRuntime(dataDir, identity);
+  const starts: string[] = [];
+  const controller: ProcessController = {
+    async start(command) {
+      starts.push(command.command);
+      return { pid: 42, stop: async () => undefined };
+    },
+  };
+  const state = await startManagedRuntime(dataDir, identity, {
+    agentMemoryMode: 'remote',
+    agentMemoryEnvironment: { AGENTMEMORY_SECRET: 'must-never-be-used' },
+    controller,
+  });
+
+  expect(commands).toHaveLength(2);
+  expect(commands.flatMap(({ args }) => args)).not.toContain('@agentmemory/agentmemory@0.9.29');
+  expect(commands[1]?.args).toContain('code-review-graph==2.3.7');
+  expect(manifest.agentMemoryMode).toBe('remote');
+  expect(manifest.backends).not.toHaveProperty('agentMemory');
+  expect(inspection.checks).toEqual({ project: true, codeReviewGraph: true });
+  expect(starts).toEqual([]);
+  expect(state.processes).toEqual({});
+});
+
+test('AC-027: modo gerenciado injeta ambiente no spawn sem persistir secrets @spec:AC-027 @principle:P-002', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-managed-runtime-env-'));
+  temporaryDirectories.push(dataDir);
+  const identity = deriveProjectIdentity({
+    root: path.join(dataDir, 'repo'),
+    gitDir: '.git',
+    commonGitDir: '.git',
+  });
+  await installManagedRuntime({ dataDir, identity, runner: { run: async () => undefined } });
+  const receivedEnvironment: Array<NodeJS.ProcessEnv | undefined> = [];
+  const controller: ProcessController = {
+    async start(_command, _logFile, environment) {
+      receivedEnvironment.push(environment);
+      return { pid: 84, stop: async () => undefined };
+    },
+  };
+
+  await startManagedRuntime(dataDir, identity, {
+    agentMemoryMode: 'managed',
+    agentMemoryEnvironment: {
+      AGENTMEMORY_SECRET: 'managed-secret-value',
+      AGENTMEMORY_TOOLS: 'core',
+    },
+    controller,
+  });
+
+  expect(receivedEnvironment).toEqual([{
+    AGENTMEMORY_SECRET: 'managed-secret-value',
+    AGENTMEMORY_TOOLS: 'core',
+  }]);
+  const layout = runtimeLayout(dataDir, identity);
+  const serialized = [
+    await readFile(path.join(layout.current, 'runtime-lock.json'), 'utf8'),
+    await readFile(layout.stateFile, 'utf8'),
+  ].join('\n');
+  expect(serialized).not.toContain('managed-secret-value');
+  expect(serialized).not.toContain('AGENTMEMORY_SECRET');
 });

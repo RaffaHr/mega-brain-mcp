@@ -7,6 +7,7 @@ import { promisify } from 'node:util';
 import type { ProjectIdentity } from '../projects/identity.js';
 import { assertRuntimeChild, runtimeLayout } from '../runtime/layout.js';
 import { writeRuntimeLock, type RuntimeLockManifest } from '../runtime/lock-manifest.js';
+import type { AgentMemoryMode } from '../runtime/types.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -34,6 +35,7 @@ export const systemCommandRunner: CommandRunner = {
 export interface InstallRuntimeOptions {
   dataDir: string;
   identity: ProjectIdentity;
+  agentMemoryMode?: AgentMemoryMode;
   pythonCommand?: string;
   runner?: CommandRunner;
   now?: Date;
@@ -57,18 +59,21 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
   const agentMemoryDir = path.join(staging, 'agentmemory');
   const crgDir = path.join(staging, 'code-review-graph');
   const venvDir = path.join(crgDir, 'venv');
+  const agentMemoryMode = options.agentMemoryMode ?? 'managed';
   const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
   const python = options.pythonCommand ?? (process.platform === 'win32' ? 'python.exe' : 'python3');
 
-  await mkdir(agentMemoryDir, { recursive: true });
+  if (agentMemoryMode === 'managed') await mkdir(agentMemoryDir, { recursive: true });
   await mkdir(crgDir, { recursive: true });
   let movedCurrent = false;
   try {
-    await runner.run(
-      npm,
-      ['install', '--ignore-scripts', '--no-audit', '--no-fund', '--prefix', agentMemoryDir, `@agentmemory/agentmemory@${MANAGED_VERSIONS.agentMemory}`, `@agentmemory/mcp@${MANAGED_VERSIONS.agentMemory}`],
-      { cwd: staging },
-    );
+    if (agentMemoryMode === 'managed') {
+      await runner.run(
+        npm,
+        ['install', '--ignore-scripts', '--no-audit', '--no-fund', '--prefix', agentMemoryDir, `@agentmemory/agentmemory@${MANAGED_VERSIONS.agentMemory}`, `@agentmemory/mcp@${MANAGED_VERSIONS.agentMemory}`],
+        { cwd: staging },
+      );
+    }
     await runner.run(python, ['-m', 'venv', venvDir], { cwd: staging });
     const venvPython = process.platform === 'win32'
       ? path.join(venvDir, 'Scripts', 'python.exe')
@@ -79,6 +84,7 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
     const manifest: RuntimeLockManifest = {
       schemaVersion: 1,
       installedAt: (options.now ?? new Date()).toISOString(),
+      agentMemoryMode,
       project: {
         repositoryId: options.identity.repositoryId,
         checkoutId: options.identity.checkoutId,
@@ -86,12 +92,14 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
       },
       versions: { megaBrain: '0.1.0', ...MANAGED_VERSIONS },
       backends: {
-        agentMemory: {
-          command: process.execPath,
-          args: [agentMemoryEntrypoint, '--data-dir', path.join(layout.projectRoot, 'agentmemory-data')],
-          cwd: agentMemoryDir,
-          lifecycle: 'daemon',
-        },
+        ...(agentMemoryMode === 'managed' ? {
+          agentMemory: {
+            command: process.execPath,
+            args: [agentMemoryEntrypoint, '--data-dir', path.join(layout.projectRoot, 'agentmemory-data')],
+            cwd: agentMemoryDir,
+            lifecycle: 'daemon' as const,
+          },
+        } : {}),
         codeReviewGraph: {
           command: venvPython,
           args: ['-m', 'code_review_graph', 'serve'],
@@ -101,7 +109,9 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
       },
     };
     await writeRuntimeLock(path.join(staging, 'runtime-lock.json'), manifest);
-    await writeFile(path.join(agentMemoryDir, '.installed'), MANAGED_VERSIONS.agentMemory, 'utf8');
+    if (agentMemoryMode === 'managed') {
+      await writeFile(path.join(agentMemoryDir, '.installed'), MANAGED_VERSIONS.agentMemory, 'utf8');
+    }
     await writeFile(path.join(crgDir, '.installed'), MANAGED_VERSIONS.codeReviewGraph, 'utf8');
 
     await mkdir(layout.runtimeRoot, { recursive: true });
@@ -128,7 +138,9 @@ export async function inspectManagedRuntime(dataDir: string, identity: ProjectId
   );
   const checks = {
     project: manifest.project.worktreeId === identity.worktreeId,
-    agentMemory: await exists(path.join(layout.current, 'agentmemory', '.installed')),
+    ...(manifest.agentMemoryMode === 'managed'
+      ? { agentMemory: await exists(path.join(layout.current, 'agentmemory', '.installed')) }
+      : {}),
     codeReviewGraph: await exists(path.join(layout.current, 'code-review-graph', '.installed')),
   };
   return { healthy: Object.values(checks).every(Boolean), manifest, checks };

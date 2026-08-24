@@ -11,9 +11,12 @@ export const runtimeCommandSchema = z.object({
   lifecycle: z.enum(['daemon', 'on-demand']),
 });
 
+export const agentMemoryModeSchema = z.enum(['managed', 'remote']);
+
 export const runtimeLockManifestSchema = z.object({
   schemaVersion: z.literal(1),
   installedAt: z.iso.datetime(),
+  agentMemoryMode: agentMemoryModeSchema.default('managed'),
   project: z.object({ repositoryId: z.string(), checkoutId: z.string(), worktreeId: z.string() }),
   versions: z.object({
     megaBrain: z.string(),
@@ -21,9 +24,24 @@ export const runtimeLockManifestSchema = z.object({
     codeReviewGraph: z.literal('2.3.7'),
   }),
   backends: z.object({
-    agentMemory: runtimeCommandSchema,
+    agentMemory: runtimeCommandSchema.optional(),
     codeReviewGraph: runtimeCommandSchema,
   }),
+}).superRefine((manifest, context) => {
+  if (manifest.agentMemoryMode === 'managed' && !manifest.backends.agentMemory) {
+    context.addIssue({
+      code: 'custom',
+      path: ['backends', 'agentMemory'],
+      message: 'Managed AgentMemory mode requires a local backend command',
+    });
+  }
+  if (manifest.agentMemoryMode === 'remote' && manifest.backends.agentMemory) {
+    context.addIssue({
+      code: 'custom',
+      path: ['backends', 'agentMemory'],
+      message: 'Remote AgentMemory mode must not persist a local backend command',
+    });
+  }
 });
 
 export type RuntimeLockManifest = z.infer<typeof runtimeLockManifestSchema>;
