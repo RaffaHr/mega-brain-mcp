@@ -60,6 +60,7 @@ export const PUBLIC_TOOL_DEFINITIONS: readonly PublicToolDefinition[] = [
     schema: z.object({
       ...projectInput,
       target: z.string().min(1),
+      budget: z.enum(['FAST', 'NORMAL', 'DEEP']).optional(),
     }),
     outputSchema: megaBrainEnvelopeSchema,
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true },
@@ -70,6 +71,8 @@ export const PUBLIC_TOOL_DEFINITIONS: readonly PublicToolDefinition[] = [
     schema: z.object({
       ...projectInput,
       query: z.string().min(1).optional(),
+      start: z.iso.datetime().optional(),
+      end: z.iso.datetime().optional(),
       limit: z.number().int().min(1).max(100).optional(),
     }),
     outputSchema: megaBrainEnvelopeSchema,

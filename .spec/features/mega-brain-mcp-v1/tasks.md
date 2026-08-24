@@ -80,8 +80,7 @@
 - Esforço: xalto
 - Notas: Conteúdo unverified, dedup/reforço, conflito e supersession; validar não reescreve memória. Dependências: T-008, T-009, T-013.
 
-## T-011 — Implementar contexto de mudança e histórico [pendente]
-
+## T-011 — Implementar contexto de mudança e histórico [concluida]
 - Refs: US-005, AC-013, AC-014
 - Arquivos: src/orchestration/change-context.ts, src/orchestration/history.ts, src/tools/brain-change-context.ts, src/tools/brain-history.ts, tests/integration/change-history.test.ts
 - Modelo: gpt-5.6-sol

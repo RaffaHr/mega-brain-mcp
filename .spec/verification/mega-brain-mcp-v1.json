@@ -1,7 +1,7 @@
 {
   "feature": "mega-brain-mcp-v1",
-  "timestamp": "2026-08-24T18:56:14.898Z",
-  "gitRev": "cde9a6e",
+  "timestamp": "2026-08-24T18:59:50.432Z",
+  "gitRev": "361945b",
   "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "exitCode": 1,
@@ -68,13 +68,13 @@
       "method": "vitest-json"
     },
     "AC-013": {
-      "status": "fail",
-      "testName": "AC-013: contexto de mudança reúne impacto e experiência @spec:AC-013 AC-013: contexto de mudança reúne impacto e experiência @spec:AC-013",
+      "status": "pass",
+      "testName": "change context and history AC-013: contexto de mudança reúne impacto e experiência @spec:AC-013 AC-013: contexto de mudança reúne impacto e experiência @spec:AC-013",
       "method": "vitest-json"
     },
     "AC-014": {
-      "status": "fail",
-      "testName": "AC-014: histórico combina memória e Git sem reescrever o passado @spec:AC-014 AC-014: histórico combina memória e Git sem reescrever o passado @spec:AC-014",
+      "status": "pass",
+      "testName": "change context and history AC-014: histórico combina memória e Git sem reescrever o passado @spec:AC-014 AC-014: histórico combina memória e Git sem reescrever o passado @spec:AC-014",
       "method": "vitest-json"
     },
     "AC-015": {
