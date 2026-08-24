@@ -954,6 +954,60 @@
       "primeiraVez": "2026-08-24T19:24:22.880Z",
       "ultimaVez": "2026-08-24T19:24:22.880Z",
       "gitRev": "abe840a"
+    },
+    "STATUS_INVALIDO::agentmemory-runtime-config::.spec\\features\\agentmemory-runtime-config\\spec.md": {
+      "codigo": "STATUS_INVALIDO",
+      "feature": "agentmemory-runtime-config",
+      "ref": ".spec\\features\\agentmemory-runtime-config\\spec.md",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T20:14:57.869Z",
+      "ultimaVez": "2026-08-24T20:14:57.872Z",
+      "gitRev": null
+    },
+    "ARQUIVO_INEXISTENTE::agentmemory-runtime-config::T-019": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "agentmemory-runtime-config",
+      "ref": "T-019",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T20:14:57.873Z",
+      "ultimaVez": "2026-08-24T20:14:57.873Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::agentmemory-runtime-config::AC-026": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "agentmemory-runtime-config",
+      "ref": "AC-026",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T20:14:57.873Z",
+      "ultimaVez": "2026-08-24T20:14:57.873Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::agentmemory-runtime-config::AC-027": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "agentmemory-runtime-config",
+      "ref": "AC-027",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T20:14:57.873Z",
+      "ultimaVez": "2026-08-24T20:14:57.873Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::agentmemory-runtime-config::AC-028": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "agentmemory-runtime-config",
+      "ref": "AC-028",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T20:14:57.873Z",
+      "ultimaVez": "2026-08-24T20:14:57.873Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::agentmemory-runtime-config::AC-029": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "agentmemory-runtime-config",
+      "ref": "AC-029",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T20:14:57.873Z",
+      "ultimaVez": "2026-08-24T20:14:57.873Z",
+      "gitRev": null
     }
   }
 }
