@@ -34,8 +34,7 @@
 - Esforço: alto
 - Notas: Instalação explícita, isolada, transacional e sem postinstall. Dependências: T-002, T-003.
 
-## T-005 — Implementar adapter REST do AgentMemory [pendente]
-
+## T-005 — Implementar adapter REST do AgentMemory [concluida]
 - Refs: US-002, US-003, US-006
 - Arquivos: src/adapters/agentmemory/client.ts, src/adapters/agentmemory/schemas.ts, src/adapters/agentmemory/capabilities.ts, tests/contract/agentmemory.test.ts
 - Modelo: gpt-5.6-sol
