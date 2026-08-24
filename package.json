@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "Evidence-aware MCP orchestration for AgentMemory, Code Review Graph, and Git",
   "type": "module",
+  "bin": {
+    "mega-brain": "./dist/cli/index.js"
+  },
   "engines": {
     "node": "^20.20.0 || >=22.22.0"
   },

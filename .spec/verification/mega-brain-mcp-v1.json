@@ -1,7 +1,7 @@
 {
   "feature": "mega-brain-mcp-v1",
-  "timestamp": "2026-08-24T19:09:00.218Z",
-  "gitRev": "1a3f09b",
+  "timestamp": "2026-08-24T19:16:04.485Z",
+  "gitRev": "e2c6866",
   "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "exitCode": 1,
@@ -83,7 +83,7 @@
       "method": "vitest-json"
     },
     "AC-016": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-016: status mostra saúde sem expor secrets @spec:AC-016 AC-016: status mostra saúde sem expor secrets @spec:AC-016",
       "method": "vitest-json"
     },
@@ -113,12 +113,12 @@
       "method": "vitest-json"
     },
     "AC-022": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-022: doctor comprova o ciclo real dos backends @spec:AC-022 AC-022: doctor comprova o ciclo real dos backends @spec:AC-022",
       "method": "vitest-json"
     },
     "AC-023": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-023: upgrade e uninstall são reversíveis @spec:AC-023 AC-023: upgrade e uninstall são reversíveis @spec:AC-023",
       "method": "vitest-json"
     },

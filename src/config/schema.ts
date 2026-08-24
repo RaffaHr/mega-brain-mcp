@@ -29,7 +29,7 @@ export const DEFAULT_CONFIG = {
   allowEgress: false,
   allowLlm: false,
   agentMemory: {
-    baseUrl: 'http://127.0.0.1:8787',
+    baseUrl: 'http://127.0.0.1:3111',
     environment: {},
   },
   codeReviewGraph: {

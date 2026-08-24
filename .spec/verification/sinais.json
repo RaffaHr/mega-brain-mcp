@@ -860,19 +860,19 @@
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-024",
-      "ocorrencias": 14,
+      "ocorrencias": 15,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T19:09:00.424Z",
-      "gitRev": "1a3f09b"
+      "ultimaVez": "2026-08-24T19:16:04.794Z",
+      "gitRev": "e2c6866"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::AC-025": {
       "codigo": "VERIFY_FALHOU",
       "feature": "mega-brain-mcp-v1",
       "ref": "AC-025",
-      "ocorrencias": 14,
+      "ocorrencias": 15,
       "primeiraVez": "2026-08-24T18:01:47.789Z",
-      "ultimaVez": "2026-08-24T19:09:00.424Z",
-      "gitRev": "1a3f09b"
+      "ultimaVez": "2026-08-24T19:16:04.794Z",
+      "gitRev": "e2c6866"
     },
     "VERIFY_FALHOU::mega-brain-mcp-v1::P-004": {
       "codigo": "VERIFY_FALHOU",

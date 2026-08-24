@@ -123,7 +123,7 @@ export async function loadConfig(options: LoadConfigOptions = {}): Promise<MegaB
     logLevel: 'info',
     allowEgress: false,
     allowLlm: false,
-    agentMemory: { baseUrl: 'http://127.0.0.1:8787', environment: {} },
+    agentMemory: { baseUrl: 'http://127.0.0.1:3111', environment: {} },
     codeReviewGraph: { command: 'code-review-graph', args: [], environment: {} },
     projects: {},
   };

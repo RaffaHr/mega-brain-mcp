@@ -112,8 +112,7 @@
 
 ## Fase 6 — Operação, benchmark e release
 
-## T-015 — Implementar doctor, upgrade e uninstall reversíveis [pendente]
-
+## T-015 — Implementar doctor, upgrade e uninstall reversíveis [concluida]
 - Refs: US-006, AC-016, US-009, AC-022, AC-023
 - Arquivos: src/cli/doctor.ts, src/cli/upgrade.ts, src/cli/uninstall.ts, src/runtime/transaction.ts, tests/e2e/lifecycle.test.ts
 - Modelo: gpt-5.6-sol

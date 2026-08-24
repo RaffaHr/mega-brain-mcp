@@ -9,6 +9,7 @@ export interface CrgSession {
   listTools(): Promise<unknown>;
   callTool(name: string, input: Record<string, unknown>): Promise<unknown>;
   close(): Promise<void>;
+  serverVersion?(): { name?: string; version?: string } | undefined;
 }
 
 export interface CrgClientOptions {
@@ -45,6 +46,9 @@ function sdkSession(options: CrgClientOptions): CrgSession {
     async close() {
       await client.close();
     },
+    serverVersion() {
+      return client.getServerVersion();
+    },
   };
 }
 
@@ -52,6 +56,8 @@ export class CodeReviewGraphClient {
   readonly #options: CrgClientOptions;
   readonly #timeoutMs: number;
   #session: CrgSession | null = null;
+  #version: string | null = null;
+  #tools: string[] = [];
 
   constructor(options: CrgClientOptions) {
     this.#options = options;
@@ -78,7 +84,9 @@ export class CodeReviewGraphClient {
     try {
       await this.#bounded(session.connect());
       const listed = crgToolsResponseSchema.parse(await this.#bounded(session.listTools()));
-      assertExactCrgSurface(listed.tools.map(({ name }) => name));
+      this.#tools = listed.tools.map(({ name }) => name);
+      assertExactCrgSurface(this.#tools);
+      this.#version = session.serverVersion?.()?.version ?? null;
       this.#session = session;
     } catch (error) {
       await session.close().catch(() => undefined);
@@ -89,6 +97,8 @@ export class CodeReviewGraphClient {
   async stop(): Promise<void> {
     const session = this.#session;
     this.#session = null;
+    this.#version = null;
+    this.#tools = [];
     if (session) await session.close();
   }
 
@@ -109,5 +119,13 @@ export class CodeReviewGraphClient {
       await this.restart();
       return this.call(tool, input, false);
     }
+  }
+
+  serverVersion(): string | null {
+    return this.#version;
+  }
+
+  tools(): readonly string[] {
+    return [...this.#tools];
   }
 }
