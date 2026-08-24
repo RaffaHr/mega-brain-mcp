@@ -103,8 +103,7 @@
 - Esforço: alto
 - Notas: Componente transversal; deve existir antes de learn e hooks. Dependências: T-001, T-002.
 
-## T-014 — Implementar multiplexer Git e invalidação incremental [pendente]
-
+## T-014 — Implementar multiplexer Git e invalidação incremental [concluida]
 - Refs: US-004, US-007, AC-017
 - Arquivos: src/hooks/git/multiplexer.ts, src/hooks/git/install.ts, src/lifecycle/commit-handler.ts, src/lifecycle/revalidation.ts, tests/integration/git-hooks.test.ts
 - Modelo: gpt-5.6-sol

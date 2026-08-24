@@ -1,11 +1,11 @@
 {
   "feature": "mega-brain-mcp-v1",
-  "timestamp": "2026-08-24T19:05:57.013Z",
-  "gitRev": "92dbc3a",
+  "timestamp": "2026-08-24T19:09:00.218Z",
+  "gitRev": "1a3f09b",
   "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "exitCode": 1,
-  "testsParsed": 43,
+  "testsParsed": 45,
   "results": {
     "AC-001": {
       "status": "pass",
@@ -88,7 +88,7 @@
       "method": "vitest-json"
     },
     "AC-017": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-017: eventos de host e Git são normalizados e idempotentes @spec:AC-017 AC-017: eventos de host e Git são normalizados e idempotentes @spec:AC-017",
       "method": "vitest-json"
     },
