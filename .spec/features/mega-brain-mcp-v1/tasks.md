@@ -64,8 +64,7 @@
 - Esforço: xalto
 - Notas: Schema versionado, estados determinísticos, invalidation e supersession. Dependências: T-005, T-006, T-007.
 
-## T-009 — Implementar router, ranking, context builder, recall e status [pendente]
-
+## T-009 — Implementar router, ranking, context builder, recall e status [concluida]
 - Refs: US-002, AC-004, AC-005, AC-006, US-006
 - Arquivos: src/orchestration/intent.ts, src/orchestration/router.ts, src/orchestration/ranking.ts, src/orchestration/context-builder.ts, src/tools/brain-recall.ts, src/tools/brain-status.ts, tests/integration/recall-status.test.ts
 - Modelo: gpt-5.6-sol

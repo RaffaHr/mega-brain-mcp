@@ -1,7 +1,7 @@
 {
   "feature": "mega-brain-mcp-v1",
-  "timestamp": "2026-08-24T18:50:01.207Z",
-  "gitRev": "f6ec7ad",
+  "timestamp": "2026-08-24T18:52:20.816Z",
+  "gitRev": "11d884d",
   "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "exitCode": 1,
@@ -23,17 +23,17 @@
       "method": "vitest-json"
     },
     "AC-004": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-004: recall escolhe fontes conforme a intenção @spec:AC-004 AC-004: recall escolhe fontes conforme a intenção @spec:AC-004",
       "method": "vitest-json"
     },
     "AC-005": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-005: recall respeita orçamento e contrato de resposta @spec:AC-005 AC-005: recall respeita orçamento e contrato de resposta @spec:AC-005",
       "method": "vitest-json"
     },
     "AC-006": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-006: recall degrada sem esconder indisponibilidade @spec:AC-006 AC-006: recall degrada sem esconder indisponibilidade @spec:AC-006",
       "method": "vitest-json"
     },
