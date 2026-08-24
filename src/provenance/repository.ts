@@ -75,4 +75,28 @@ export class ProvenanceRepository {
       | undefined;
     return row ?? null;
   }
+
+  evidenceForMemory(memoryId: string): EvidenceRecord[] {
+    return this.database.prepare(`
+      SELECT path, symbol, blob_hash AS blobHash, commit_hash AS commitHash,
+             start_line AS startLine, end_line AS endLine
+      FROM evidence WHERE memory_id = ? ORDER BY path, symbol
+    `).all(memoryId).map((row) => {
+      const value = row as Record<string, unknown>;
+      return {
+        path: String(value.path),
+        blobHash: String(value.blobHash),
+        commitHash: String(value.commitHash),
+        ...(typeof value.symbol === 'string' ? { symbol: value.symbol } : {}),
+        ...(typeof value.startLine === 'number' ? { startLine: value.startLine } : {}),
+        ...(typeof value.endLine === 'number' ? { endLine: value.endLine } : {}),
+      };
+    });
+  }
+
+  memoryIdsForPaths(paths: string[]): string[] {
+    if (paths.length === 0) return [];
+    const placeholders = paths.map(() => '?').join(',');
+    return (this.database.prepare(`SELECT DISTINCT memory_id AS memoryId FROM evidence WHERE path IN (${placeholders}) ORDER BY memory_id`).all(...paths) as Array<{ memoryId: string }>).map(({ memoryId }) => memoryId);
+  }
 }

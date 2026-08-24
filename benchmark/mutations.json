@@ -1,0 +1,12 @@
+[
+  {"id":"M-001","mutation":"tracked evidence content changed","observedFreshness":"POSSIBLY_STALE"},
+  {"id":"M-002","mutation":"tracked evidence removed","observedFreshness":"STALE"},
+  {"id":"M-003","mutation":"related symbol changed","observedFreshness":"POSSIBLY_STALE"},
+  {"id":"M-004","mutation":"working tree differs from HEAD","observedFreshness":"POSSIBLY_STALE"},
+  {"id":"M-005","mutation":"current evidence contradicts memory","observedFreshness":"CONFLICT"},
+  {"id":"M-006","mutation":"memory explicitly superseded","observedFreshness":"DEPRECATED"},
+  {"id":"M-007","mutation":"evidence belongs to another worktree","observedFreshness":"UNKNOWN"},
+  {"id":"M-008","mutation":"graph snapshot is behind HEAD","observedFreshness":"POSSIBLY_STALE"},
+  {"id":"M-009","mutation":"blob hash cannot be resolved","observedFreshness":"STALE"},
+  {"id":"M-010","mutation":"uncommitted relevant file changed","observedFreshness":"POSSIBLY_STALE"}
+]

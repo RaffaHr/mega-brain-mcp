@@ -9,11 +9,11 @@ export const CLAUDE_HOOK_EVENTS = [
   'SessionStart', 'Stop', 'SubagentStart', 'SubagentStop', 'TaskCompleted', 'UserPromptSubmit',
 ] as const;
 
-export type HookHost = 'codex' | 'claude';
+export type HookHost = 'codex' | 'claude' | 'git';
 export type CanonicalHookEvent =
   | 'notification' | 'tool_succeeded' | 'tool_failed' | 'before_compaction' | 'before_tool'
   | 'session_ended' | 'session_started' | 'stopped' | 'subagent_started' | 'subagent_stopped'
-  | 'task_completed' | 'prompt_submitted';
+  | 'task_completed' | 'prompt_submitted' | 'git_changed';
 
 const EVENT_MAP: Record<string, CanonicalHookEvent> = {
   Notification: 'notification',

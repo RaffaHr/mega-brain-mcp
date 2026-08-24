@@ -16,14 +16,20 @@
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "compatibility",
+    "docs",
+    ".env.example",
+    "README.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
     "test:spec": "vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
-    "audit": "onp-spec audit --ci"
+    "benchmark": "vitest run tests/e2e/benchmark.test.ts",
+    "audit": "node scripts/onp-spec-ci.mjs audit --ci"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.26.0",
@@ -37,5 +43,10 @@
     "typescript": "5.9.3",
     "vitest": "4.1.11"
   },
-  "license": "MIT"
+  "overrides": {
+    "@hono/node-server": "1.19.15",
+    "hono": "4.13.4",
+    "posthog-js": "1.418.15"
+  },
+  "license": "Apache-2.0"
 }

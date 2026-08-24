@@ -1,11 +1,11 @@
 {
   "feature": "mega-brain-mcp-v1",
-  "timestamp": "2026-08-24T19:16:04.485Z",
-  "gitRev": "e2c6866",
+  "timestamp": "2026-08-24T19:54:37.758Z",
+  "gitRev": "abe840a",
   "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
-  "exitCode": 1,
-  "testsParsed": 45,
+  "exitCode": 0,
+  "testsParsed": 47,
   "results": {
     "AC-001": {
       "status": "pass",
@@ -123,12 +123,12 @@
       "method": "vitest-json"
     },
     "AC-024": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-024: benchmark comprova economia sem reduzir qualidade @spec:AC-024 AC-024: benchmark comprova economia sem reduzir qualidade @spec:AC-024",
       "method": "vitest-json"
     },
     "AC-025": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-025: release exige matriz suportada e audit limpo @spec:AC-025 AC-025: release exige matriz suportada e audit limpo @spec:AC-025",
       "method": "vitest-json"
     }

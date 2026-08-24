@@ -936,6 +936,24 @@
       "primeiraVez": "2026-08-24T18:06:16.795Z",
       "ultimaVez": "2026-08-24T18:11:44.279Z",
       "gitRev": "f7a6567"
+    },
+    "ARQUIVO_ORFAO::—::src/cli/index.ts": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "src/cli/index.ts",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T19:24:22.876Z",
+      "ultimaVez": "2026-08-24T19:24:22.880Z",
+      "gitRev": "abe840a"
+    },
+    "ARQUIVO_ORFAO::—::src/runtime/types.ts": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "src/runtime/types.ts",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T19:24:22.880Z",
+      "ultimaVez": "2026-08-24T19:24:22.880Z",
+      "gitRev": "abe840a"
     }
   }
 }

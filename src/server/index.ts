@@ -49,7 +49,14 @@ export const PUBLIC_TOOL_DEFINITIONS: readonly PublicToolDefinition[] = [
     schema: z.object({
       ...projectInput,
       statement: z.string().min(1),
-      evidence: z.array(z.string().min(1)).min(1),
+      type: z.enum(['fact', 'decision', 'architecture', 'procedure', 'bug', 'rule', 'preference', 'experience']).optional(),
+      evidence: z.array(z.object({
+        path: z.string().min(1),
+        blobHash: z.string().min(1).optional(),
+        commitHash: z.string().min(1).optional(),
+        symbol: z.string().min(1).optional(),
+      })).optional(),
+      supersedes: z.string().min(1).optional(),
     }),
     outputSchema: megaBrainEnvelopeSchema,
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true },

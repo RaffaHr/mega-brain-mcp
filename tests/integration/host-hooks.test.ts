@@ -1,4 +1,4 @@
-import { mkdtemp } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -9,6 +9,7 @@ import { normalizeHookEvent } from '../../src/hooks/events.js';
 import { installClaudeHooks, uninstallClaudeHooks } from '../../src/hooks/hosts/claude.js';
 import { installCodexHooks, uninstallCodexHooks } from '../../src/hooks/hosts/codex.js';
 import { DurableHookQueue } from '../../src/hooks/queue.js';
+import { installHostHookFiles, restoreHostHookFiles } from '../../src/cli/host-hooks.js';
 
 describe('host hook dispatcher', () => {
   test('normaliza o subconjunto Codex e os 12 eventos Claude com chave idempotente', () => {
@@ -53,5 +54,21 @@ describe('host hook dispatcher', () => {
     expect((await dispatchHook('codex', 'Stop', payload, dependencies)).continue).toBe(true);
     expect(await dispatchHook('codex', 'Stop', payload, dependencies)).toEqual({ continue: true, queued: false, duplicate: true });
     expect(capture).toHaveBeenCalledTimes(1);
+  });
+
+  test('arquivos de host são mesclados e restaurados byte a byte', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'mega-brain-host-files-'));
+    const codexDir = join(root, '.codex');
+    await mkdir(codexDir, { recursive: true });
+    const target = join(codexDir, 'hooks.json');
+    const original = '{\n  "custom": true,\n  "hooks": {}\n}\n';
+    await writeFile(target, original, 'utf8');
+    const backupDir = join(root, '.state', 'backups');
+    await installHostHookFiles({ root, backupDir, hosts: ['codex', 'claude'] });
+    expect(await readFile(target, 'utf8')).toContain('mega-brain hook host codex');
+    expect(await readFile(join(root, '.claude', 'settings.local.json'), 'utf8')).toContain('mega-brain hook host claude');
+    await restoreHostHookFiles(backupDir, ['codex', 'claude']);
+    expect(await readFile(target, 'utf8')).toBe(original);
+    await expect(readFile(join(root, '.claude', 'settings.local.json'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
   });
 });

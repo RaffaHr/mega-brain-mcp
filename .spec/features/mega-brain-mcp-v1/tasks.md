@@ -29,7 +29,7 @@
 
 ## T-004 — Implementar installer e supervisor de runtimes gerenciados [concluida]
 - Refs: US-001, AC-001, US-009
-- Arquivos: src/cli/install.ts, src/cli/start.ts, src/cli/stop.ts, src/runtime/layout.ts, src/runtime/supervisor.ts, src/runtime/lock-manifest.ts, tests/integration/runtime-manager.test.ts
+- Arquivos: src/cli/install.ts, src/cli/start.ts, src/cli/stop.ts, src/runtime/layout.ts, src/runtime/supervisor.ts, src/runtime/lock-manifest.ts, src/runtime/types.ts, tests/integration/runtime-manager.test.ts
 - Modelo: gpt-5.6-sol
 - Esforço: alto
 - Notas: Instalação explícita, isolada, transacional e sem postinstall. Dependências: T-002, T-003.
@@ -114,15 +114,14 @@
 
 ## T-015 — Implementar doctor, upgrade e uninstall reversíveis [concluida]
 - Refs: US-006, AC-016, US-009, AC-022, AC-023
-- Arquivos: src/cli/doctor.ts, src/cli/upgrade.ts, src/cli/uninstall.ts, src/runtime/transaction.ts, tests/e2e/lifecycle.test.ts
+- Arquivos: src/cli/index.ts, src/cli/doctor.ts, src/cli/host-hooks.ts, src/cli/hook.ts, src/cli/upgrade.ts, src/cli/uninstall.ts, src/runtime/transaction.ts, tests/e2e/lifecycle.test.ts
 - Modelo: gpt-5.6-sol
 - Esforço: alto
 - Notas: Handshake real, graph SHA versus HEAD, rollback e preserve-data padrão. Dependências: T-004, T-005, T-006, T-012, T-014.
 
-## T-016 — Criar benchmark, CI, documentação e pacote de release [pendente]
-
+## T-016 — Criar benchmark, CI, documentação e pacote de release [concluida]
 - Refs: US-010, AC-024, AC-025
-- Arquivos: benchmark/questions.json, benchmark/runner.ts, tests/e2e/benchmark.test.ts, .github/workflows/ci.yml, .github/workflows/release.yml, README.md, docs/configuration.md, docs/security.md, docs/troubleshooting.md, LICENSE
+- Arquivos: benchmark/questions.json, benchmark/mutations.json, benchmark/runner.ts, scripts/onp-spec-ci.mjs, src/server/application.ts, tests/integration/application.test.ts, tests/e2e/benchmark.test.ts, .github/workflows/ci.yml, .github/workflows/release.yml, README.md, docs/configuration.md, docs/security.md, docs/troubleshooting.md, LICENSE
 - Modelo: gpt-5.6-terra
 - Esforço: alto
 - Notas: Matriz Windows/Ubuntu, Node/Python suportados, SBOM, build provenance e npm dry-run. Dependências: T-009, T-010, T-011, T-012, T-014, T-015.

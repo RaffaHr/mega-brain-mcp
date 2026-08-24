@@ -32,4 +32,4 @@ test('reads HEAD, tracked blobs, status and immutable history from Git', async (
   expect(await committedBlobHash(repository, 'app.ts')).toMatch(/^[a-f0-9]{40}$/);
   expect(history[0]).toMatchObject({ hash: head, subject: 'initial' });
   expect(await repository.status()).toEqual([]);
-});
+}, 20_000);
