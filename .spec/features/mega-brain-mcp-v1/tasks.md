@@ -73,8 +73,7 @@
 
 ## Fase 4 — Evolução, mudança e tempo
 
-## T-010 — Implementar aprendizado e validação [pendente]
-
+## T-010 — Implementar aprendizado e validação [concluida]
 - Refs: US-003, AC-007, AC-008, AC-009, US-004, US-006, AC-015
 - Arquivos: src/learning/taxonomy.ts, src/learning/promotion.ts, src/learning/deduplication.ts, src/tools/brain-learn.ts, src/tools/brain-validate.ts, tests/integration/learn-validate.test.ts
 - Modelo: gpt-5.6-sol

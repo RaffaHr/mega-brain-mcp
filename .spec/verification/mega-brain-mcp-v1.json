@@ -1,7 +1,7 @@
 {
   "feature": "mega-brain-mcp-v1",
-  "timestamp": "2026-08-24T18:52:20.816Z",
-  "gitRev": "11d884d",
+  "timestamp": "2026-08-24T18:56:14.898Z",
+  "gitRev": "cde9a6e",
   "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "exitCode": 1,
@@ -38,17 +38,17 @@
       "method": "vitest-json"
     },
     "AC-007": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-007: evidência define autoridade e confiança @spec:AC-007 AC-007: evidência define autoridade e confiança @spec:AC-007",
       "method": "vitest-json"
     },
     "AC-008": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-008: duplicatas e contradições evoluem sem apagar história @spec:AC-008 AC-008: duplicatas e contradições evoluem sem apagar história @spec:AC-008",
       "method": "vitest-json"
     },
     "AC-009": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-009: conteúdo sensível não alcança a memória @spec:AC-009 AC-009: conteúdo sensível não alcança a memória @spec:AC-009",
       "method": "vitest-json"
     },
@@ -78,7 +78,7 @@
       "method": "vitest-json"
     },
     "AC-015": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-015: validação atualiza estado e não conteúdo @spec:AC-015 AC-015: validação atualiza estado e não conteúdo @spec:AC-015",
       "method": "vitest-json"
     },
