@@ -1008,6 +1008,15 @@
       "primeiraVez": "2026-08-24T20:14:57.873Z",
       "ultimaVez": "2026-08-24T20:14:57.873Z",
       "gitRev": null
+    },
+    "VERIFY_OBSOLETO::mega-brain-mcp-v1::—": {
+      "codigo": "VERIFY_OBSOLETO",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "—",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T22:59:52.327Z",
+      "ultimaVez": "2026-08-24T22:59:52.328Z",
+      "gitRev": "e18a839"
     }
   }
 }

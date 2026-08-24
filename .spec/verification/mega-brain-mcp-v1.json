@@ -1,11 +1,11 @@
 {
   "feature": "mega-brain-mcp-v1",
-  "timestamp": "2026-08-24T19:54:37.758Z",
-  "gitRev": "abe840a",
+  "timestamp": "2026-08-24T23:00:20.947Z",
+  "gitRev": "e18a839",
   "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "exitCode": 0,
-  "testsParsed": 47,
+  "testsParsed": 54,
   "results": {
     "AC-001": {
       "status": "pass",
@@ -142,6 +142,10 @@
       "status": "pass",
       "testName": "P-005: backends permanecem privados e com privilégio mínimo @principle:P-005 P-005: backends permanecem privados e com privilégio mínimo @principle:P-005"
     },
+    "P-002": {
+      "status": "pass",
+      "testName": "AC-028: opt-ins encaminham credencial apenas à autenticação REST e nunca à configuração serializada @spec:AC-028 @principle:P-002 AC-028: opt-ins encaminham credencial apenas à autenticação REST e nunca à configuração serializada @spec:AC-028 @principle:P-002"
+    },
     "P-003": {
       "status": "pass",
       "testName": "P-003: freshness exige evidência atual @principle:P-003 P-003: freshness exige evidência atual @principle:P-003"
@@ -153,10 +157,6 @@
     "P-007": {
       "status": "pass",
       "testName": "P-007: egress e consumo de LLM são opt-in @principle:P-007 P-007: egress e consumo de LLM são opt-in @principle:P-007"
-    },
-    "P-002": {
-      "status": "pass",
-      "testName": "P-002: segredos nunca são persistidos nem expostos @principle:P-002 P-002: segredos nunca são persistidos nem expostos @principle:P-002"
     }
   }
 }

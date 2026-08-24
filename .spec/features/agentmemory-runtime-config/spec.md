@@ -1,7 +1,7 @@
 # Spec: Configuração de runtime do AgentMemory
 
 > feature: agentmemory-runtime-config
-> status: em-implementacao
+> status: implementada
 
 ## Contexto
 
