@@ -1,11 +1,11 @@
 {
   "feature": "mega-brain-mcp-v1",
-  "timestamp": "2026-08-24T18:59:50.432Z",
-  "gitRev": "361945b",
+  "timestamp": "2026-08-24T19:03:09.911Z",
+  "gitRev": "4f47a5a",
   "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "exitCode": 1,
-  "testsParsed": 42,
+  "testsParsed": 43,
   "results": {
     "AC-001": {
       "status": "pass",
@@ -93,13 +93,13 @@
       "method": "vitest-json"
     },
     "AC-018": {
-      "status": "fail",
-      "testName": "AC-018: instalação e remoção preservam hooks existentes @spec:AC-018 AC-018: instalação e remoção preservam hooks existentes @spec:AC-018",
+      "status": "pass",
+      "testName": "host hook dispatcher AC-018: instalação e remoção preservam hooks existentes @spec:AC-018 AC-018: instalação e remoção preservam hooks existentes @spec:AC-018",
       "method": "vitest-json"
     },
     "AC-019": {
-      "status": "fail",
-      "testName": "AC-019: falha de hook não bloqueia o trabalho @spec:AC-019 AC-019: falha de hook não bloqueia o trabalho @spec:AC-019",
+      "status": "pass",
+      "testName": "host hook dispatcher AC-019: falha de hook não bloqueia o trabalho @spec:AC-019 AC-019: falha de hook não bloqueia o trabalho @spec:AC-019",
       "method": "vitest-json"
     },
     "AC-020": {
@@ -147,8 +147,8 @@
       "testName": "P-003: freshness exige evidência atual @principle:P-003 P-003: freshness exige evidência atual @principle:P-003"
     },
     "P-006": {
-      "status": "fail",
-      "testName": "P-006: hooks preservam integrações e falham de forma aberta @principle:P-006 P-006: hooks preservam integrações e falham de forma aberta @principle:P-006"
+      "status": "pass",
+      "testName": "host hook dispatcher P-006: hooks preservam integrações e falham de forma aberta @principle:P-006 P-006: hooks preservam integrações e falham de forma aberta @principle:P-006"
     },
     "P-007": {
       "status": "fail",

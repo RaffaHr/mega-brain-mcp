@@ -89,8 +89,7 @@
 
 ## Fase 5 — Lifecycle e segurança
 
-## T-012 — Implementar dispatcher de hooks de Codex e Claude Code [pendente]
-
+## T-012 — Implementar dispatcher de hooks de Codex e Claude Code [concluida]
 - Refs: US-007, AC-018, AC-019
 - Arquivos: src/hooks/events.ts, src/hooks/dispatcher.ts, src/hooks/queue.ts, src/hooks/hosts/codex.ts, src/hooks/hosts/claude.ts, tests/integration/host-hooks.test.ts
 - Modelo: gpt-5.6-sol
