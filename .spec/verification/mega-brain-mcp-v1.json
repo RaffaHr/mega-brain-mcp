@@ -1,7 +1,7 @@
 {
   "feature": "mega-brain-mcp-v1",
-  "timestamp": "2026-08-24T19:03:09.911Z",
-  "gitRev": "4f47a5a",
+  "timestamp": "2026-08-24T19:05:57.013Z",
+  "gitRev": "92dbc3a",
   "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "exitCode": 1,
@@ -108,7 +108,7 @@
       "method": "vitest-json"
     },
     "AC-021": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-021: cloud e tools mutantes permanecem desabilitados por padrão @spec:AC-021 AC-021: cloud e tools mutantes permanecem desabilitados por padrão @spec:AC-021",
       "method": "vitest-json"
     },
@@ -151,11 +151,11 @@
       "testName": "host hook dispatcher P-006: hooks preservam integrações e falham de forma aberta @principle:P-006 P-006: hooks preservam integrações e falham de forma aberta @principle:P-006"
     },
     "P-007": {
-      "status": "fail",
+      "status": "pass",
       "testName": "P-007: egress e consumo de LLM são opt-in @principle:P-007 P-007: egress e consumo de LLM são opt-in @principle:P-007"
     },
     "P-002": {
-      "status": "fail",
+      "status": "pass",
       "testName": "P-002: segredos nunca são persistidos nem expostos @principle:P-002 P-002: segredos nunca são persistidos nem expostos @principle:P-002"
     }
   }

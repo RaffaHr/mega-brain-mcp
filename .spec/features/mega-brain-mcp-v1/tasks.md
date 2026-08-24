@@ -96,8 +96,7 @@
 - Esforço: xalto
 - Notas: Merge atômico, backup, trust, redaction-before-delegation, idempotência e fail-open. Dependências: T-004, T-005, T-006, T-013.
 
-## T-013 — Implementar redaction, política de egress e métricas locais [pendente]
-
+## T-013 — Implementar redaction, política de egress e métricas locais [concluida]
 - Refs: US-003, US-007, US-008, AC-021
 - Arquivos: src/security/redaction.ts, src/security/secret-patterns.ts, src/security/egress-policy.ts, src/observability/metrics.ts, src/observability/logger.ts, tests/security/redaction.test.ts, tests/security/egress.test.ts
 - Modelo: gpt-5.6-sol

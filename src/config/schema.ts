@@ -6,6 +6,7 @@ export const megaBrainConfigSchema = z.object({
   dataDir: z.string().min(1),
   logLevel: logLevelSchema.default('info'),
   allowEgress: z.boolean().default(false),
+  allowLlm: z.boolean().default(false),
   agentMemory: z.object({
     baseUrl: z.url(),
     authToken: z.string().min(1).optional(),
@@ -26,6 +27,7 @@ export type MegaBrainConfigInput = z.input<typeof megaBrainConfigSchema>;
 export const DEFAULT_CONFIG = {
   logLevel: 'info',
   allowEgress: false,
+  allowLlm: false,
   agentMemory: {
     baseUrl: 'http://127.0.0.1:8787',
     environment: {},

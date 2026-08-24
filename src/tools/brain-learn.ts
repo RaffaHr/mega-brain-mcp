@@ -1,12 +1,9 @@
 import { classifyRelationship } from '../learning/deduplication.js';
 import { authorityForEvidence, type EvidenceInput, type KnowledgeType } from '../learning/taxonomy.js';
 import { createEnvelope, type MegaBrainEnvelope } from '../server/envelope.js';
+import { redactText, redactValue } from '../security/redaction.js';
 
-const SECRET_VALUE = /(Bearer\s+)[A-Za-z0-9._~+\/-]+|\b(?:sk|ghp|github_pat)_[A-Za-z0-9_\-]{12,}|(password\s*[=:]\s*)[^\s,;]+/gi;
-
-export function redactLearningContent(content: string): string {
-  return content.replace(SECRET_VALUE, (_match, bearer: string | undefined, password: string | undefined) => `${bearer ?? password ?? ''}[REDACTED]`);
-}
+export const redactLearningContent = redactText;
 
 export interface ExistingKnowledge {
   id: string;
@@ -31,7 +28,7 @@ export async function brainLearn(input: {
   supersedes?: string;
 }, store: LearningStore): Promise<MegaBrainEnvelope> {
   const statement = redactLearningContent(input.statement);
-  const evidence = input.evidence ?? [];
+  const evidence = redactValue(input.evidence ?? []) as EvidenceInput[];
   const trust = authorityForEvidence(evidence);
   const existing = await store.findEquivalent(statement);
   const relationship = classifyRelationship({

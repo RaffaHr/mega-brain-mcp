@@ -3,6 +3,7 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 
 import { megaBrainConfigSchema, type MegaBrainConfig, type MegaBrainConfigInput } from './schema.js';
+import { redactValue } from '../security/redaction.js';
 
 const EXECUTION_CONTROL_KEYS = new Set([
   'BASH_ENV',
@@ -28,8 +29,6 @@ const BACKEND_ENV_PATTERNS = {
   agentMemory: /^(?:AGENTMEMORY_|EMBEDDING_|GRAPH_|CONSOLIDATION_|SNAPSHOT_)[A-Z0-9_]+$/,
   codeReviewGraph: /^(?:CRG_|CODE_REVIEW_GRAPH_|EMBEDDING_)[A-Z0-9_]+$/,
 } as const;
-
-const SECRET_KEY = /(?:TOKEN|SECRET|PASSWORD|PASSWD|API_KEY|AUTHORIZATION|COOKIE|PRIVATE_KEY)/i;
 
 export class UnsafeEnvironmentVariableError extends Error {
   constructor(readonly variable: string, readonly backend: keyof typeof BACKEND_ENV_PATTERNS) {
@@ -123,6 +122,7 @@ export async function loadConfig(options: LoadConfigOptions = {}): Promise<MegaB
     dataDir: path.join(homedir(), '.mega-brain'),
     logLevel: 'info',
     allowEgress: false,
+    allowLlm: false,
     agentMemory: { baseUrl: 'http://127.0.0.1:8787', environment: {} },
     codeReviewGraph: { command: 'code-review-graph', args: [], environment: {} },
     projects: {},
@@ -135,6 +135,7 @@ export async function loadConfig(options: LoadConfigOptions = {}): Promise<MegaB
       dataDir: env.MEGA_BRAIN_DATA_DIR,
       logLevel: env.MEGA_BRAIN_LOG_LEVEL,
       allowEgress: parseBoolean(env.MEGA_BRAIN_ALLOW_EGRESS, 'MEGA_BRAIN_ALLOW_EGRESS'),
+      allowLlm: parseBoolean(env.MEGA_BRAIN_ALLOW_LLM, 'MEGA_BRAIN_ALLOW_LLM'),
     }),
     agentMemory: {
       ...defaults.agentMemory,
@@ -167,15 +168,5 @@ export async function loadConfig(options: LoadConfigOptions = {}): Promise<MegaB
 }
 
 export function redactConfig(config: MegaBrainConfig): Record<string, unknown> {
-  const redactRecord = (value: unknown, key = ''): unknown => {
-    if (SECRET_KEY.test(key) && value !== undefined) return '[REDACTED]';
-    if (Array.isArray(value)) return value.map((item) => redactRecord(item));
-    if (value !== null && typeof value === 'object') {
-      return Object.fromEntries(
-        Object.entries(value).map(([nestedKey, nestedValue]) => [nestedKey, redactRecord(nestedValue, nestedKey)]),
-      );
-    }
-    return value;
-  };
-  return redactRecord(config) as Record<string, unknown>;
+  return redactValue(config) as Record<string, unknown>;
 }
