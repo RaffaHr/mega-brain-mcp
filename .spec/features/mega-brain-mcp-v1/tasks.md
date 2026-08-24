@@ -11,8 +11,7 @@
 - Esforço: medio
 - Notas: Fixar a versão estável inspecionada de mcp-use; criar scripts build, test, test:spec e audit. Dependência: nenhuma.
 
-## T-002 — Implementar configuração tipada e registro seguro de projetos [pendente]
-
+## T-002 — Implementar configuração tipada e registro seguro de projetos [concluida]
 - Refs: US-001, AC-003, US-008
 - Arquivos: src/config/schema.ts, src/config/load.ts, src/projects/identity.ts, src/projects/registry.ts, tests/unit/config.test.ts, tests/unit/project-identity.test.ts
 - Modelo: gpt-5.6-terra
