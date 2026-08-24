@@ -41,8 +41,7 @@
 - Esforço: alto
 - Notas: Health/auth, smart-search, remember, verify, timeline/sessions e erros tipados. Dependências: T-002, T-003.
 
-## T-006 — Implementar adapter MCP privado do Code Review Graph [pendente]
-
+## T-006 — Implementar adapter MCP privado do Code Review Graph [concluida]
 - Refs: US-002, US-004, US-005, US-006
 - Arquivos: src/adapters/code-review-graph/client.ts, src/adapters/code-review-graph/allowlist.ts, src/adapters/code-review-graph/schemas.ts, tests/contract/code-review-graph.test.ts
 - Modelo: gpt-5.6-sol
