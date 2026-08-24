@@ -1,11 +1,11 @@
 {
   "feature": "mega-brain-mcp-v1",
-  "timestamp": "2026-08-24T18:40:14.812Z",
-  "gitRev": "590d4b7",
+  "timestamp": "2026-08-24T18:47:03.635Z",
+  "gitRev": "f323010",
   "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "exitCode": 1,
-  "testsParsed": 36,
+  "testsParsed": 41,
   "results": {
     "AC-001": {
       "status": "pass",
@@ -103,7 +103,7 @@
       "method": "vitest-json"
     },
     "AC-020": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-020: leitura direta permanece dentro do repositório autorizado @spec:AC-020 AC-020: leitura direta permanece dentro do repositório autorizado @spec:AC-020",
       "method": "vitest-json"
     },
@@ -142,14 +142,6 @@
       "status": "pass",
       "testName": "P-005: backends permanecem privados e com privilégio mínimo @principle:P-005 P-005: backends permanecem privados e com privilégio mínimo @principle:P-005"
     },
-    "P-007": {
-      "status": "fail",
-      "testName": "P-007: egress e consumo de LLM são opt-in @principle:P-007 P-007: egress e consumo de LLM são opt-in @principle:P-007"
-    },
-    "P-002": {
-      "status": "fail",
-      "testName": "P-002: segredos nunca são persistidos nem expostos @principle:P-002 P-002: segredos nunca são persistidos nem expostos @principle:P-002"
-    },
     "P-003": {
       "status": "fail",
       "testName": "P-003: freshness exige evidência atual @principle:P-003 P-003: freshness exige evidência atual @principle:P-003"
@@ -157,6 +149,14 @@
     "P-006": {
       "status": "fail",
       "testName": "P-006: hooks preservam integrações e falham de forma aberta @principle:P-006 P-006: hooks preservam integrações e falham de forma aberta @principle:P-006"
+    },
+    "P-007": {
+      "status": "fail",
+      "testName": "P-007: egress e consumo de LLM são opt-in @principle:P-007 P-007: egress e consumo de LLM são opt-in @principle:P-007"
+    },
+    "P-002": {
+      "status": "fail",
+      "testName": "P-002: segredos nunca são persistidos nem expostos @principle:P-002 P-002: segredos nunca são persistidos nem expostos @principle:P-002"
     }
   }
 }

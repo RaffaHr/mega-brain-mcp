@@ -48,8 +48,7 @@
 - Esforço: alto
 - Notas: Child persistente, initialize/tools-list real, timeouts, restart e allowlist read-only. Dependências: T-002, T-003.
 
-## T-007 — Implementar adapter Git e leitura tracked restrita [pendente]
-
+## T-007 — Implementar adapter Git e leitura tracked restrita [concluida]
 - Refs: US-004, US-005, US-008, AC-020
 - Arquivos: src/adapters/git/repository.ts, src/adapters/git/blobs.ts, src/adapters/git/history.ts, src/adapters/git/safe-read.ts, tests/integration/git-adapter.test.ts, tests/security/path-boundary.test.ts
 - Modelo: gpt-5.6-sol
