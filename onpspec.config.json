@@ -1,8 +1,9 @@
 {
-  "testCommand": "npm run test:spec",
+  "testCommand": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "reporterOutputFile": ".spec/verification/vitest-results.json",
   "testGlobs": [
+    "test/**",
     "tests/**",
     "src/**/*.test.ts",
     "src/**/*.spec.ts"

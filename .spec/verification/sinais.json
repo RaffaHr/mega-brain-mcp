@@ -1,0 +1,653 @@
+{
+  "schema": 1,
+  "sinais": {
+    "ARQUIVO_INEXISTENTE::mega-brain-mcp-v1::T-001": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "T-001",
+      "ocorrencias": 13,
+      "primeiraVez": "2026-08-24T17:49:02.919Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "ARQUIVO_INEXISTENTE::mega-brain-mcp-v1::T-002": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "T-002",
+      "ocorrencias": 11,
+      "primeiraVez": "2026-08-24T17:49:02.920Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "ARQUIVO_INEXISTENTE::mega-brain-mcp-v1::T-003": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "T-003",
+      "ocorrencias": 10,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "ARQUIVO_INEXISTENTE::mega-brain-mcp-v1::T-004": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "T-004",
+      "ocorrencias": 13,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "ARQUIVO_INEXISTENTE::mega-brain-mcp-v1::T-005": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "T-005",
+      "ocorrencias": 8,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "ARQUIVO_INEXISTENTE::mega-brain-mcp-v1::T-006": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "T-006",
+      "ocorrencias": 8,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "ARQUIVO_INEXISTENTE::mega-brain-mcp-v1::T-007": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "T-007",
+      "ocorrencias": 11,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "ARQUIVO_INEXISTENTE::mega-brain-mcp-v1::T-008": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "T-008",
+      "ocorrencias": 11,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "ARQUIVO_INEXISTENTE::mega-brain-mcp-v1::T-009": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "T-009",
+      "ocorrencias": 13,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "ARQUIVO_INEXISTENTE::mega-brain-mcp-v1::T-010": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "T-010",
+      "ocorrencias": 11,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "ARQUIVO_INEXISTENTE::mega-brain-mcp-v1::T-011": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "T-011",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "ARQUIVO_INEXISTENTE::mega-brain-mcp-v1::T-012": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "T-012",
+      "ocorrencias": 11,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "ARQUIVO_INEXISTENTE::mega-brain-mcp-v1::T-013": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "T-013",
+      "ocorrencias": 12,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "ARQUIVO_INEXISTENTE::mega-brain-mcp-v1::T-014": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "T-014",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "ARQUIVO_INEXISTENTE::mega-brain-mcp-v1::T-015": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "T-015",
+      "ocorrencias": 9,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "ARQUIVO_INEXISTENTE::mega-brain-mcp-v1::T-016": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "T-016",
+      "ocorrencias": 19,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-001": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-001",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-002": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-002",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-003": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-003",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-004": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-004",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-005": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-005",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-006": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-006",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-007": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-007",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-008": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-008",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-009": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-009",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-010": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-010",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-011": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-011",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-012": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-012",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-013": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-013",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-014": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-014",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-015": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-015",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-016": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-016",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-017": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-017",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-018": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-018",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-019": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-019",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-020": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-020",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-021": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-021",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-022": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-022",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-023": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-023",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-024": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-024",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_TESTE::mega-brain-mcp-v1::AC-025": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-025",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "PRINCIPIO_VIOLADO::—::P-002": {
+      "codigo": "PRINCIPIO_VIOLADO",
+      "feature": "—",
+      "ref": "P-002",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "PRINCIPIO_VIOLADO::—::P-003": {
+      "codigo": "PRINCIPIO_VIOLADO",
+      "feature": "—",
+      "ref": "P-003",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "PRINCIPIO_VIOLADO::—::P-004": {
+      "codigo": "PRINCIPIO_VIOLADO",
+      "feature": "—",
+      "ref": "P-004",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "PRINCIPIO_VIOLADO::—::P-005": {
+      "codigo": "PRINCIPIO_VIOLADO",
+      "feature": "—",
+      "ref": "P-005",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "PRINCIPIO_VIOLADO::—::P-006": {
+      "codigo": "PRINCIPIO_VIOLADO",
+      "feature": "—",
+      "ref": "P-006",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "PRINCIPIO_VIOLADO::—::P-007": {
+      "codigo": "PRINCIPIO_VIOLADO",
+      "feature": "—",
+      "ref": "P-007",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:49:02.921Z",
+      "ultimaVez": "2026-08-24T17:49:02.921Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-001": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-001",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.040Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-002": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-002",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.040Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-003": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-003",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.040Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-004": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-004",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.040Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-005": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-005",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.040Z",
+      "ultimaVez": "2026-08-24T17:52:08.040Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-006": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-006",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-007": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-007",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-008": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-008",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-009": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-009",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-010": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-010",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-011": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-011",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-012": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-012",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-013": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-013",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-014": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-014",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-015": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-015",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-016": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-016",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-017": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-017",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-018": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-018",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-019": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-019",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-020": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-020",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-021": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-021",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-022": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-022",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-023": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-023",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-024": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-024",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    },
+    "AC_SEM_PROVA::mega-brain-mcp-v1::AC-025": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "AC-025",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-24T17:52:08.041Z",
+      "ultimaVez": "2026-08-24T17:52:08.041Z",
+      "gitRev": null
+    }
+  }
+}
