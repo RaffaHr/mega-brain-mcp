@@ -1,11 +1,11 @@
 {
   "feature": "mega-brain-mcp-v1",
-  "timestamp": "2026-08-24T18:47:03.635Z",
-  "gitRev": "f323010",
+  "timestamp": "2026-08-24T18:50:01.207Z",
+  "gitRev": "f6ec7ad",
   "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "exitCode": 1,
-  "testsParsed": 41,
+  "testsParsed": 42,
   "results": {
     "AC-001": {
       "status": "pass",
@@ -53,17 +53,17 @@
       "method": "vitest-json"
     },
     "AC-010": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-010: mudança não relacionada preserva memória válida @spec:AC-010 AC-010: mudança não relacionada preserva memória válida @spec:AC-010",
       "method": "vitest-json"
     },
     "AC-011": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-011: mudança direta indireta ou não commitada invalida confiança @spec:AC-011 AC-011: mudança direta indireta ou não commitada invalida confiança @spec:AC-011",
       "method": "vitest-json"
     },
     "AC-012": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-012: remoção contradição e substituição têm estados distintos @spec:AC-012 AC-012: remoção contradição e substituição têm estados distintos @spec:AC-012",
       "method": "vitest-json"
     },
@@ -143,7 +143,7 @@
       "testName": "P-005: backends permanecem privados e com privilégio mínimo @principle:P-005 P-005: backends permanecem privados e com privilégio mínimo @principle:P-005"
     },
     "P-003": {
-      "status": "fail",
+      "status": "pass",
       "testName": "P-003: freshness exige evidência atual @principle:P-003 P-003: freshness exige evidência atual @principle:P-003"
     },
     "P-006": {

@@ -57,8 +57,7 @@
 
 ## Fase 3 — Verdade e recuperação
 
-## T-008 — Implementar metadata SQLite, provenance e freshness [pendente]
-
+## T-008 — Implementar metadata SQLite, provenance e freshness [concluida]
 - Refs: US-003, US-004, AC-010, AC-011, AC-012, US-006
 - Arquivos: src/provenance/database.ts, src/provenance/migrations.ts, src/provenance/repository.ts, src/provenance/freshness.ts, src/provenance/conflicts.ts, tests/integration/freshness.test.ts
 - Modelo: gpt-5.6-sol

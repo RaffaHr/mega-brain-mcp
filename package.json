@@ -24,10 +24,12 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.26.0",
+    "better-sqlite3": "12.4.1",
     "mcp-use": "1.34.6",
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@types/better-sqlite3": "7.6.13",
     "@types/node": "22.18.0",
     "typescript": "5.9.3",
     "vitest": "4.1.11"
