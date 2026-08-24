@@ -16,7 +16,7 @@ The public MCP surface is exactly: `brain_recall`, `brain_learn`, `brain_change_
 
 ## Requirements
 
-- Node.js `20.20+` or `22.22+`
+- Node.js `>=22.22.0` (the supported CI matrix covers 22.22.0 and 24.19.0)
 - Python `3.10+`
 - Git
 - Windows, Ubuntu, or WSL

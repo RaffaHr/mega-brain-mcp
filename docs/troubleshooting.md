@@ -20,4 +20,6 @@ Check Node/Python versions and local package-index access. Upgrade restores the 
 
 ## Node prints `EBADENGINE`
 
-Use Node `20.20+` or `22.22+`. Earlier Node 22 releases may execute locally but are outside the supported dependency range.
+Use Node `>=22.22.0`. The supported CI matrix covers 22.22.0 and 24.19.0;
+earlier Node 22 releases may execute locally but are outside the supported
+dependency range.
