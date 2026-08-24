@@ -1,7 +1,7 @@
 {
   "feature": "mega-brain-mcp-v1",
-  "timestamp": "2026-08-24T18:01:47.717Z",
-  "gitRev": "afb101b",
+  "timestamp": "2026-08-24T18:06:16.378Z",
+  "gitRev": "a17a70e",
   "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "exitCode": 1,
