@@ -1,7 +1,7 @@
 {
   "feature": "mega-brain-mcp-v1",
-  "timestamp": "2026-08-24T18:11:42.840Z",
-  "gitRev": "f7a6567",
+  "timestamp": "2026-08-24T18:24:22.458Z",
+  "gitRev": "eea1224",
   "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "exitCode": 1,
@@ -13,7 +13,7 @@
       "method": "vitest-json"
     },
     "AC-002": {
-      "status": "fail",
+      "status": "pass",
       "testName": "AC-002: o host enxerga somente as seis tools do Mega Brain @spec:AC-002 AC-002: o host enxerga somente as seis tools do Mega Brain @spec:AC-002",
       "method": "vitest-json"
     },
@@ -135,11 +135,11 @@
   },
   "principles": {
     "P-004": {
-      "status": "fail",
+      "status": "pass",
       "testName": "P-004: tools públicas de consulta não alteram o repositório @principle:P-004 P-004: tools públicas de consulta não alteram o repositório @principle:P-004"
     },
     "P-005": {
-      "status": "fail",
+      "status": "pass",
       "testName": "P-005: backends permanecem privados e com privilégio mínimo @principle:P-005 P-005: backends permanecem privados e com privilégio mínimo @principle:P-005"
     },
     "P-003": {
