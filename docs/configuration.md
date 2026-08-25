@@ -88,3 +88,25 @@ Diagnostics redact bearer tokens, `AGENTMEMORY_SECRET`, and provider API keys.
 Each Git checkout/worktree receives a separate runtime identity. AgentMemory may
 be shared by the user, while CRG data and Mega Brain provenance remain
 checkout-scoped.
+
+## Host integration files
+
+`mega-brain install --hosts codex` merges the public server into
+`.codex/config.toml` and native lifecycle hooks into `.codex/hooks.json`.
+`mega-brain install --hosts claude` merges the same public server into
+`.mcp.json` and hooks into `.claude/settings.local.json`. Passing
+`--hosts codex,claude` configures both.
+
+The URL is `http://127.0.0.1:<MEGA_BRAIN_PORT>/mcp`; `--port` overrides the
+port during install. Only `mega-brain` is registered. AgentMemory and Code
+Review Graph are private adapters and must not be added to either host.
+
+The first install stores byte-preserving backups below
+`MEGA_BRAIN_DATA_DIR/projects/<worktree>/integration-backups`. Repeated install
+updates the single managed entry without replacing unrelated configuration.
+Normal uninstall restores those backups; `--purge` additionally deletes
+project knowledge after restoration.
+
+Codex may require project trust before loading `.codex/config.toml` or hooks;
+inspect with `/mcp` and `/hooks`. Claude Code exposes project MCP approval
+through `/mcp`.

@@ -39,7 +39,7 @@ function flag(args: string[], name: string): boolean {
 function mcpEndpoint(args: string[]): string {
   const port = Number(option(args, '--port') ?? process.env.MEGA_BRAIN_PORT ?? 3000);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid --port');
-  return `http://localhost:${port}/mcp`;
+  return `http://127.0.0.1:${port}/mcp`;
 }
 
 async function readStdinText(): Promise<string> {
@@ -166,7 +166,12 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     output(JSON.stringify(await startManagedRuntime(config.dataDir, identity, {
       agentMemoryMode: config.agentMemory.mode,
       agentMemoryEnvironment: config.agentMemory.environment,
-      ready: () => waitForService(() => createAgentMemoryClient(config).livez()),
+      ready: () => waitForService(async () => {
+        const health = await createAgentMemoryClient(config).health();
+        if (!(health.healthy ?? (health.status === 'ok' || health.status === 'healthy'))) {
+          throw new Error('AgentMemory health endpoint is not healthy');
+        }
+      }, { consecutiveSuccesses: 3 }),
     })));
     return;
   }

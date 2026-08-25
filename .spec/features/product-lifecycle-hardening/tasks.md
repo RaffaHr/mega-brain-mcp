@@ -26,10 +26,10 @@
 - Esforço: xalto
 - Notas: Conectar ao endpoint Streamable HTTP real, listar/chamar tools, usar backends instalados e garantir processos prontos antes do doctor. Depende de T-020 e T-021.
 
-## T-023 — Automatizar matriz isolada e alinhar distribuição [pendente]
+## T-023 — Automatizar matriz isolada e alinhar distribuição [concluida]
 
 - Refs: US-016, AC-036, AC-037, AC-038
-- Arquivos: package.json, package-lock.json, README.md, docs/configuration.md, docs/troubleshooting.md, scripts/test-isolated-lifecycle.mjs, .github/workflows/ci.yml, tests/contract/package-boundary.test.ts
+- Arquivos: package.json, package-lock.json, README.md, docs/configuration.md, docs/troubleshooting.md, scripts/test-isolated-lifecycle.mjs, scripts/onp-spec-ci.mjs, .github/workflows/ci.yml, src/adapters/code-review-graph/client.ts, src/cli/doctor.ts, src/cli/index.ts, src/cli/install.ts, src/cli/start.ts, src/server/index.ts, tests/contract/package-boundary.test.ts, tests/e2e/package-lifecycle.test.ts, tests/e2e/real-orchestration.test.ts, tests/integration/runtime-manager.test.ts
 - Modelo: gpt-5.6-terra
 - Esforço: alto
 - Notas: Consumir o tarball em diretórios/contêineres vazios, cobrir os cenários negativos sem depender de npm link e documentar o nome `@raffahr/mega-brain-mcp`. Depende de T-020, T-021 e T-022.

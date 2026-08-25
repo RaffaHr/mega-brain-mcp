@@ -143,11 +143,15 @@ export function createMegaBrainServer(handlers: MegaBrainToolHandlers = {}) {
 
 export async function listenMegaBrainServer(server: ReturnType<typeof createMegaBrainServer>, port: number): Promise<void> {
   const previousNodeEnv = process.env.NODE_ENV;
+  const previousHost = process.env.HOST;
   process.env.NODE_ENV = 'production';
+  process.env.HOST = '127.0.0.1';
   try { await server.listen(port); }
   finally {
     if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
     else process.env.NODE_ENV = previousNodeEnv;
+    if (previousHost === undefined) delete process.env.HOST;
+    else process.env.HOST = previousHost;
   }
 }
 

@@ -1,20 +1,20 @@
 {
   "feature": "agentmemory-runtime-config",
-  "timestamp": "2026-08-24T22:59:37.363Z",
-  "gitRev": "e18a839",
+  "timestamp": "2026-08-25T01:43:28.924Z",
+  "gitRev": "55b75a1",
   "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "exitCode": 0,
-  "testsParsed": 54,
+  "testsParsed": 69,
   "results": {
     "AC-026": {
       "status": "pass",
-      "testName": "AC-026: modo remoto instala somente Code Review Graph e nunca inicia AgentMemory local @spec:AC-026 AC-026: modo remoto instala somente Code Review Graph e nunca inicia AgentMemory local @spec:AC-026",
+      "testName": "AC-026: modo remoto usa somente URL e token e ignora configuração local @spec:AC-026 AC-026: modo remoto usa somente URL e token e ignora configuração local @spec:AC-026",
       "method": "vitest-json"
     },
     "AC-027": {
       "status": "pass",
-      "testName": "AC-027: modo gerenciado injeta ambiente no spawn sem persistir secrets @spec:AC-027 @principle:P-002 AC-027: modo gerenciado injeta ambiente no spawn sem persistir secrets @spec:AC-027 @principle:P-002",
+      "testName": "AC-027: modo gerenciado combina .env e processo por allowlist e reutiliza o secret local @spec:AC-027 AC-027: modo gerenciado combina .env e processo por allowlist e reutiliza o secret local @spec:AC-027",
       "method": "vitest-json"
     },
     "AC-028": {
@@ -41,6 +41,10 @@
       "status": "pass",
       "testName": "AC-028: opt-ins encaminham credencial apenas à autenticação REST e nunca à configuração serializada @spec:AC-028 @principle:P-002 AC-028: opt-ins encaminham credencial apenas à autenticação REST e nunca à configuração serializada @spec:AC-028 @principle:P-002"
     },
+    "P-007": {
+      "status": "pass",
+      "testName": "P-007: egress e consumo de LLM são opt-in @principle:P-007 P-007: egress e consumo de LLM são opt-in @principle:P-007"
+    },
     "P-003": {
       "status": "pass",
       "testName": "P-003: freshness exige evidência atual @principle:P-003 P-003: freshness exige evidência atual @principle:P-003"
@@ -48,10 +52,6 @@
     "P-006": {
       "status": "pass",
       "testName": "host hook dispatcher P-006: hooks preservam integrações e falham de forma aberta @principle:P-006 P-006: hooks preservam integrações e falham de forma aberta @principle:P-006"
-    },
-    "P-007": {
-      "status": "pass",
-      "testName": "P-007: egress e consumo de LLM são opt-in @principle:P-007 P-007: egress e consumo de LLM são opt-in @principle:P-007"
     }
   }
 }

@@ -41,9 +41,10 @@ test('AC-001: instalação cria runtime isolado e verificável @spec:AC-001', as
   });
   const inspection = await inspectManagedRuntime(dataDir, identity);
 
-  expect(commands).toHaveLength(3);
+  expect(commands).toHaveLength(4);
   expect(commands[0]?.args).toContain('@agentmemory/agentmemory@0.9.29');
   expect(commands[2]?.args).toContain('code-review-graph==2.3.7');
+  expect(commands[3]?.args).toEqual(['-m', 'code_review_graph', 'build']);
   expect(manifest.versions).toEqual({ megaBrain: '0.1.0', agentMemory: '0.9.29', codeReviewGraph: '2.3.7' });
   expect(inspection.healthy).toBe(true);
   expect(inspection.checks).toEqual({ project: true, agentMemory: true, codeReviewGraph: true });
@@ -91,7 +92,7 @@ test('AC-026: modo remoto instala somente Code Review Graph e nunca inicia Agent
     controller,
   });
 
-  expect(commands).toHaveLength(2);
+  expect(commands).toHaveLength(3);
   expect(commands.flatMap(({ args }) => args)).not.toContain('@agentmemory/agentmemory@0.9.29');
   expect(commands[1]?.args).toContain('code-review-graph==2.3.7');
   expect(manifest.agentMemoryMode).toBe('remote');
@@ -138,4 +139,29 @@ test('AC-027: modo gerenciado injeta ambiente no spawn sem persistir secrets @sp
   ].join('\n');
   expect(serialized).not.toContain('managed-secret-value');
   expect(serialized).not.toContain('AGENTMEMORY_SECRET');
+});
+
+test('AC-034: start gerenciado só retorna após executar a verificação de readiness @spec:AC-034', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-managed-readiness-'));
+  temporaryDirectories.push(dataDir);
+  const identity = deriveProjectIdentity({
+    root: path.join(dataDir, 'repo'),
+    gitDir: '.git',
+    commonGitDir: '.git',
+  });
+  await installManagedRuntime({ dataDir, identity, runner: { run: async () => undefined }, preflight: false });
+  let readinessChecks = 0;
+
+  await startManagedRuntime(dataDir, identity, {
+    controller: {
+      async start() {
+        return { pid: 85, stop: async () => undefined };
+      },
+    },
+    ready: async () => {
+      readinessChecks += 1;
+    },
+  });
+
+  expect(readinessChecks).toBe(1);
 });

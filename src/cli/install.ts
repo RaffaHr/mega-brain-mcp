@@ -102,6 +102,8 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
       }
       await runner.run(venvPython, ['-c', 'import code_review_graph'], { cwd: staging });
     }
+    await runner.run(venvPython, ['-m', 'code_review_graph', 'build'], { cwd: options.identity.root });
+
     const manifest: RuntimeLockManifest = {
       schemaVersion: 1,
       installedAt: (options.now ?? new Date()).toISOString(),

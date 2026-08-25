@@ -56,7 +56,7 @@ test('AC-034: Streamable HTTP handshake lists exactly six valid public tools and
   await listenMegaBrainServer(server, port);
   const client = new Client({ name: 'mega-brain-e2e', version: '1.0.0' });
   try {
-    await client.connect(new StreamableHTTPClientTransport(new URL(`http://localhost:${port}/mcp`)));
+    await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${port}/mcp`)));
     const listed = await client.listTools();
     expect(listed.tools.map(({ name }) => name)).toEqual(PUBLIC_TOOL_NAMES);
     expect(listed.tools.every(({ inputSchema }) => inputSchema.type === 'object')).toBe(true);

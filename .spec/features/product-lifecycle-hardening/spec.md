@@ -1,7 +1,7 @@
 # Spec: Hardening do ciclo de vida do produto
 
 > feature: product-lifecycle-hardening
-> status: pronta
+> status: auditada
 
 ## Contexto
 
@@ -111,4 +111,3 @@ do mantenedor.
 
 Nenhuma. A publicação no npm não é necessária para comprovar o pacote e não
 será feita sem uma autorização externa separada.
-

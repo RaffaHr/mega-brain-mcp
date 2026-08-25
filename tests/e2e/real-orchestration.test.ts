@@ -107,7 +107,7 @@ test('AC-035: real MCP orchestration routes through AgentMemory HTTP, CRG stdio 
   const client = new Client({ name: 'mega-brain-real-e2e', version: '1.0.0' });
   try {
     await listenMegaBrainServer(application, port);
-    await client.connect(new StreamableHTTPClientTransport(new URL(`http://localhost:${port}/mcp`)));
+    await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${port}/mcp`)));
     expect((await client.listTools()).tools.map(({ name }) => name)).toEqual(PUBLIC_TOOL_NAMES);
 
     const learned = await client.callTool({ name: 'brain_learn', arguments: {

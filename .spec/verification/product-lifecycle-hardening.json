@@ -1,12 +1,58 @@
 {
   "feature": "product-lifecycle-hardening",
-  "timestamp": "2026-08-25T00:27:10.436Z",
-  "gitRev": "60277e3",
+  "timestamp": "2026-08-25T01:44:14.044Z",
+  "gitRev": "55b75a1",
   "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "exitCode": 0,
-  "testsParsed": 54,
-  "results": {},
+  "testsParsed": 69,
+  "results": {
+    "AC-030": {
+      "status": "pass",
+      "testName": "AC-030: preflight rejects old Node before any runtime mutation @spec:AC-030 AC-030: preflight rejects old Node before any runtime mutation @spec:AC-030",
+      "method": "vitest-json"
+    },
+    "AC-031": {
+      "status": "pass",
+      "testName": "AC-031: compatible preflight selects an executable Python with venv support @spec:AC-031 AC-031: compatible preflight selects an executable Python with venv support @spec:AC-031",
+      "method": "vitest-json"
+    },
+    "AC-032": {
+      "status": "pass",
+      "testName": "AC-032: install merges one public MCP in Codex and Claude without exposing private backends @spec:AC-032 AC-032: install merges one public MCP in Codex and Claude without exposing private backends @spec:AC-032",
+      "method": "vitest-json"
+    },
+    "AC-033": {
+      "status": "pass",
+      "testName": "AC-033: repeated restore returns host MCP files byte for byte and removes created files @spec:AC-033 AC-033: repeated restore returns host MCP files byte for byte and removes created files @spec:AC-033",
+      "method": "vitest-json"
+    },
+    "AC-034": {
+      "status": "pass",
+      "testName": "AC-034: supervisor confirms spawn, enforces readiness and rolls back failures @spec:AC-034 AC-034: supervisor confirms spawn, enforces readiness and rolls back failures @spec:AC-034",
+      "method": "vitest-json"
+    },
+    "AC-035": {
+      "status": "pass",
+      "testName": "AC-035: real MCP orchestration routes through AgentMemory HTTP, CRG stdio and Git @spec:AC-035 AC-035: real MCP orchestration routes through AgentMemory HTTP, CRG stdio and Git @spec:AC-035",
+      "method": "vitest-json"
+    },
+    "AC-036": {
+      "status": "pass",
+      "testName": "AC-036: packed tarball installs a functional CLI outside the checkout @spec:AC-036 AC-036: packed tarball installs a functional CLI outside the checkout @spec:AC-036",
+      "method": "vitest-json"
+    },
+    "AC-037": {
+      "status": "pass",
+      "testName": "AC-037: isolated harness defines supported and rejection scenarios @spec:AC-037 AC-037: isolated harness defines supported and rejection scenarios @spec:AC-037",
+      "method": "vitest-json"
+    },
+    "AC-038": {
+      "status": "pass",
+      "testName": "AC-038: docs use the scoped package and automatic host lifecycle @spec:AC-038 AC-038: docs use the scoped package and automatic host lifecycle @spec:AC-038",
+      "method": "vitest-json"
+    }
+  },
   "principles": {
     "P-004": {
       "status": "pass",
@@ -20,10 +66,6 @@
       "status": "pass",
       "testName": "AC-028: opt-ins encaminham credencial apenas à autenticação REST e nunca à configuração serializada @spec:AC-028 @principle:P-002 AC-028: opt-ins encaminham credencial apenas à autenticação REST e nunca à configuração serializada @spec:AC-028 @principle:P-002"
     },
-    "P-007": {
-      "status": "pass",
-      "testName": "P-007: egress e consumo de LLM são opt-in @principle:P-007 P-007: egress e consumo de LLM são opt-in @principle:P-007"
-    },
     "P-003": {
       "status": "pass",
       "testName": "P-003: freshness exige evidência atual @principle:P-003 P-003: freshness exige evidência atual @principle:P-003"
@@ -31,6 +73,10 @@
     "P-006": {
       "status": "pass",
       "testName": "host hook dispatcher P-006: hooks preservam integrações e falham de forma aberta @principle:P-006 P-006: hooks preservam integrações e falham de forma aberta @principle:P-006"
+    },
+    "P-007": {
+      "status": "pass",
+      "testName": "P-007: egress e consumo de LLM são opt-in @principle:P-007 P-007: egress e consumo de LLM são opt-in @principle:P-007"
     }
   }
 }

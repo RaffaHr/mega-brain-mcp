@@ -36,3 +36,16 @@ jobs:
       - name: onp-spec audit --ci
         run: npm run audit
       - run: npm pack --dry-run
+
+  isolated-lifecycle:
+    name: Tarball lifecycle in disposable containers
+    runs-on: ubuntu-latest
+    needs: supported-hosts
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22.22.0
+          cache: npm
+      - run: npm ci
+      - run: npm run test:isolated
