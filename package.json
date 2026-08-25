@@ -1,6 +1,6 @@
 {
   "name": "@raffahr/mega-brain-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Evidence-aware MCP orchestration for AgentMemory, Code Review Graph, and Git",
   "type": "module",
   "keywords": [

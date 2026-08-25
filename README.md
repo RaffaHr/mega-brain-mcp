@@ -32,7 +32,7 @@ tarball shape that npm publishes:
 ```powershell
 npm ci
 npm pack
-npm install --global .\raffahr-mega-brain-mcp-0.1.0.tgz
+npm install --global .\raffahr-mega-brain-mcp-0.1.1.tgz
 mega-brain --help
 ```
 

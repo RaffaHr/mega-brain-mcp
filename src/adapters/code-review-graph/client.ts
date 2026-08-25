@@ -36,7 +36,7 @@ function effectiveEnvironment(options: CrgClientOptions): Record<string, string>
 }
 
 function sdkSession(options: CrgClientOptions): CrgSession {
-  const client = new Client({ name: 'mega-brain-mcp', version: '0.1.0' });
+  const client = new Client({ name: 'mega-brain-mcp', version: '0.1.1' });
   const transport = new StdioClientTransport({
     command: options.command,
     args: options.args ?? ['serve'],
