@@ -17,7 +17,7 @@ set -o pipefail
 RUN_ID='mega-brain-mcp-autonomous-project-runtime-mt8qx8oi'
 FEATURE='autonomous-project-runtime'
 BASE_BRANCH='spec/autonomous-project-runtime'
-ENGINE='C:\Users\raphael.moreira\.agents\skills\onp-spec-driven\scripts\onp-spec.mjs'
+ENGINE="${ONP_SPEC_ENGINE:-$HOME/.agents/skills/onp-spec-driven/scripts/onp-spec.mjs}"
 CODEX_FLAGS=(--sandbox 'workspace-write')
 STREAM_FLAGS=(--json)
 FALHAS=""

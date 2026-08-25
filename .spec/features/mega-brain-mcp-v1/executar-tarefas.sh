@@ -17,7 +17,7 @@ set -o pipefail
 RUN_ID='mega-brain-mcp-mega-brain-mcp-v1-mt7kod3j'
 FEATURE='mega-brain-mcp-v1'
 BASE_BRANCH='spec/mega-brain-mcp-v1'
-ENGINE='C:\Users\raphael.moreira\.agents\skills\onp-spec-driven\scripts\onp-spec.mjs'
+ENGINE="${ONP_SPEC_ENGINE:-$HOME/.agents/skills/onp-spec-driven/scripts/onp-spec.mjs}"
 CODEX_FLAGS=(--sandbox 'workspace-write')
 STREAM_FLAGS=(--json)
 FALHAS=""

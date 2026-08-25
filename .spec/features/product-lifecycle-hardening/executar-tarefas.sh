@@ -17,7 +17,7 @@ set -o pipefail
 RUN_ID='mega-brain-mcp-product-lifecycle-hardening-mt7x0pr4'
 FEATURE='product-lifecycle-hardening'
 BASE_BRANCH='spec/product-lifecycle-hardening'
-ENGINE='C:\Users\Raffa\.agents\skills\onp-spec-driven\scripts\onp-spec.mjs'
+ENGINE="${ONP_SPEC_ENGINE:-$HOME/.agents/skills/onp-spec-driven/scripts/onp-spec.mjs}"
 CODEX_FLAGS=(--sandbox 'workspace-write')
 STREAM_FLAGS=(--json)
 FALHAS=""

@@ -17,7 +17,7 @@ set -o pipefail
 RUN_ID='mega-brain-mcp-agentmemory-runtime-config-mt7p8kgd'
 FEATURE='agentmemory-runtime-config'
 BASE_BRANCH='spec/agentmemory-runtime-config'
-ENGINE='C:\Users\raphael.moreira\.agents\skills\onp-spec-driven\scripts\onp-spec.mjs'
+ENGINE="${ONP_SPEC_ENGINE:-$HOME/.agents/skills/onp-spec-driven/scripts/onp-spec.mjs}"
 CODEX_FLAGS=(--sandbox 'workspace-write')
 STREAM_FLAGS=(--json)
 FALHAS=""
