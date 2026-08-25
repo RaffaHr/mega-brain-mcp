@@ -1,6 +1,7 @@
 #!/usr/bin/env node
+import { realpathSync } from 'node:fs';
 import path from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath } from 'node:url';
 
 import { AgentMemoryClient } from '../adapters/agentmemory/client.js';
 import { CodeReviewGraphClient } from '../adapters/code-review-graph/client.js';
@@ -19,6 +20,7 @@ import { managedDoctorDependencies, runDoctor } from './doctor.js';
 import { handleGitHook, handleHostHook } from './hook.js';
 import { installHostHookFiles, parseHosts, restoreHostHookFiles } from './host-hooks.js';
 import { installManagedRuntime, inspectManagedRuntime } from './install.js';
+import { runInstallPreflight } from './preflight.js';
 import { startManagedRuntime } from './start.js';
 import { stopManagedRuntime } from './stop.js';
 import { uninstallMegaBrain } from './uninstall.js';
@@ -100,9 +102,13 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     return;
   }
   if (command === 'help' || flag(args, '--help')) {
-    output('Usage: mega-brain <serve|install|start|stop|doctor|upgrade|uninstall> [--repo PATH] [--config FILE] [--hosts codex,claude]');
+    output('Usage: mega-brain <serve|install|start|stop|doctor|upgrade|uninstall> [--repo PATH] [--config FILE] [--hosts codex,claude] [--python COMMAND]');
     return;
   }
+  const pythonOption = option(args, '--python');
+  const installPreflight = command === 'install' || command === 'upgrade'
+    ? await runInstallPreflight({ ...(pythonOption ? { pythonCommand: pythonOption } : {}) })
+    : null;
   const { config, identity } = await projectContext(args);
   const layout = runtimeLayout(config.dataDir, identity);
   if (command === 'hook') {
@@ -132,6 +138,8 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       dataDir: config.dataDir,
       identity,
       agentMemoryMode: config.agentMemory.mode,
+      pythonCommand: installPreflight!.pythonCommand,
+      preflight: false,
     });
     try {
       await installHostHookFiles({ root: identity.root, backupDir: hostBackupDir, hosts });
@@ -161,6 +169,8 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       dataDir: config.dataDir,
       identity,
       agentMemoryMode: config.agentMemory.mode,
+      pythonCommand: installPreflight!.pythonCommand,
+      preflight: false,
     })));
     return;
   }
@@ -219,7 +229,16 @@ export async function main(args = process.argv.slice(2), output: (value: string)
   throw new Error(`Unknown command: ${command}`);
 }
 
-const invoked = process.argv[1] ? pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url : false;
+function isDirectInvocation(): boolean {
+  if (!process.argv[1]) return false;
+  try {
+    return realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url));
+  } catch {
+    return path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+  }
+}
+
+const invoked = isDirectInvocation();
 if (invoked) {
   main().catch((error) => {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);

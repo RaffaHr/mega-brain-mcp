@@ -2,7 +2,7 @@
 
 > feature: product-lifecycle-hardening
 
-## T-020 — Implementar preflight sem efeitos colaterais [pendente]
+## T-020 — Implementar preflight sem efeitos colaterais [concluida]
 
 - Refs: US-013, AC-030, AC-031
 - Arquivos: src/cli/preflight.ts, src/cli/install.ts, src/cli/index.ts, tests/integration/preflight.test.ts, tests/integration/runtime-manager.test.ts

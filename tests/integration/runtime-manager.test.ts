@@ -36,6 +36,7 @@ test('AC-001: instalação cria runtime isolado e verificável @spec:AC-001', as
     dataDir,
     identity,
     runner,
+    preflight: false,
     now: new Date('2026-08-24T12:00:00.000Z'),
   });
   const inspection = await inspectManagedRuntime(dataDir, identity);
@@ -47,6 +48,10 @@ test('AC-001: instalação cria runtime isolado e verificável @spec:AC-001', as
   expect(inspection.healthy).toBe(true);
   expect(inspection.checks).toEqual({ project: true, agentMemory: true, codeReviewGraph: true });
   expect(manifest.backends.codeReviewGraph.lifecycle).toBe('on-demand');
+  expect(manifest.backends.codeReviewGraph.command).toContain(path.join('runtime', 'current', 'code-review-graph'));
+  expect(manifest.backends.codeReviewGraph.command).not.toContain('.staging-');
+  expect(manifest.backends.agentMemory?.cwd).toContain(path.join('runtime', 'current', 'agentmemory'));
+  expect(manifest.backends.agentMemory?.cwd).not.toContain('.staging-');
 });
 
 test('AC-026: modo remoto instala somente Code Review Graph e nunca inicia AgentMemory local @spec:AC-026', async () => {
@@ -69,6 +74,7 @@ test('AC-026: modo remoto instala somente Code Review Graph e nunca inicia Agent
     identity,
     agentMemoryMode: 'remote',
     runner,
+    preflight: false,
     now: new Date('2026-08-24T12:00:00.000Z'),
   });
   const inspection = await inspectManagedRuntime(dataDir, identity);
@@ -103,7 +109,7 @@ test('AC-027: modo gerenciado injeta ambiente no spawn sem persistir secrets @sp
     gitDir: '.git',
     commonGitDir: '.git',
   });
-  await installManagedRuntime({ dataDir, identity, runner: { run: async () => undefined } });
+  await installManagedRuntime({ dataDir, identity, runner: { run: async () => undefined }, preflight: false });
   const receivedEnvironment: Array<NodeJS.ProcessEnv | undefined> = [];
   const controller: ProcessController = {
     async start(_command, _logFile, environment) {
