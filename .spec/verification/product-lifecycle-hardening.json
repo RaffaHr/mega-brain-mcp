@@ -1,7 +1,7 @@
 {
   "feature": "product-lifecycle-hardening",
-  "timestamp": "2026-08-25T01:44:14.044Z",
-  "gitRev": "55b75a1",
+  "timestamp": "2026-08-25T01:52:38.295Z",
+  "gitRev": "2c89483",
   "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "exitCode": 0,

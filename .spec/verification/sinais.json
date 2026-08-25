@@ -1013,19 +1013,19 @@
       "codigo": "VERIFY_OBSOLETO",
       "feature": "mega-brain-mcp-v1",
       "ref": "—",
-      "ocorrencias": 4,
+      "ocorrencias": 5,
       "primeiraVez": "2026-08-24T22:59:52.327Z",
-      "ultimaVez": "2026-08-25T00:27:10.785Z",
-      "gitRev": "60277e3"
+      "ultimaVez": "2026-08-25T01:50:04.323Z",
+      "gitRev": "2c89483"
     },
     "VERIFY_OBSOLETO::agentmemory-runtime-config::—": {
       "codigo": "VERIFY_OBSOLETO",
       "feature": "agentmemory-runtime-config",
       "ref": "—",
-      "ocorrencias": 3,
+      "ocorrencias": 4,
       "primeiraVez": "2026-08-24T23:51:10.837Z",
-      "ultimaVez": "2026-08-25T00:27:10.784Z",
-      "gitRev": "60277e3"
+      "ultimaVez": "2026-08-25T01:50:04.322Z",
+      "gitRev": "2c89483"
     },
     "STATUS_INVALIDO::product-lifecycle-hardening::.spec\\features\\product-lifecycle-hardening\\spec.md": {
       "codigo": "STATUS_INVALIDO",
@@ -1152,6 +1152,15 @@
       "primeiraVez": "2026-08-24T23:59:27.013Z",
       "ultimaVez": "2026-08-25T00:27:10.785Z",
       "gitRev": "60277e3"
+    },
+    "VERIFY_OBSOLETO::product-lifecycle-hardening::—": {
+      "codigo": "VERIFY_OBSOLETO",
+      "feature": "product-lifecycle-hardening",
+      "ref": "—",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-25T01:50:04.323Z",
+      "ultimaVez": "2026-08-25T01:50:04.323Z",
+      "gitRev": "2c89483"
     }
   }
 }
