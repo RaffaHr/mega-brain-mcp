@@ -20,7 +20,12 @@ export async function stopManagedRuntime(
   stopper: ProcessStopper = systemProcessStopper,
 ): Promise<void> {
   const layout = runtimeLayout(dataDir, identity);
-  const state = await readRuntimeState(layout);
+  let state;
+  try { state = await readRuntimeState(layout); }
+  catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+    throw error;
+  }
   await Promise.allSettled(Object.values(state.processes).map((pid) => stopper.stop(pid)));
   await rm(layout.stateFile, { force: true });
 }

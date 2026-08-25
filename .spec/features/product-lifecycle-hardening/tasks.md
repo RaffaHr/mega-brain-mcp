@@ -18,7 +18,7 @@
 - Esforço: alto
 - Notas: Escrever formatos nativos de MCP por projeto, preservar entradas existentes e guardar backup byte a byte para rollback/uninstall. Depende de T-020 para nenhuma mutação antes do preflight.
 
-## T-022 — Fechar o lifecycle real e a orquestração MCP [pendente]
+## T-022 — Fechar o lifecycle real e a orquestração MCP [concluida]
 
 - Refs: US-015, AC-034, AC-035, US-016, AC-036
 - Arquivos: src/cli/index.ts, src/cli/start.ts, src/cli/stop.ts, src/cli/doctor.ts, src/runtime/supervisor.ts, src/server/application.ts, tests/e2e/package-lifecycle.test.ts, tests/e2e/real-orchestration.test.ts

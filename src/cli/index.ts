@@ -15,14 +15,14 @@ import { runtimeLayout } from '../runtime/layout.js';
 import { installGitHookMultiplexer, restoreGitHooks } from '../hooks/git/install.js';
 import type { MegaBrainGitHook } from '../hooks/git/multiplexer.js';
 import { createApplicationHandlers } from '../server/application.js';
-import { createMegaBrainServer } from '../server/index.js';
+import { createMegaBrainServer, listenMegaBrainServer } from '../server/index.js';
 import { managedDoctorDependencies, runDoctor } from './doctor.js';
 import { handleGitHook, handleHostHook } from './hook.js';
 import { installHostMcpFiles, restoreHostMcpFiles } from './host-integration.js';
 import { installHostHookFiles, parseHosts, restoreHostHookFiles } from './host-hooks.js';
 import { installManagedRuntime, inspectManagedRuntime } from './install.js';
 import { runInstallPreflight } from './preflight.js';
-import { startManagedRuntime } from './start.js';
+import { startManagedRuntime, waitForService } from './start.js';
 import { stopManagedRuntime } from './stop.js';
 import { uninstallMegaBrain } from './uninstall.js';
 import { upgradeManagedRuntime } from './upgrade.js';
@@ -39,7 +39,7 @@ function flag(args: string[], name: string): boolean {
 function mcpEndpoint(args: string[]): string {
   const port = Number(option(args, '--port') ?? process.env.MEGA_BRAIN_PORT ?? 3000);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid --port');
-  return `http://127.0.0.1:${port}/mcp`;
+  return `http://localhost:${port}/mcp`;
 }
 
 async function readStdinText(): Promise<string> {
@@ -105,7 +105,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     };
     process.once('SIGINT', () => { void close(); });
     process.once('SIGTERM', () => { void close(); });
-    await application.listen(port);
+    await listenMegaBrainServer(application, port);
     return;
   }
   if (command === 'help' || flag(args, '--help')) {
@@ -166,6 +166,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     output(JSON.stringify(await startManagedRuntime(config.dataDir, identity, {
       agentMemoryMode: config.agentMemory.mode,
       agentMemoryEnvironment: config.agentMemory.environment,
+      ready: () => waitForService(() => createAgentMemoryClient(config).livez()),
     })));
     return;
   }

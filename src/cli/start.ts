@@ -10,6 +10,7 @@ export interface StartManagedRuntimeOptions {
   agentMemoryMode?: AgentMemoryMode;
   agentMemoryEnvironment?: Record<string, string>;
   controller?: ProcessController;
+  ready?: () => Promise<void>;
 }
 
 export async function startManagedRuntime(
@@ -26,4 +27,27 @@ export async function startManagedRuntime(
       ? { agentMemory: options.agentMemoryEnvironment }
       : {},
   });
+}
+
+
+
+export async function waitForService(
+  check: () => Promise<unknown>,
+  options: { timeoutMs?: number; intervalMs?: number } = {},
+): Promise<void> {
+  const timeoutMs = options.timeoutMs ?? 60_000;
+  const intervalMs = options.intervalMs ?? 250;
+  const deadline = Date.now() + timeoutMs;
+  let lastError: unknown;
+  do {
+    try {
+      await check();
+      return;
+    } catch (error) {
+      lastError = error;
+      if (Date.now() >= deadline) break;
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+  } while (Date.now() < deadline);
+  throw new Error(`Service did not become ready within ${timeoutMs}ms: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
 }
