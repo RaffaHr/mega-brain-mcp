@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process';
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, open, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import type { RuntimeLayout } from './layout.js';
@@ -17,20 +17,34 @@ export interface ProcessController {
 
 export const systemProcessController: ProcessController = {
   async start(command, logFile, environment) {
-    const child: ChildProcess = spawn(command.command, command.args, {
-      cwd: command.cwd,
-      detached: process.platform !== 'win32',
-      env: { ...process.env, ...(environment ?? {}) },
-      stdio: 'ignore',
-      windowsHide: true,
-    });
-    if (!child.pid) throw new Error(`Failed to start ${command.command}`);
+    const log = await open(logFile, 'a');
+    let child: ChildProcess;
+    try {
+      child = spawn(command.command, command.args, {
+        cwd: command.cwd,
+        detached: process.platform !== 'win32',
+        env: { ...process.env, ...(environment ?? {}) },
+        stdio: ['ignore', log.fd, log.fd],
+        windowsHide: true,
+      });
+      await new Promise<void>((resolve, reject) => {
+        child.once('spawn', resolve);
+        child.once('error', reject);
+      });
+    } catch (error) {
+      await log.close();
+      throw new Error(`Failed to start ${command.command}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+    await log.close();
+    if (!child.pid) throw new Error(`Failed to start ${command.command}: process has no pid`);
     child.unref();
-    await writeFile(logFile, '', { flag: 'a' });
     return {
       pid: child.pid,
       async stop() {
-        process.kill(child.pid!, 'SIGTERM');
+        try { process.kill(child.pid!, 'SIGTERM'); }
+        catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
+        }
       },
     };
   },
@@ -45,6 +59,7 @@ export interface RuntimeState {
 export interface StartRuntimeOptions {
   agentMemoryMode?: AgentMemoryMode;
   environment?: RuntimeEnvironment;
+  ready?: () => Promise<void>;
 }
 
 export async function startRuntime(
@@ -74,6 +89,7 @@ export async function startRuntime(
       started.push(managed);
       processes[name] = managed.pid;
     }
+    await options.ready?.();
     const state = { startedAt: new Date().toISOString(), agentMemoryMode, processes };
     await writeFile(layout.stateFile, `${JSON.stringify(state, null, 2)}\n`, 'utf8');
     return state;

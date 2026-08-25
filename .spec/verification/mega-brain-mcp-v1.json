@@ -1,11 +1,11 @@
 {
   "feature": "mega-brain-mcp-v1",
-  "timestamp": "2026-08-24T23:00:20.947Z",
-  "gitRev": "e18a839",
+  "timestamp": "2026-08-25T02:19:38.670Z",
+  "gitRev": "d41d3b3",
   "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "exitCode": 0,
-  "testsParsed": 54,
+  "testsParsed": 70,
   "results": {
     "AC-001": {
       "status": "pass",
@@ -129,7 +129,7 @@
     },
     "AC-025": {
       "status": "pass",
-      "testName": "AC-025: release exige matriz suportada e audit limpo @spec:AC-025 AC-025: release exige matriz suportada e audit limpo @spec:AC-025",
+      "testName": "Node support contract AC-025: release publishes only an exact package tag reachable from main @spec:AC-025 AC-025: release publishes only an exact package tag reachable from main @spec:AC-025",
       "method": "vitest-json"
     }
   },

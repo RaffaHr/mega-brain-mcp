@@ -1,5 +1,5 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import { getDefaultEnvironment, StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 
 import { assertAllowedCrgTool, assertExactCrgSurface, CRG_READ_ONLY_TOOLS, type CrgReadOnlyTool } from './allowlist.js';
 import { crgToolResultSchema, crgToolsResponseSchema, type CrgToolResult } from './schemas.js';
@@ -28,6 +28,7 @@ function sdkSession(options: CrgClientOptions): CrgSession {
     args: options.args ?? ['serve'],
     cwd: options.cwd,
     env: {
+      ...getDefaultEnvironment(),
       ...(options.environment ?? {}),
       CRG_TOOLS: CRG_READ_ONLY_TOOLS.join(','),
     },
@@ -78,6 +79,13 @@ export class CodeReviewGraphClient {
     }
   }
 
+  async #close(session: CrgSession): Promise<void> {
+    await Promise.race([
+      session.close().catch(() => undefined),
+      new Promise<void>((resolve) => setTimeout(resolve, 1_000)),
+    ]);
+  }
+
   async start(): Promise<void> {
     if (this.#session) return;
     const session = this.#options.sessionFactory?.() ?? sdkSession(this.#options);
@@ -89,7 +97,7 @@ export class CodeReviewGraphClient {
       this.#version = session.serverVersion?.()?.version ?? null;
       this.#session = session;
     } catch (error) {
-      await session.close().catch(() => undefined);
+      await this.#close(session);
       throw error;
     }
   }
@@ -99,7 +107,7 @@ export class CodeReviewGraphClient {
     this.#session = null;
     this.#version = null;
     this.#tools = [];
-    if (session) await session.close();
+    if (session) await this.#close(session);
   }
 
   async restart(): Promise<void> {

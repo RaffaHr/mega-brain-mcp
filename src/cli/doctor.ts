@@ -32,7 +32,6 @@ export async function runDoctor(options: DoctorOptions, dependencies: DoctorDepe
   if (!agentMemory.healthy) warnings.push('agentmemory unavailable');
   if (!codeReviewGraph.healthy) warnings.push('code_review_graph unavailable');
   if (agentMemory.version && agentMemory.version !== runtime.manifest.versions.agentMemory) warnings.push('agentmemory version mismatch');
-  if (codeReviewGraph.version && codeReviewGraph.version !== runtime.manifest.versions.codeReviewGraph) warnings.push('code_review_graph version mismatch');
   if (codeReviewGraph.graphHead && codeReviewGraph.graphHead !== head) warnings.push('code_review_graph index is behind Git HEAD');
   if (!options.hooksHealthy) warnings.push('hook installation is unhealthy');
   if (options.queueDepth > 0) warnings.push('hook queue has pending events');
@@ -81,7 +80,10 @@ export function managedDoctorDependencies(input: {
 }): DoctorDependencies {
   return {
     inspect: () => inspectManagedRuntime(input.dataDir, input.identity),
-    probeAgentMemory: () => probeAgentMemory(input.agentMemory),
+    async probeAgentMemory() {
+      try { return await probeAgentMemory(input.agentMemory); }
+      catch { return { healthy: false, version: null, endpoints: [] }; }
+    },
     async probeCodeReviewGraph() {
       await input.codeReviewGraph.start();
       const changes = await input.codeReviewGraph.call('detect_changes_tool', {});

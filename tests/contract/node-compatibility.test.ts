@@ -51,4 +51,14 @@ describe('Node support contract', () => {
       }
     }
   });
+
+  test('AC-025: release publishes only an exact package tag reachable from main @spec:AC-025', async () => {
+    const release = await readFile(path.join(root, '.github', 'workflows', 'release.yml'), 'utf8');
+
+    expect(release).toMatch(/tags: \[\"v\*\"\]/);
+    expect(release).not.toContain('workflow_dispatch');
+    expect(release).toContain('expected_tag="v$(node -p "require(\'\.\/package\.json\')\.version")"');
+    expect(release).toContain('git merge-base --is-ancestor "$GITHUB_SHA" refs/remotes/origin/main');
+    expect(release).toContain('npm publish --provenance --access public');
+  });
 });

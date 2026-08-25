@@ -121,11 +121,14 @@ function unavailableHandler(name: PublicToolName): MegaBrainToolHandler {
 }
 
 export function createMegaBrainServer(handlers: MegaBrainToolHandlers = {}) {
+  const previousNodeEnv = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'production';
   const server = new MCPServer({
     name: 'mega-brain-mcp',
     version: '0.1.0',
     description: 'Evidence-aware orchestration for AgentMemory, Code Review Graph, and Git.',
     instructions: 'Use only the six public brain_* tools. Backend tools are private implementation details.',
+    stateless: true,
   });
 
   for (const definition of PUBLIC_TOOL_DEFINITIONS) {
@@ -133,7 +136,23 @@ export function createMegaBrainServer(handlers: MegaBrainToolHandlers = {}) {
     server.tool(definition, async (input) => object(await handler(input)));
   }
 
+  if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+  else process.env.NODE_ENV = previousNodeEnv;
   return server;
+}
+
+export async function listenMegaBrainServer(server: ReturnType<typeof createMegaBrainServer>, port: number): Promise<void> {
+  const previousNodeEnv = process.env.NODE_ENV;
+  const previousHost = process.env.HOST;
+  process.env.NODE_ENV = 'production';
+  process.env.HOST = '127.0.0.1';
+  try { await server.listen(port); }
+  finally {
+    if (previousNodeEnv === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = previousNodeEnv;
+    if (previousHost === undefined) delete process.env.HOST;
+    else process.env.HOST = previousHost;
+  }
 }
 
 const server = createMegaBrainServer();

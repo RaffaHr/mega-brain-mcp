@@ -1,0 +1,104 @@
+{
+  "runId": "mega-brain-mcp-product-lifecycle-hardening-mt7x0pr4",
+  "feature": "product-lifecycle-hardening",
+  "agent": "codex",
+  "modo": "sequencial",
+  "paralelizar": null,
+  "modeloForcado": null,
+  "esforcoForcado": null,
+  "geradoEm": "2026-08-25 00:17",
+  "branchTrabalho": "spec/product-lifecycle-hardening",
+  "baseDir": ".spec/features/product-lifecycle-hardening",
+  "specDir": ".spec",
+  "repoName": "mega-brain-mcp",
+  "logsDir": "../onp-worktrees/mega-brain-mcp-product-lifecycle-hardening-logs",
+  "ondas": [],
+  "faixas": [],
+  "sequenciais": [
+    {
+      "id": "T-020",
+      "titulo": "Implementar preflight sem efeitos colaterais",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "high",
+      "arquivos": [
+        "src/cli/preflight.ts",
+        "src/cli/install.ts",
+        "src/cli/index.ts",
+        "tests/integration/preflight.test.ts",
+        "tests/integration/runtime-manager.test.ts"
+      ],
+      "refs": [
+        "US-013",
+        "AC-030",
+        "AC-031"
+      ]
+    },
+    {
+      "id": "T-021",
+      "titulo": "Integrar MCP e hooks de Codex e Claude Code",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "high",
+      "arquivos": [
+        "src/cli/host-integration.ts",
+        "src/cli/host-hooks.ts",
+        "src/hooks/hosts/codex.ts",
+        "src/hooks/hosts/claude.ts",
+        "src/cli/index.ts",
+        "tests/integration/host-integration.test.ts",
+        "tests/integration/host-hooks.test.ts"
+      ],
+      "refs": [
+        "US-014",
+        "AC-032",
+        "AC-033"
+      ]
+    },
+    {
+      "id": "T-022",
+      "titulo": "Fechar o lifecycle real e a orquestração MCP",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "xhigh",
+      "arquivos": [
+        "src/cli/index.ts",
+        "src/cli/start.ts",
+        "src/cli/stop.ts",
+        "src/cli/doctor.ts",
+        "src/runtime/supervisor.ts",
+        "src/server/application.ts",
+        "tests/e2e/package-lifecycle.test.ts",
+        "tests/e2e/real-orchestration.test.ts"
+      ],
+      "refs": [
+        "US-015",
+        "AC-034",
+        "AC-035",
+        "US-016",
+        "AC-036"
+      ]
+    },
+    {
+      "id": "T-023",
+      "titulo": "Automatizar matriz isolada e alinhar distribuição",
+      "modelo": "gpt-5.6-terra",
+      "esforco": "high",
+      "arquivos": [
+        "package.json",
+        "package-lock.json",
+        "README.md",
+        "docs/configuration.md",
+        "docs/troubleshooting.md",
+        "scripts/test-isolated-lifecycle.mjs",
+        ".github/workflows/ci.yml",
+        "tests/contract/package-boundary.test.ts"
+      ],
+      "refs": [
+        "US-016",
+        "AC-036",
+        "AC-037",
+        "AC-038"
+      ]
+    }
+  ],
+  "concluidas": [],
+  "avisos": []
+}

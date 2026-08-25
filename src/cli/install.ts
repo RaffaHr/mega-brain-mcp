@@ -8,6 +8,7 @@ import type { ProjectIdentity } from '../projects/identity.js';
 import { assertRuntimeChild, runtimeLayout } from '../runtime/layout.js';
 import { writeRuntimeLock, type RuntimeLockManifest } from '../runtime/lock-manifest.js';
 import type { AgentMemoryMode } from '../runtime/types.js';
+import { npmInvocation, runInstallPreflight, type InstallPreflightOptions } from './preflight.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -39,6 +40,8 @@ export interface InstallRuntimeOptions {
   pythonCommand?: string;
   runner?: CommandRunner;
   now?: Date;
+  preflight?: false | InstallPreflightOptions;
+  validateArtifacts?: boolean;
 }
 
 export interface RuntimeInspection {
@@ -53,6 +56,9 @@ async function exists(filePath: string): Promise<boolean> {
 
 export async function installManagedRuntime(options: InstallRuntimeOptions): Promise<RuntimeLockManifest> {
   const runner = options.runner ?? systemCommandRunner;
+  const preflight = options.preflight === false
+    ? null
+    : await runInstallPreflight({ ...options.preflight, ...(options.pythonCommand ? { pythonCommand: options.pythonCommand } : {}) });
   const layout = runtimeLayout(options.dataDir, options.identity);
   const staging = assertRuntimeChild(layout, path.join(layout.runtimeRoot, `.staging-${randomUUID()}`));
   const backup = assertRuntimeChild(layout, path.join(layout.runtimeRoot, `.backup-${randomUUID()}`));
@@ -60,8 +66,8 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
   const crgDir = path.join(staging, 'code-review-graph');
   const venvDir = path.join(crgDir, 'venv');
   const agentMemoryMode = options.agentMemoryMode ?? 'managed';
-  const npm = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-  const python = options.pythonCommand ?? (process.platform === 'win32' ? 'python.exe' : 'python3');
+  const npm = npmInvocation();
+  const python = options.pythonCommand ?? preflight?.pythonCommand ?? (process.platform === 'win32' ? 'python.exe' : 'python3');
 
   if (agentMemoryMode === 'managed') await mkdir(agentMemoryDir, { recursive: true });
   await mkdir(crgDir, { recursive: true });
@@ -69,8 +75,8 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
   try {
     if (agentMemoryMode === 'managed') {
       await runner.run(
-        npm,
-        ['install', '--ignore-scripts', '--no-audit', '--no-fund', '--prefix', agentMemoryDir, `@agentmemory/agentmemory@${MANAGED_VERSIONS.agentMemory}`, `@agentmemory/mcp@${MANAGED_VERSIONS.agentMemory}`],
+        npm.command,
+        [...npm.args, 'install', '--ignore-scripts', '--no-audit', '--no-fund', '--prefix', agentMemoryDir, `@agentmemory/agentmemory@${MANAGED_VERSIONS.agentMemory}`, `@agentmemory/mcp@${MANAGED_VERSIONS.agentMemory}`],
         { cwd: staging },
       );
     }
@@ -80,7 +86,24 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
       : path.join(venvDir, 'bin', 'python');
     await runner.run(venvPython, ['-m', 'pip', 'install', `code-review-graph==${MANAGED_VERSIONS.codeReviewGraph}`], { cwd: staging });
 
-    const agentMemoryEntrypoint = path.join(agentMemoryDir, 'node_modules', '@agentmemory', 'agentmemory', 'dist', 'cli.mjs');
+    const finalAgentMemoryDir = path.join(layout.current, 'agentmemory');
+    const finalCrgDir = path.join(layout.current, 'code-review-graph');
+    const finalVenvPython = process.platform === 'win32'
+      ? path.join(finalCrgDir, 'venv', 'Scripts', 'python.exe')
+      : path.join(finalCrgDir, 'venv', 'bin', 'python');
+    const stagedAgentMemoryEntrypoint = path.join(agentMemoryDir, 'node_modules', '@agentmemory', 'agentmemory', 'dist', 'cli.mjs');
+    const finalAgentMemoryEntrypoint = path.join(finalAgentMemoryDir, 'node_modules', '@agentmemory', 'agentmemory', 'dist', 'cli.mjs');
+    if (options.validateArtifacts ?? runner === systemCommandRunner) {
+      if (agentMemoryMode === 'managed' && !(await exists(stagedAgentMemoryEntrypoint))) {
+        throw new Error('AgentMemory installation completed without an executable CLI entrypoint');
+      }
+      if (!(await exists(venvPython))) {
+        throw new Error('Code Review Graph installation completed without a virtualenv Python executable');
+      }
+      await runner.run(venvPython, ['-c', 'import code_review_graph'], { cwd: staging });
+    }
+    await runner.run(venvPython, ['-m', 'code_review_graph', 'build'], { cwd: options.identity.root });
+
     const manifest: RuntimeLockManifest = {
       schemaVersion: 1,
       installedAt: (options.now ?? new Date()).toISOString(),
@@ -95,13 +118,13 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
         ...(agentMemoryMode === 'managed' ? {
           agentMemory: {
             command: process.execPath,
-            args: [agentMemoryEntrypoint, '--data-dir', path.join(layout.projectRoot, 'agentmemory-data')],
-            cwd: agentMemoryDir,
+            args: [finalAgentMemoryEntrypoint, '--data-dir', path.join(layout.projectRoot, 'agentmemory-data')],
+            cwd: finalAgentMemoryDir,
             lifecycle: 'daemon' as const,
           },
         } : {}),
         codeReviewGraph: {
-          command: venvPython,
+          command: finalVenvPython,
           args: ['-m', 'code_review_graph', 'serve'],
           cwd: options.identity.root,
           lifecycle: 'on-demand',
