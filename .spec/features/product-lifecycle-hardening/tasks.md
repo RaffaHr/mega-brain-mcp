@@ -10,7 +10,7 @@
 - Esforço: alto
 - Notas: Validar Node, Python e Git antes de mkdir/npm/pip/hooks; mensagens devem incluir versão encontrada e mínimo. Dependência: nenhuma.
 
-## T-021 — Integrar MCP e hooks de Codex e Claude Code [pendente]
+## T-021 — Integrar MCP e hooks de Codex e Claude Code [concluida]
 
 - Refs: US-014, AC-032, AC-033
 - Arquivos: src/cli/host-integration.ts, src/cli/host-hooks.ts, src/hooks/hosts/codex.ts, src/hooks/hosts/claude.ts, src/cli/index.ts, tests/integration/host-integration.test.ts, tests/integration/host-hooks.test.ts

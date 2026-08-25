@@ -18,6 +18,7 @@ import { createApplicationHandlers } from '../server/application.js';
 import { createMegaBrainServer } from '../server/index.js';
 import { managedDoctorDependencies, runDoctor } from './doctor.js';
 import { handleGitHook, handleHostHook } from './hook.js';
+import { installHostMcpFiles, restoreHostMcpFiles } from './host-integration.js';
 import { installHostHookFiles, parseHosts, restoreHostHookFiles } from './host-hooks.js';
 import { installManagedRuntime, inspectManagedRuntime } from './install.js';
 import { runInstallPreflight } from './preflight.js';
@@ -33,6 +34,12 @@ function option(args: string[], name: string): string | undefined {
 
 function flag(args: string[], name: string): boolean {
   return args.includes(name);
+}
+
+function mcpEndpoint(args: string[]): string {
+  const port = Number(option(args, '--port') ?? process.env.MEGA_BRAIN_PORT ?? 3000);
+  if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid --port');
+  return `http://127.0.0.1:${port}/mcp`;
 }
 
 async function readStdinText(): Promise<string> {
@@ -102,7 +109,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     return;
   }
   if (command === 'help' || flag(args, '--help')) {
-    output('Usage: mega-brain <serve|install|start|stop|doctor|upgrade|uninstall> [--repo PATH] [--config FILE] [--hosts codex,claude] [--python COMMAND]');
+    output('Usage: mega-brain <serve|install|start|stop|doctor|upgrade|uninstall> [--repo PATH] [--config FILE] [--hosts codex,claude] [--python COMMAND] [--port PORT]');
     return;
   }
   const pythonOption = option(args, '--python');
@@ -132,6 +139,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
   if (command === 'install') {
     const hosts = parseHosts(option(args, '--hosts'));
     const repository = await GitRepository.discover(identity.root);
+    const endpoint = mcpEndpoint(args);
     const managedHooksPath = path.join(layout.projectRoot, 'hooks', 'git');
     const hostBackupDir = path.join(layout.projectRoot, 'integration-backups');
     const manifest = await installManagedRuntime({
@@ -142,14 +150,16 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       preflight: false,
     });
     try {
+      await installHostMcpFiles({ root: identity.root, backupDir: hostBackupDir, hosts, endpoint });
       await installHostHookFiles({ root: identity.root, backupDir: hostBackupDir, hosts });
       await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: ['mega-brain'] });
     } catch (error) {
+      await restoreHostMcpFiles(hostBackupDir, hosts).catch(() => undefined);
       await restoreHostHookFiles(hostBackupDir, hosts).catch(() => undefined);
       await restoreGitHooks(repository, managedHooksPath).catch(() => undefined);
       throw error;
     }
-    output(JSON.stringify({ manifest, hosts, hooksInstalled: true }));
+    output(JSON.stringify({ manifest, hosts, endpoint, hooksInstalled: true, mcpConfigured: true }));
     return;
   }
   if (command === 'start') {
@@ -176,6 +186,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
   }
   if (command === 'uninstall') {
     const hosts = parseHosts(option(args, '--hosts'));
+    const endpoint = mcpEndpoint(args);
     const repository = await GitRepository.discover(identity.root);
     const managedHooksPath = path.join(layout.projectRoot, 'hooks', 'git');
     const hostBackupDir = path.join(layout.projectRoot, 'integration-backups');
@@ -185,8 +196,14 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       purge: flag(args, '--purge'),
       participants: [
         {
-          apply: () => restoreHostHookFiles(hostBackupDir, hosts),
-          rollback: () => installHostHookFiles({ root: identity.root, backupDir: hostBackupDir, hosts }),
+          apply: async () => {
+            await restoreHostHookFiles(hostBackupDir, hosts);
+            await restoreHostMcpFiles(hostBackupDir, hosts);
+          },
+          rollback: async () => {
+            await installHostMcpFiles({ root: identity.root, backupDir: hostBackupDir, hosts, endpoint });
+            await installHostHookFiles({ root: identity.root, backupDir: hostBackupDir, hosts });
+          },
         },
         {
           apply: () => restoreGitHooks(repository, managedHooksPath),
