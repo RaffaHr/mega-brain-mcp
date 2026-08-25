@@ -1,12 +1,12 @@
 {
-  "runId": "mega-brain-mcp-autonomous-project-runtime-mt8n4yzk",
+  "runId": "mega-brain-mcp-autonomous-project-runtime-mt8nkrxw",
   "feature": "autonomous-project-runtime",
   "agent": "codex",
   "modo": "sequencial",
   "paralelizar": null,
   "modeloForcado": null,
   "esforcoForcado": null,
-  "geradoEm": "2026-08-25 12:28",
+  "geradoEm": "2026-08-25 12:40",
   "branchTrabalho": "spec/autonomous-project-runtime",
   "baseDir": ".spec/features/autonomous-project-runtime",
   "specDir": ".spec",
@@ -15,31 +15,6 @@
   "ondas": [],
   "faixas": [],
   "sequenciais": [
-    {
-      "id": "T-025",
-      "titulo": "Implementar supervisor por projeto, IPC e leases",
-      "modelo": "gpt-5.6-sol",
-      "esforco": "xhigh",
-      "arquivos": [
-        "src/cli/supervisor.ts",
-        "src/runtime/project-supervisor.ts",
-        "src/runtime/supervisor-manifest.ts",
-        "src/runtime/ipc.ts",
-        "src/runtime/leases.ts",
-        "src/runtime/supervisor.ts",
-        "src/runtime/types.ts",
-        "tests/unit/leases.test.ts",
-        "tests/integration/project-supervisor.test.ts",
-        "tests/security/path-boundary.test.ts"
-      ],
-      "refs": [
-        "US-017",
-        "AC-040",
-        "AC-041",
-        "US-019",
-        "AC-048"
-      ]
-    },
     {
       "id": "T-029",
       "titulo": "Garantir isolamento físico dos backends",
@@ -183,7 +158,8 @@
     }
   ],
   "concluidas": [
-    "T-024"
+    "T-024",
+    "T-025"
   ],
   "avisos": []
 }

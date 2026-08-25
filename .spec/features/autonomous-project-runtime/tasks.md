@@ -9,8 +9,7 @@
 - Esforço: alto
 - Notas: Criar um resolver imutável usado por todos os comandos; precedência canônica `flags > env do processo > .env do repositório > configuração > defaults`; caminhos relativos partem de `repoPath`; configuração local guarda apenas referências a variáveis de segredo. Deve fechar os defeitos de `MEGA_BRAIN_DATA_DIR` e `MEGA_BRAIN_PORT` e modelar os modos AgentMemory `managed`/`remote` com os quatro endpoints. Dependência: nenhuma.
 
-## T-025 — Implementar supervisor por projeto, IPC e leases [pendente]
-
+## T-025 — Implementar supervisor por projeto, IPC e leases [concluida]
 - Refs: US-017, AC-040, AC-041, US-019, AC-048
 - Arquivos: src/cli/supervisor.ts, src/runtime/project-supervisor.ts, src/runtime/supervisor-manifest.ts, src/runtime/ipc.ts, src/runtime/leases.ts, src/runtime/supervisor.ts, src/runtime/types.ts, tests/unit/leases.test.ts, tests/integration/project-supervisor.test.ts, tests/security/path-boundary.test.ts
 - Modelo: gpt-5.6-sol

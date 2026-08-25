@@ -1,11 +1,11 @@
 # Plano de execução — autonomous-project-runtime
 
-> gerado por `onp-spec plano` em 2026-08-25 12:28 — NÃO edite à mão;
+> gerado por `onp-spec plano` em 2026-08-25 12:40 — NÃO edite à mão;
 > mudou tasks.md ou a config? Regenere: `onp-spec plano autonomous-project-runtime --sequencial`
 
 ## Resumo — o que vai acontecer
 
-- **modo SEQUENCIAL (escolha do usuário)**: 6 tarefa(s) pendente(s), UMA APÓS A OUTRA, na árvore principal (1 já concluída(s): T-024)
+- **modo SEQUENCIAL (escolha do usuário)**: 5 tarefa(s) pendente(s), UMA APÓS A OUTRA, na árvore principal (2 já concluída(s): T-024, T-025)
 - sem worktrees e sem paralelismo — cada tarefa roda numa janela de contexto limpa, na ordem do tasks.md
 - tudo acontece na branch de trabalho `spec/autonomous-project-runtime`; levar para a main é decisão sua
 
@@ -13,7 +13,6 @@
 
 | tarefa | título | modelo | esforço |
 |---|---|---|---|
-| T-025 | Implementar supervisor por projeto, IPC e leases | `gpt-5.6-sol` | xhigh |
 | T-029 | Garantir isolamento físico dos backends | `gpt-5.6-sol` | xhigh |
 | T-026 | Expor MCP stdio autônomo e adaptar os hosts | `gpt-5.6-sol` | xhigh |
 | T-027 | Criar o assistente interativo de setup | `gpt-5.6-terra` | high |

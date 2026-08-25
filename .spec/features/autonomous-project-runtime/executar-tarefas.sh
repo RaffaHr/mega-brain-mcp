@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# executar-tarefas.sh — gerado por `onp-spec plano autonomous-project-runtime` em 2026-08-25 12:28
+# executar-tarefas.sh — gerado por `onp-spec plano autonomous-project-runtime` em 2026-08-25 12:40
 # NÃO edite à mão: mudou tasks.md ou a config, regenere o plano.
 #
 # uso:
@@ -14,7 +14,7 @@
 set -u
 set -o pipefail
 
-RUN_ID='mega-brain-mcp-autonomous-project-runtime-mt8n4yzk'
+RUN_ID='mega-brain-mcp-autonomous-project-runtime-mt8nkrxw'
 FEATURE='autonomous-project-runtime'
 BASE_BRANCH='spec/autonomous-project-runtime'
 ENGINE='C:\Users\raphael.moreira\.agents\skills\onp-spec-driven\scripts\onp-spec.mjs'
@@ -166,38 +166,6 @@ iniciar_resumos() {
   RESUMO_PID=$!
   # ao sair: para o loop e grava um último resumo (o estado final, do motor)
   trap 'parar_resumos; node "$ENGINE" resumo "$FEATURE" --gravar >/dev/null 2>&1 || true' EXIT
-}
-
-# ── sequencial T-025 (ordem do tasks.md) ──
-executar_seq_T_025() {
-  info 'sequencial T-025 — Implementar supervisor por projeto, IPC e leases'
-  if rodar_tarefa seq 'T-025' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
-Leia primeiro: .spec/features/autonomous-project-runtime/spec.md, .spec/features/autonomous-project-runtime/tasks.md e .spec/constituicao.md.
-
-Sua tarefa (somente ela):
-T-025 — "Implementar supervisor por projeto, IPC e leases"
-  critérios/refs: AC-040 (MCP sobe e aguarda backends privados), AC-041 (Sessões do mesmo projeto compartilham leases), AC-048 (Endpoints e controle de runtime não colidem)
-  arquivos permitidos (e seus testes): src/cli/supervisor.ts, src/runtime/project-supervisor.ts, src/runtime/supervisor-manifest.ts, src/runtime/ipc.ts, src/runtime/leases.ts, src/runtime/supervisor.ts, src/runtime/types.ts, tests/unit/leases.test.ts, tests/integration/project-supervisor.test.ts, tests/security/path-boundary.test.ts
-  mensagem de commit: "T-025 autonomous-project-runtime: Implementar supervisor por projeto, IPC e leases"
-
-Regras inegociáveis:
-- Todo critério de aceite referenciado vira teste com @spec:AC-xxx no título.
-- NUNCA enfraqueça, pule (skip/todo) ou apague um teste para passar — teste pulado não é prova e o audit acusa.
-- Rode os testes localmente com `npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json` até passarem.
-- NÃO edite tasks.md, NÃO rode onp-spec verify/audit e NÃO toque em outras tarefas — o orquestrador cuida disso.
-- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-sol' xhigh >> "$LOG_DIR/seq.log" 2>&1; then
-    # commit de segurança se o agente esqueceu (rastreabilidade > perfeição)
-    if [ -n "$(git status --porcelain)" ]; then
-      git add -A && git commit -q -m 'T-025 autonomous-project-runtime: Implementar supervisor por projeto, IPC e leases (auto-commit do plano)'
-    fi
-    marcar_concluidas T-025
-    verde "✔ T-025 concluída"
-    return 0
-  fi
-  vermelho "✘ T-025 falhou (log: $LOG_DIR/seq.log)"
-  amarelo "  reexecute só ela: bash .spec/features/autonomous-project-runtime/executar-tarefas.sh --seq T-025"
-  FALHAS="$FALHAS T-025"
-  return 1
 }
 
 # ── sequencial T-029 (ordem do tasks.md) ──
@@ -413,7 +381,6 @@ executar_tudo() {
   iniciar_resumos
   info "logs em: $LOG_DIR"
   info "resumo geral de andamento: a cada 1 min aqui no terminal (e via: onp-spec resumo)"
-  executar_seq_T_025 || true
   executar_seq_T_029 || true
   executar_seq_T_026 || true
   executar_seq_T_027 || true
@@ -424,7 +391,6 @@ executar_tudo() {
 
 listar() {
   echo "execução: $RUN_ID (feature $FEATURE, branch $BASE_BRANCH)"
-  echo "  seq       T-025 (sequencial)"
   echo "  seq       T-029 (sequencial)"
   echo "  seq       T-026 (sequencial)"
   echo "  seq       T-027 (sequencial)"
@@ -464,7 +430,6 @@ case "$MODO" in
     esac ;;
   seq)
     case "$ALVO" in
-      T-025) evento --tipo inicio --escopo "seq:T-025"; iniciar_resumos; executar_seq_T_025 || true; encerrar "seq:T-025" ;;
       T-029) evento --tipo inicio --escopo "seq:T-029"; iniciar_resumos; executar_seq_T_029 || true; encerrar "seq:T-029" ;;
       T-026) evento --tipo inicio --escopo "seq:T-026"; iniciar_resumos; executar_seq_T_026 || true; encerrar "seq:T-026" ;;
       T-027) evento --tipo inicio --escopo "seq:T-027"; iniciar_resumos; executar_seq_T_027 || true; encerrar "seq:T-027" ;;
