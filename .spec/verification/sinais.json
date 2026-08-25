@@ -1013,19 +1013,19 @@
       "codigo": "VERIFY_OBSOLETO",
       "feature": "mega-brain-mcp-v1",
       "ref": "—",
-      "ocorrencias": 3,
+      "ocorrencias": 4,
       "primeiraVez": "2026-08-24T22:59:52.327Z",
-      "ultimaVez": "2026-08-24T23:59:27.013Z",
-      "gitRev": "044003a"
+      "ultimaVez": "2026-08-25T00:27:10.785Z",
+      "gitRev": "60277e3"
     },
     "VERIFY_OBSOLETO::agentmemory-runtime-config::—": {
       "codigo": "VERIFY_OBSOLETO",
       "feature": "agentmemory-runtime-config",
       "ref": "—",
-      "ocorrencias": 2,
+      "ocorrencias": 3,
       "primeiraVez": "2026-08-24T23:51:10.837Z",
-      "ultimaVez": "2026-08-24T23:59:27.012Z",
-      "gitRev": "044003a"
+      "ultimaVez": "2026-08-25T00:27:10.784Z",
+      "gitRev": "60277e3"
     },
     "STATUS_INVALIDO::product-lifecycle-hardening::.spec\\features\\product-lifecycle-hardening\\spec.md": {
       "codigo": "STATUS_INVALIDO",
@@ -1040,118 +1040,118 @@
       "codigo": "ARQUIVO_INEXISTENTE",
       "feature": "product-lifecycle-hardening",
       "ref": "T-020",
-      "ocorrencias": 2,
+      "ocorrencias": 4,
       "primeiraVez": "2026-08-24T23:59:27.013Z",
-      "ultimaVez": "2026-08-24T23:59:27.013Z",
-      "gitRev": "044003a"
+      "ultimaVez": "2026-08-25T00:27:10.785Z",
+      "gitRev": "60277e3"
     },
     "ARQUIVO_INEXISTENTE::product-lifecycle-hardening::T-021": {
       "codigo": "ARQUIVO_INEXISTENTE",
       "feature": "product-lifecycle-hardening",
       "ref": "T-021",
-      "ocorrencias": 2,
+      "ocorrencias": 4,
       "primeiraVez": "2026-08-24T23:59:27.013Z",
-      "ultimaVez": "2026-08-24T23:59:27.013Z",
-      "gitRev": "044003a"
+      "ultimaVez": "2026-08-25T00:27:10.785Z",
+      "gitRev": "60277e3"
     },
     "ARQUIVO_INEXISTENTE::product-lifecycle-hardening::T-022": {
       "codigo": "ARQUIVO_INEXISTENTE",
       "feature": "product-lifecycle-hardening",
       "ref": "T-022",
-      "ocorrencias": 2,
+      "ocorrencias": 4,
       "primeiraVez": "2026-08-24T23:59:27.013Z",
-      "ultimaVez": "2026-08-24T23:59:27.013Z",
-      "gitRev": "044003a"
+      "ultimaVez": "2026-08-25T00:27:10.785Z",
+      "gitRev": "60277e3"
     },
     "ARQUIVO_INEXISTENTE::product-lifecycle-hardening::T-023": {
       "codigo": "ARQUIVO_INEXISTENTE",
       "feature": "product-lifecycle-hardening",
       "ref": "T-023",
-      "ocorrencias": 2,
+      "ocorrencias": 4,
       "primeiraVez": "2026-08-24T23:59:27.013Z",
-      "ultimaVez": "2026-08-24T23:59:27.013Z",
-      "gitRev": "044003a"
+      "ultimaVez": "2026-08-25T00:27:10.785Z",
+      "gitRev": "60277e3"
     },
     "AC_SEM_TESTE::product-lifecycle-hardening::AC-030": {
       "codigo": "AC_SEM_TESTE",
       "feature": "product-lifecycle-hardening",
       "ref": "AC-030",
-      "ocorrencias": 1,
+      "ocorrencias": 2,
       "primeiraVez": "2026-08-24T23:59:27.013Z",
-      "ultimaVez": "2026-08-24T23:59:27.013Z",
-      "gitRev": "044003a"
+      "ultimaVez": "2026-08-25T00:27:10.785Z",
+      "gitRev": "60277e3"
     },
     "AC_SEM_TESTE::product-lifecycle-hardening::AC-031": {
       "codigo": "AC_SEM_TESTE",
       "feature": "product-lifecycle-hardening",
       "ref": "AC-031",
-      "ocorrencias": 1,
+      "ocorrencias": 2,
       "primeiraVez": "2026-08-24T23:59:27.013Z",
-      "ultimaVez": "2026-08-24T23:59:27.013Z",
-      "gitRev": "044003a"
+      "ultimaVez": "2026-08-25T00:27:10.785Z",
+      "gitRev": "60277e3"
     },
     "AC_SEM_TESTE::product-lifecycle-hardening::AC-032": {
       "codigo": "AC_SEM_TESTE",
       "feature": "product-lifecycle-hardening",
       "ref": "AC-032",
-      "ocorrencias": 1,
+      "ocorrencias": 2,
       "primeiraVez": "2026-08-24T23:59:27.013Z",
-      "ultimaVez": "2026-08-24T23:59:27.013Z",
-      "gitRev": "044003a"
+      "ultimaVez": "2026-08-25T00:27:10.785Z",
+      "gitRev": "60277e3"
     },
     "AC_SEM_TESTE::product-lifecycle-hardening::AC-033": {
       "codigo": "AC_SEM_TESTE",
       "feature": "product-lifecycle-hardening",
       "ref": "AC-033",
-      "ocorrencias": 1,
+      "ocorrencias": 2,
       "primeiraVez": "2026-08-24T23:59:27.013Z",
-      "ultimaVez": "2026-08-24T23:59:27.013Z",
-      "gitRev": "044003a"
+      "ultimaVez": "2026-08-25T00:27:10.785Z",
+      "gitRev": "60277e3"
     },
     "AC_SEM_TESTE::product-lifecycle-hardening::AC-034": {
       "codigo": "AC_SEM_TESTE",
       "feature": "product-lifecycle-hardening",
       "ref": "AC-034",
-      "ocorrencias": 1,
+      "ocorrencias": 2,
       "primeiraVez": "2026-08-24T23:59:27.013Z",
-      "ultimaVez": "2026-08-24T23:59:27.013Z",
-      "gitRev": "044003a"
+      "ultimaVez": "2026-08-25T00:27:10.785Z",
+      "gitRev": "60277e3"
     },
     "AC_SEM_TESTE::product-lifecycle-hardening::AC-035": {
       "codigo": "AC_SEM_TESTE",
       "feature": "product-lifecycle-hardening",
       "ref": "AC-035",
-      "ocorrencias": 1,
+      "ocorrencias": 2,
       "primeiraVez": "2026-08-24T23:59:27.013Z",
-      "ultimaVez": "2026-08-24T23:59:27.013Z",
-      "gitRev": "044003a"
+      "ultimaVez": "2026-08-25T00:27:10.785Z",
+      "gitRev": "60277e3"
     },
     "AC_SEM_TESTE::product-lifecycle-hardening::AC-036": {
       "codigo": "AC_SEM_TESTE",
       "feature": "product-lifecycle-hardening",
       "ref": "AC-036",
-      "ocorrencias": 1,
+      "ocorrencias": 2,
       "primeiraVez": "2026-08-24T23:59:27.013Z",
-      "ultimaVez": "2026-08-24T23:59:27.013Z",
-      "gitRev": "044003a"
+      "ultimaVez": "2026-08-25T00:27:10.785Z",
+      "gitRev": "60277e3"
     },
     "AC_SEM_TESTE::product-lifecycle-hardening::AC-037": {
       "codigo": "AC_SEM_TESTE",
       "feature": "product-lifecycle-hardening",
       "ref": "AC-037",
-      "ocorrencias": 1,
+      "ocorrencias": 2,
       "primeiraVez": "2026-08-24T23:59:27.013Z",
-      "ultimaVez": "2026-08-24T23:59:27.013Z",
-      "gitRev": "044003a"
+      "ultimaVez": "2026-08-25T00:27:10.785Z",
+      "gitRev": "60277e3"
     },
     "AC_SEM_TESTE::product-lifecycle-hardening::AC-038": {
       "codigo": "AC_SEM_TESTE",
       "feature": "product-lifecycle-hardening",
       "ref": "AC-038",
-      "ocorrencias": 1,
+      "ocorrencias": 2,
       "primeiraVez": "2026-08-24T23:59:27.013Z",
-      "ultimaVez": "2026-08-24T23:59:27.013Z",
-      "gitRev": "044003a"
+      "ultimaVez": "2026-08-25T00:27:10.785Z",
+      "gitRev": "60277e3"
     }
   }
 }
