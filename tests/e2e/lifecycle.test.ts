@@ -29,6 +29,16 @@ test('AC-016: status mostra saúde sem expor secrets @spec:AC-016', async () => 
         agentMemory: { command: 'node', args: [], cwd: '.', lifecycle: 'daemon' },
         codeReviewGraph: { command: 'python', args: [], cwd: '.', lifecycle: 'on-demand' },
       },
+      isolation: {
+        worktreeId: '0123456789abcdef01234567',
+        ports: { rest: 12000, streams: 12001, viewer: 12002, engine: 58023 },
+        paths: {
+          agentMemory: path.resolve('runtime/agentmemory'),
+          iiiEngine: path.resolve('runtime/iii'),
+          codeReviewGraph: path.resolve('runtime/crg'),
+          provenance: path.resolve('runtime/provenance.sqlite'),
+        },
+      },
     } }),
     probeAgentMemory: async () => ({ healthy: true, version: '0.9.29', endpoints: ['health'] }),
     probeCodeReviewGraph: async () => ({ healthy: true, version: '2.3.7', graphHead: 'head', tools: ['query_graph_tool'] }),
@@ -38,6 +48,10 @@ test('AC-016: status mostra saúde sem expor secrets @spec:AC-016', async () => 
   expect(JSON.stringify(response)).not.toContain('super-secret');
   expect(JSON.stringify(response)).not.toContain('raw-token');
   expect(response.result).toMatchObject({ hooksHealthy: true, queueDepth: 0, graphHead: 'head' });
+  expect(response.result).toMatchObject({ runtime: { isolation: {
+    paths: { codeReviewGraph: path.resolve('runtime/crg') },
+    ports: { rest: 12000, engine: 58023 },
+  } } });
 });
 
 test('AC-022: doctor comprova o ciclo real dos backends @spec:AC-022', async () => {

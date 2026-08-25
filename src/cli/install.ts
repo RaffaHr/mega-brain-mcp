@@ -1,12 +1,13 @@
 import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { access, mkdir, rename, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
 import type { ProjectIdentity } from '../projects/identity.js';
 import { assertRuntimeChild, runtimeLayout } from '../runtime/layout.js';
-import { writeRuntimeLock, type RuntimeLockManifest } from '../runtime/lock-manifest.js';
+import { createRuntimeIsolation, writeRuntimeLock, type RuntimeLockManifest } from '../runtime/lock-manifest.js';
+import { III_ENGINE_VERSION, installIiiEngineArtifact } from '../runtime/iii-engine.js';
 import type { AgentMemoryMode } from '../runtime/types.js';
 import { npmInvocation, runInstallPreflight, type InstallPreflightOptions } from './preflight.js';
 
@@ -42,6 +43,14 @@ export interface InstallRuntimeOptions {
   now?: Date;
   preflight?: false | InstallPreflightOptions;
   validateArtifacts?: boolean;
+  remoteAgentMemory?: { baseUrl: string; secretEnvVar: string };
+  remoteIsolationProbe?: () => Promise<unknown>;
+  platform?: NodeJS.Platform;
+  iiiEngine?: {
+    confirmed: boolean;
+    expectedSha256: string;
+    download(): Promise<Uint8Array>;
+  };
 }
 
 export interface RuntimeInspection {
@@ -55,17 +64,40 @@ async function exists(filePath: string): Promise<boolean> {
 }
 
 export async function installManagedRuntime(options: InstallRuntimeOptions): Promise<RuntimeLockManifest> {
+  const agentMemoryMode = options.agentMemoryMode ?? 'managed';
+  if (agentMemoryMode === 'remote') {
+    if (!options.remoteAgentMemory) {
+      throw new Error('Remote AgentMemory requires a URL and the name of the environment variable containing its secret. No files were changed.');
+    }
+    try { new URL(options.remoteAgentMemory.baseUrl); }
+    catch { throw new Error('Remote AgentMemory URL is invalid. No files were changed.'); }
+    if (!/^[A-Za-z_][A-Za-z0-9_]*$/u.test(options.remoteAgentMemory.secretEnvVar)) {
+      throw new Error('Remote AgentMemory secret environment variable name is invalid. No files were changed.');
+    }
+    if (!options.remoteIsolationProbe) {
+      throw new Error('Remote AgentMemory requires a reversible namespace isolation probe. No files were changed.');
+    }
+    await options.remoteIsolationProbe();
+  }
   const runner = options.runner ?? systemCommandRunner;
   const preflight = options.preflight === false
     ? null
     : await runInstallPreflight({ ...options.preflight, ...(options.pythonCommand ? { pythonCommand: options.pythonCommand } : {}) });
   const layout = runtimeLayout(options.dataDir, options.identity);
+  const isolation = createRuntimeIsolation(layout, options.identity.worktreeId);
+  const platform = options.platform ?? preflight?.platform ?? process.platform;
+  const installIiiEngine = agentMemoryMode === 'managed' && platform === 'win32' && options.iiiEngine;
+  if (installIiiEngine && !installIiiEngine.confirmed) {
+    throw new Error('iii-engine installation requires explicit user confirmation. No files were changed.');
+  }
+  if (installIiiEngine && !/^[a-f0-9]{64}$/u.test(installIiiEngine.expectedSha256)) {
+    throw new Error('iii-engine checksum is invalid. No files were changed.');
+  }
   const staging = assertRuntimeChild(layout, path.join(layout.runtimeRoot, `.staging-${randomUUID()}`));
   const backup = assertRuntimeChild(layout, path.join(layout.runtimeRoot, `.backup-${randomUUID()}`));
   const agentMemoryDir = path.join(staging, 'agentmemory');
   const crgDir = path.join(staging, 'code-review-graph');
   const venvDir = path.join(crgDir, 'venv');
-  const agentMemoryMode = options.agentMemoryMode ?? 'managed';
   const npm = npmInvocation();
   const python = options.pythonCommand ?? preflight?.pythonCommand ?? (process.platform === 'win32' ? 'python.exe' : 'python3');
 
@@ -73,6 +105,13 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
   await mkdir(crgDir, { recursive: true });
   let movedCurrent = false;
   try {
+    if (installIiiEngine) {
+      await installIiiEngineArtifact({
+        destination: path.join(isolation.paths.iiiEngine, 'iii.exe'),
+        version: III_ENGINE_VERSION,
+        ...installIiiEngine,
+      });
+    }
     if (agentMemoryMode === 'managed') {
       await runner.run(
         npm.command,
@@ -80,6 +119,7 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
         { cwd: staging },
       );
     }
+    await mkdir(isolation.paths.codeReviewGraph, { recursive: true });
     await runner.run(python, ['-m', 'venv', venvDir], { cwd: staging });
     const venvPython = process.platform === 'win32'
       ? path.join(venvDir, 'Scripts', 'python.exe')
@@ -102,23 +142,40 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
       }
       await runner.run(venvPython, ['-c', 'import code_review_graph'], { cwd: staging });
     }
-    await runner.run(venvPython, ['-m', 'code_review_graph', 'build'], { cwd: options.identity.root });
+    const crgEnvironment = {
+      ...process.env,
+      CRG_DATA_DIR: isolation.paths.codeReviewGraph,
+      CRG_REPO_ROOT: path.resolve(options.identity.root),
+    };
+    await runner.run(venvPython, ['-m', 'code_review_graph', 'build'], {
+      cwd: options.identity.root,
+      env: crgEnvironment,
+    });
+    if ((options.validateArtifacts ?? runner === systemCommandRunner)
+      && (await readdir(isolation.paths.codeReviewGraph)).length === 0) {
+      throw new Error(`Code Review Graph did not persist artifacts in ${isolation.paths.codeReviewGraph}`);
+    }
 
     const manifest: RuntimeLockManifest = {
       schemaVersion: 1,
       installedAt: (options.now ?? new Date()).toISOString(),
       agentMemoryMode,
+      ...(agentMemoryMode === 'remote' ? { remoteAgentMemory: options.remoteAgentMemory! } : {}),
       project: {
         repositoryId: options.identity.repositoryId,
         checkoutId: options.identity.checkoutId,
         worktreeId: options.identity.worktreeId,
       },
-      versions: { megaBrain: '0.1.0', ...MANAGED_VERSIONS },
+      versions: {
+        megaBrain: '0.1.0',
+        ...MANAGED_VERSIONS,
+        ...(installIiiEngine ? { iiiEngine: III_ENGINE_VERSION } : {}),
+      },
       backends: {
         ...(agentMemoryMode === 'managed' ? {
           agentMemory: {
             command: process.execPath,
-            args: [finalAgentMemoryEntrypoint, '--data-dir', path.join(layout.projectRoot, 'agentmemory-data')],
+            args: [finalAgentMemoryEntrypoint, '--data-dir', isolation.paths.agentMemory, '--port', String(isolation.ports.rest)],
             cwd: finalAgentMemoryDir,
             lifecycle: 'daemon' as const,
           },
@@ -128,8 +185,13 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
           args: ['-m', 'code_review_graph', 'serve'],
           cwd: options.identity.root,
           lifecycle: 'on-demand',
+          environment: {
+            CRG_DATA_DIR: isolation.paths.codeReviewGraph,
+            CRG_REPO_ROOT: path.resolve(options.identity.root),
+          },
         },
       },
+      isolation,
     };
     await writeRuntimeLock(path.join(staging, 'runtime-lock.json'), manifest);
     if (agentMemoryMode === 'managed') {
@@ -161,6 +223,8 @@ export async function inspectManagedRuntime(dataDir: string, identity: ProjectId
   );
   const checks = {
     project: manifest.project.worktreeId === identity.worktreeId,
+    isolation: manifest.isolation?.worktreeId === identity.worktreeId
+      && Object.values(manifest.isolation.paths).every(path.isAbsolute),
     ...(manifest.agentMemoryMode === 'managed'
       ? { agentMemory: await exists(path.join(layout.current, 'agentmemory', '.installed')) }
       : {}),

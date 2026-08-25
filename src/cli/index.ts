@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 import { realpathSync } from 'node:fs';
+import { randomUUID } from 'node:crypto';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { AgentMemoryClient } from '../adapters/agentmemory/client.js';
+import { probeRemoteAgentMemoryIsolation } from '../adapters/agentmemory/capabilities.js';
 import { CodeReviewGraphClient } from '../adapters/code-review-graph/client.js';
 import { GitRepository } from '../adapters/git/repository.js';
 import { loadConfig } from '../config/load.js';
@@ -82,11 +84,14 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     const agentMemory = createAgentMemoryClient(config);
     const installed = await inspectManagedRuntime(config.dataDir, identity).catch(() => null);
     const crgRuntime = installed?.manifest.backends.codeReviewGraph;
+    const crgDataDir = crgRuntime?.environment?.CRG_DATA_DIR ?? config.codeReviewGraph.dataDir;
     const codeReviewGraph = new CodeReviewGraphClient({
       command: crgRuntime?.command ?? config.codeReviewGraph.command,
       ...(crgRuntime ? { args: crgRuntime.args } : config.codeReviewGraph.args.length ? { args: config.codeReviewGraph.args } : {}),
       cwd: crgRuntime?.cwd ?? identity.root,
-      environment: config.codeReviewGraph.environment,
+      environment: { ...crgRuntime?.environment, ...config.codeReviewGraph.environment },
+      repoRoot: crgRuntime?.environment?.CRG_REPO_ROOT ?? identity.root,
+      ...(crgDataDir ? { dataDir: crgDataDir } : {}),
     });
     const layout = runtimeLayout(config.dataDir, identity);
     const database = openProvenanceDatabase(path.join(layout.projectRoot, 'provenance.sqlite'));
@@ -148,6 +153,17 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       agentMemoryMode: config.agentMemory.mode,
       pythonCommand: installPreflight!.pythonCommand,
       preflight: false,
+      ...(config.agentMemory.mode === 'remote' ? {
+        remoteAgentMemory: {
+          baseUrl: config.agentMemory.baseUrl,
+          secretEnvVar: config.agentMemory.secretEnvVar ?? '',
+        },
+        remoteIsolationProbe: () => probeRemoteAgentMemoryIsolation(createAgentMemoryClient(config), {
+          projectA: identity.worktreeId,
+          projectB: `${identity.worktreeId}-isolation-control`,
+          sentinel: `mega-brain-install-probe-${randomUUID()}`,
+        }),
+      } : {}),
     });
     try {
       await installHostMcpFiles({ root: identity.root, backupDir: hostBackupDir, hosts, endpoint });
@@ -224,11 +240,14 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     const repository = await GitRepository.discover(identity.root);
     const agentMemory = createAgentMemoryClient(config);
     const crgCommand = inspection.manifest.backends.codeReviewGraph;
+    const crgDataDir = crgCommand.environment?.CRG_DATA_DIR ?? config.codeReviewGraph.dataDir;
     const codeReviewGraph = new CodeReviewGraphClient({
       command: crgCommand.command,
       args: crgCommand.args,
       cwd: crgCommand.cwd,
-      environment: config.codeReviewGraph.environment,
+      environment: { ...crgCommand.environment, ...config.codeReviewGraph.environment },
+      repoRoot: crgCommand.environment?.CRG_REPO_ROOT ?? identity.root,
+      ...(crgDataDir ? { dataDir: crgDataDir } : {}),
     });
     try {
       const result = await runDoctor({

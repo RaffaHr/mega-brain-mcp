@@ -25,10 +25,10 @@ test('AC-001: instalação cria runtime isolado e verificável @spec:AC-001', as
     commonGitDir: '.git',
     remote: 'https://github.com/example/project.git',
   });
-  const commands: Array<{ command: string; args: string[] }> = [];
+  const commands: Array<{ command: string; args: string[]; options: { cwd: string; env?: NodeJS.ProcessEnv } }> = [];
   const runner: CommandRunner = {
-    async run(command, args) {
-      commands.push({ command, args });
+    async run(command, args, options) {
+      commands.push({ command, args, options });
     },
   };
 
@@ -45,14 +45,22 @@ test('AC-001: instalação cria runtime isolado e verificável @spec:AC-001', as
   expect(commands[0]?.args).toContain('@agentmemory/agentmemory@0.9.29');
   expect(commands[2]?.args).toContain('code-review-graph==2.3.7');
   expect(commands[3]?.args).toEqual(['-m', 'code_review_graph', 'build']);
+  expect(commands[3]?.options.env).toMatchObject({
+    CRG_DATA_DIR: manifest.isolation!.paths.codeReviewGraph,
+    CRG_REPO_ROOT: path.resolve(identity.root),
+  });
   expect(manifest.versions).toEqual({ megaBrain: '0.1.0', agentMemory: '0.9.29', codeReviewGraph: '2.3.7' });
   expect(inspection.healthy).toBe(true);
-  expect(inspection.checks).toEqual({ project: true, agentMemory: true, codeReviewGraph: true });
+  expect(inspection.checks).toEqual({ project: true, isolation: true, agentMemory: true, codeReviewGraph: true });
   expect(manifest.backends.codeReviewGraph.lifecycle).toBe('on-demand');
   expect(manifest.backends.codeReviewGraph.command).toContain(path.join('runtime', 'current', 'code-review-graph'));
   expect(manifest.backends.codeReviewGraph.command).not.toContain('.staging-');
   expect(manifest.backends.agentMemory?.cwd).toContain(path.join('runtime', 'current', 'agentmemory'));
   expect(manifest.backends.agentMemory?.cwd).not.toContain('.staging-');
+  expect(manifest.backends.agentMemory?.args).toEqual(expect.arrayContaining([
+    '--data-dir', manifest.isolation!.paths.agentMemory,
+    '--port', String(manifest.isolation!.ports.rest),
+  ]));
 });
 
 test('AC-026: modo remoto instala somente Code Review Graph e nunca inicia AgentMemory local @spec:AC-026', async () => {
@@ -74,6 +82,8 @@ test('AC-026: modo remoto instala somente Code Review Graph e nunca inicia Agent
     dataDir,
     identity,
     agentMemoryMode: 'remote',
+    remoteAgentMemory: { baseUrl: 'https://memory.example.test', secretEnvVar: 'REMOTE_MEMORY_SECRET' },
+    remoteIsolationProbe: async () => undefined,
     runner,
     preflight: false,
     now: new Date('2026-08-24T12:00:00.000Z'),
@@ -97,7 +107,11 @@ test('AC-026: modo remoto instala somente Code Review Graph e nunca inicia Agent
   expect(commands[1]?.args).toContain('code-review-graph==2.3.7');
   expect(manifest.agentMemoryMode).toBe('remote');
   expect(manifest.backends).not.toHaveProperty('agentMemory');
-  expect(inspection.checks).toEqual({ project: true, codeReviewGraph: true });
+  expect(inspection.checks).toEqual({ project: true, isolation: true, codeReviewGraph: true });
+  expect(manifest.remoteAgentMemory).toEqual({
+    baseUrl: 'https://memory.example.test',
+    secretEnvVar: 'REMOTE_MEMORY_SECRET',
+  });
   expect(starts).toEqual([]);
   expect(state.processes).toEqual({});
 });

@@ -1,6 +1,7 @@
 import type { AgentMemoryClient } from '../adapters/agentmemory/client.js';
 import { probeAgentMemory } from '../adapters/agentmemory/capabilities.js';
 import type { CodeReviewGraphClient } from '../adapters/code-review-graph/client.js';
+import { probeCodeReviewGraphIsolation } from '../adapters/code-review-graph/capabilities.js';
 import type { ProjectIdentity } from '../projects/identity.js';
 import { redactValue } from '../security/redaction.js';
 import { createEnvelope, type MegaBrainEnvelope } from '../server/envelope.js';
@@ -37,7 +38,16 @@ export async function runDoctor(options: DoctorOptions, dependencies: DoctorDepe
   if (options.queueDepth > 0) warnings.push('hook queue has pending events');
   const healthy = warnings.length === 0;
   return createEnvelope({
-    runtime: { healthy: runtime.healthy, checks: runtime.checks, versions: runtime.manifest.versions },
+    runtime: {
+      healthy: runtime.healthy,
+      checks: runtime.checks,
+      versions: runtime.manifest.versions,
+      isolation: runtime.manifest.isolation ? {
+        worktreeId: runtime.manifest.isolation.worktreeId,
+        ports: runtime.manifest.isolation.ports,
+        paths: runtime.manifest.isolation.paths,
+      } : null,
+    },
     backends: {
       agentMemory: { ...agentMemory, authChecked: true },
       codeReviewGraph: { ...codeReviewGraph, schemasChecked: true },
@@ -85,6 +95,7 @@ export function managedDoctorDependencies(input: {
       catch { return { healthy: false, version: null, endpoints: [] }; }
     },
     async probeCodeReviewGraph() {
+      const storage = probeCodeReviewGraphIsolation(input.codeReviewGraph, input.identity.root);
       await input.codeReviewGraph.start();
       const changes = await input.codeReviewGraph.call('detect_changes_tool', {});
       return {
@@ -92,6 +103,7 @@ export function managedDoctorDependencies(input: {
         version: input.codeReviewGraph.serverVersion(),
         graphHead: findString(changes.structuredContent, new Set(['graphHead', 'graph_head', 'indexedCommit', 'indexed_commit', 'commitHash', 'commit_hash'])),
         tools: input.codeReviewGraph.tools(),
+        storage,
       };
     },
     gitHead: input.gitHead,

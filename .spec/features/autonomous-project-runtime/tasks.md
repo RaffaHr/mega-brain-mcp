@@ -16,8 +16,7 @@
 - Esforço: xalto
 - Notas: O primeiro gateway inicia o mesmo `supervisor` como processo independente; garantir lock atômico por `worktreeId`, manifesto sem segredo, named pipe restrito ao usuário no Windows/socket `0600` no Unix, validação de protocolo+PID+identidade, heartbeat de 10 s, expiração de 30 s, grace de 5 s e relógio injetável. Readiness varia por modo e o idle shutdown ocorre após a última lease. Depende de T-024.
 
-## T-029 — Garantir isolamento físico dos backends [pendente]
-
+## T-029 — Garantir isolamento físico dos backends [concluida]
 - Refs: US-018, AC-042, AC-044, AC-053, US-019, AC-046, AC-047, AC-048, AC-049, US-020, AC-052
 - Arquivos: src/cli/install.ts, src/cli/start.ts, src/cli/doctor.ts, src/cli/preflight.ts, src/runtime/iii-engine.ts, src/runtime/lock-manifest.ts, src/adapters/agentmemory/client.ts, src/adapters/agentmemory/schemas.ts, src/adapters/agentmemory/capabilities.ts, src/adapters/code-review-graph/client.ts, src/adapters/code-review-graph/capabilities.ts, src/server/application.ts, src/compatibility/manifest.ts, compatibility/agentmemory-0.9.29.json, compatibility/crg-2.3.7.json, tests/contract/agentmemory.test.ts, tests/contract/code-review-graph.test.ts, tests/integration/backend-isolation.test.ts, tests/integration/remote-agentmemory.test.ts
 - Modelo: gpt-5.6-sol

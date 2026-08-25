@@ -15,6 +15,8 @@ export interface InstallPreflightOptions {
   probe?: PreflightProbe;
 }
 export interface InstallPreflightResult {
+  platform: NodeJS.Platform;
+  managedIiiEngineRequired: boolean;
   nodeVersion: string;
   pythonVersion: string;
   pythonCommand: string;
@@ -92,7 +94,15 @@ export async function runInstallPreflight(options: InstallPreflightOptions = {})
         continue;
       }
       await probe.run(pythonCommand, ['-c', 'import ensurepip, venv']);
-      return { nodeVersion, pythonVersion, pythonCommand, gitVersion, npmVersion };
+      return {
+        platform,
+        managedIiiEngineRequired: platform === 'win32',
+        nodeVersion,
+        pythonVersion,
+        pythonCommand,
+        gitVersion,
+        npmVersion,
+      };
     } catch (error) {
       failures.push(`${pythonCommand}: ${error instanceof Error ? error.message : String(error)}`);
     }

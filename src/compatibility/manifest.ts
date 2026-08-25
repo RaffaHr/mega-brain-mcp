@@ -21,6 +21,10 @@ export const compatibilityManifestSchema = z.object({
   transport: z.enum(['rest', 'stdio']),
   protocol: z.enum(['http-json', 'mcp']),
   allowAdditionalCapabilities: z.boolean(),
+  isolation: z.object({
+    namespaceField: z.string().min(1).optional(),
+    requiredEnvironment: z.array(z.string().min(1)).optional(),
+  }).optional(),
   capabilities: z.array(capabilityContractSchema).min(1),
   contractHash: z.string().regex(/^sha256:[a-f0-9]{64}$/),
 });

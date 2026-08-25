@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# executar-tarefas.sh — gerado por `onp-spec plano autonomous-project-runtime` em 2026-08-25 12:40
+# executar-tarefas.sh — gerado por `onp-spec plano autonomous-project-runtime` em 2026-08-25 13:09
 # NÃO edite à mão: mudou tasks.md ou a config, regenere o plano.
 #
 # uso:
@@ -14,7 +14,7 @@
 set -u
 set -o pipefail
 
-RUN_ID='mega-brain-mcp-autonomous-project-runtime-mt8nkrxw'
+RUN_ID='mega-brain-mcp-autonomous-project-runtime-mt8olili'
 FEATURE='autonomous-project-runtime'
 BASE_BRANCH='spec/autonomous-project-runtime'
 ENGINE='C:\Users\raphael.moreira\.agents\skills\onp-spec-driven\scripts\onp-spec.mjs'
@@ -166,38 +166,6 @@ iniciar_resumos() {
   RESUMO_PID=$!
   # ao sair: para o loop e grava um último resumo (o estado final, do motor)
   trap 'parar_resumos; node "$ENGINE" resumo "$FEATURE" --gravar >/dev/null 2>&1 || true' EXIT
-}
-
-# ── sequencial T-029 (ordem do tasks.md) ──
-executar_seq_T_029() {
-  info 'sequencial T-029 — Garantir isolamento físico dos backends'
-  if rodar_tarefa seq 'T-029' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
-Leia primeiro: .spec/features/autonomous-project-runtime/spec.md, .spec/features/autonomous-project-runtime/tasks.md e .spec/constituicao.md.
-
-Sua tarefa (somente ela):
-T-029 — "Garantir isolamento físico dos backends"
-  critérios/refs: AC-042 (Setup descobre projeto e valida pré-requisitos), AC-044 (Caminho feliz exige apenas escolhas essenciais), AC-053 (Segredos permanecem apenas em memória ou ambiente), AC-046 (Layout é absoluto e derivado da identidade correta), AC-047 (AgentMemory e Code Review Graph usam armazenamento exclusivo), AC-048 (Endpoints e controle de runtime não colidem), AC-049 (Backend remoto respeita isolamento estrito), AC-052 (Diretório do CRG chega ao processo instalado)
-  arquivos permitidos (e seus testes): src/cli/install.ts, src/cli/start.ts, src/cli/doctor.ts, src/cli/preflight.ts, src/runtime/iii-engine.ts, src/runtime/lock-manifest.ts, src/adapters/agentmemory/client.ts, src/adapters/agentmemory/schemas.ts, src/adapters/agentmemory/capabilities.ts, src/adapters/code-review-graph/client.ts, src/adapters/code-review-graph/capabilities.ts, src/server/application.ts, src/compatibility/manifest.ts, compatibility/agentmemory-0.9.29.json, compatibility/crg-2.3.7.json, tests/contract/agentmemory.test.ts, tests/contract/code-review-graph.test.ts, tests/integration/backend-isolation.test.ts, tests/integration/remote-agentmemory.test.ts
-  mensagem de commit: "T-029 autonomous-project-runtime: Garantir isolamento físico dos backends"
-
-Regras inegociáveis:
-- Todo critério de aceite referenciado vira teste com @spec:AC-xxx no título.
-- NUNCA enfraqueça, pule (skip/todo) ou apague um teste para passar — teste pulado não é prova e o audit acusa.
-- Rode os testes localmente com `npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json` até passarem.
-- NÃO edite tasks.md, NÃO rode onp-spec verify/audit e NÃO toque em outras tarefas — o orquestrador cuida disso.
-- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-sol' xhigh >> "$LOG_DIR/seq.log" 2>&1; then
-    # commit de segurança se o agente esqueceu (rastreabilidade > perfeição)
-    if [ -n "$(git status --porcelain)" ]; then
-      git add -A && git commit -q -m 'T-029 autonomous-project-runtime: Garantir isolamento físico dos backends (auto-commit do plano)'
-    fi
-    marcar_concluidas T-029
-    verde "✔ T-029 concluída"
-    return 0
-  fi
-  vermelho "✘ T-029 falhou (log: $LOG_DIR/seq.log)"
-  amarelo "  reexecute só ela: bash .spec/features/autonomous-project-runtime/executar-tarefas.sh --seq T-029"
-  FALHAS="$FALHAS T-029"
-  return 1
 }
 
 # ── sequencial T-026 (ordem do tasks.md) ──
@@ -381,7 +349,6 @@ executar_tudo() {
   iniciar_resumos
   info "logs em: $LOG_DIR"
   info "resumo geral de andamento: a cada 1 min aqui no terminal (e via: onp-spec resumo)"
-  executar_seq_T_029 || true
   executar_seq_T_026 || true
   executar_seq_T_027 || true
   executar_seq_T_028 || true
@@ -391,7 +358,6 @@ executar_tudo() {
 
 listar() {
   echo "execução: $RUN_ID (feature $FEATURE, branch $BASE_BRANCH)"
-  echo "  seq       T-029 (sequencial)"
   echo "  seq       T-026 (sequencial)"
   echo "  seq       T-027 (sequencial)"
   echo "  seq       T-028 (sequencial)"
@@ -430,7 +396,6 @@ case "$MODO" in
     esac ;;
   seq)
     case "$ALVO" in
-      T-029) evento --tipo inicio --escopo "seq:T-029"; iniciar_resumos; executar_seq_T_029 || true; encerrar "seq:T-029" ;;
       T-026) evento --tipo inicio --escopo "seq:T-026"; iniciar_resumos; executar_seq_T_026 || true; encerrar "seq:T-026" ;;
       T-027) evento --tipo inicio --escopo "seq:T-027"; iniciar_resumos; executar_seq_T_027 || true; encerrar "seq:T-027" ;;
       T-028) evento --tipo inicio --escopo "seq:T-028"; iniciar_resumos; executar_seq_T_028 || true; encerrar "seq:T-028" ;;

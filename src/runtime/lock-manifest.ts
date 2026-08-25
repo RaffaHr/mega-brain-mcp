@@ -9,9 +9,48 @@ export const runtimeCommandSchema = z.object({
   args: z.array(z.string()),
   cwd: z.string().min(1),
   lifecycle: z.enum(['daemon', 'on-demand']),
+  environment: z.record(z.string(), z.string()).optional(),
 });
 
 export const agentMemoryModeSchema = z.enum(['managed', 'remote']);
+
+export const runtimeIsolationSchema = z.object({
+  worktreeId: z.string().regex(/^[a-f0-9]{24}$/u),
+  ports: z.object({
+    rest: z.number().int().min(1).max(65_535),
+    streams: z.number().int().min(1).max(65_535),
+    viewer: z.number().int().min(1).max(65_535),
+    engine: z.number().int().min(1).max(65_535),
+  }),
+  paths: z.object({
+    agentMemory: z.string().refine(path.isAbsolute),
+    iiiEngine: z.string().refine(path.isAbsolute),
+    codeReviewGraph: z.string().refine(path.isAbsolute),
+    provenance: z.string().refine(path.isAbsolute),
+  }),
+}).superRefine((isolation, context) => {
+  if (new Set(Object.values(isolation.ports)).size !== 4) {
+    context.addIssue({ code: 'custom', path: ['ports'], message: 'Backend ports must be unique' });
+  }
+});
+
+export type RuntimeIsolation = z.infer<typeof runtimeIsolationSchema>;
+
+export function createRuntimeIsolation(layout: { projectRoot: string }, worktreeId: string): RuntimeIsolation {
+  if (!/^[a-f0-9]{24}$/u.test(worktreeId)) throw new Error('Invalid worktree identity for runtime isolation');
+  const hash = Number.parseInt(worktreeId.slice(0, 8), 16);
+  const rest = 10_000 + (hash % 8_000);
+  return runtimeIsolationSchema.parse({
+    worktreeId,
+    ports: { rest, streams: rest + 1, viewer: rest + 2, engine: rest + 46_023 },
+    paths: {
+      agentMemory: path.resolve(layout.projectRoot, 'agentmemory-data'),
+      iiiEngine: path.resolve(layout.projectRoot, 'iii-engine'),
+      codeReviewGraph: path.resolve(layout.projectRoot, 'code-review-graph-data'),
+      provenance: path.resolve(layout.projectRoot, 'provenance.sqlite'),
+    },
+  });
+}
 
 export const runtimeLockManifestSchema = z.object({
   schemaVersion: z.literal(1),
@@ -22,11 +61,17 @@ export const runtimeLockManifestSchema = z.object({
     megaBrain: z.string(),
     agentMemory: z.literal('0.9.29'),
     codeReviewGraph: z.literal('2.3.7'),
+    iiiEngine: z.literal('0.11.2').optional(),
   }),
   backends: z.object({
     agentMemory: runtimeCommandSchema.optional(),
     codeReviewGraph: runtimeCommandSchema,
   }),
+  isolation: runtimeIsolationSchema.optional(),
+  remoteAgentMemory: z.object({
+    baseUrl: z.url(),
+    secretEnvVar: z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/u),
+  }).optional(),
 }).superRefine((manifest, context) => {
   if (manifest.agentMemoryMode === 'managed' && !manifest.backends.agentMemory) {
     context.addIssue({
@@ -40,6 +85,20 @@ export const runtimeLockManifestSchema = z.object({
       code: 'custom',
       path: ['backends', 'agentMemory'],
       message: 'Remote AgentMemory mode must not persist a local backend command',
+    });
+  }
+  if (manifest.agentMemoryMode === 'remote' && !manifest.remoteAgentMemory) {
+    context.addIssue({
+      code: 'custom',
+      path: ['remoteAgentMemory'],
+      message: 'Remote AgentMemory mode requires only its URL and secret environment variable name',
+    });
+  }
+  if (manifest.agentMemoryMode === 'managed' && manifest.remoteAgentMemory) {
+    context.addIssue({
+      code: 'custom',
+      path: ['remoteAgentMemory'],
+      message: 'Managed AgentMemory mode must not persist remote connection configuration',
     });
   }
 });

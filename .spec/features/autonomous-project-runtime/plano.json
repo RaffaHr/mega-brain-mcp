@@ -1,12 +1,12 @@
 {
-  "runId": "mega-brain-mcp-autonomous-project-runtime-mt8nkrxw",
+  "runId": "mega-brain-mcp-autonomous-project-runtime-mt8olili",
   "feature": "autonomous-project-runtime",
   "agent": "codex",
   "modo": "sequencial",
   "paralelizar": null,
   "modeloForcado": null,
   "esforcoForcado": null,
-  "geradoEm": "2026-08-25 12:40",
+  "geradoEm": "2026-08-25 13:09",
   "branchTrabalho": "spec/autonomous-project-runtime",
   "baseDir": ".spec/features/autonomous-project-runtime",
   "specDir": ".spec",
@@ -15,46 +15,6 @@
   "ondas": [],
   "faixas": [],
   "sequenciais": [
-    {
-      "id": "T-029",
-      "titulo": "Garantir isolamento físico dos backends",
-      "modelo": "gpt-5.6-sol",
-      "esforco": "xhigh",
-      "arquivos": [
-        "src/cli/install.ts",
-        "src/cli/start.ts",
-        "src/cli/doctor.ts",
-        "src/cli/preflight.ts",
-        "src/runtime/iii-engine.ts",
-        "src/runtime/lock-manifest.ts",
-        "src/adapters/agentmemory/client.ts",
-        "src/adapters/agentmemory/schemas.ts",
-        "src/adapters/agentmemory/capabilities.ts",
-        "src/adapters/code-review-graph/client.ts",
-        "src/adapters/code-review-graph/capabilities.ts",
-        "src/server/application.ts",
-        "src/compatibility/manifest.ts",
-        "compatibility/agentmemory-0.9.29.json",
-        "compatibility/crg-2.3.7.json",
-        "tests/contract/agentmemory.test.ts",
-        "tests/contract/code-review-graph.test.ts",
-        "tests/integration/backend-isolation.test.ts",
-        "tests/integration/remote-agentmemory.test.ts"
-      ],
-      "refs": [
-        "US-018",
-        "AC-042",
-        "AC-044",
-        "AC-053",
-        "US-019",
-        "AC-046",
-        "AC-047",
-        "AC-048",
-        "AC-049",
-        "US-020",
-        "AC-052"
-      ]
-    },
     {
       "id": "T-026",
       "titulo": "Expor MCP stdio autônomo e adaptar os hosts",
@@ -159,7 +119,8 @@
   ],
   "concluidas": [
     "T-024",
-    "T-025"
+    "T-025",
+    "T-029"
   ],
   "avisos": []
 }

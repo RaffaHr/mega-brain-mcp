@@ -38,13 +38,15 @@ export class AgentMemoryClient {
     this.#fetch = options.fetch ?? globalThis.fetch;
   }
 
-  async #request<T>(method: 'GET' | 'POST', endpoint: string, schema: z.ZodType<T>, body?: unknown): Promise<T> {
+  async #request<T>(method: 'GET' | 'POST' | 'DELETE', endpoint: string, schema: z.ZodType<T>, body?: unknown, query?: Record<string, string>): Promise<T> {
     const headers = new Headers({ Accept: 'application/json' });
     if (body !== undefined) headers.set('Content-Type', 'application/json');
     if (this.#authToken) headers.set('Authorization', `Bearer ${this.#authToken}`);
     let response: Response;
     try {
-      response = await this.#fetch(new URL(endpoint.replace(/^\//, ''), this.#baseUrl), {
+      const url = new URL(endpoint.replace(/^\//, ''), this.#baseUrl);
+      for (const [key, value] of Object.entries(query ?? {})) url.searchParams.set(key, value);
+      response = await this.#fetch(url, {
         method,
         headers,
         ...(body === undefined ? {} : { body: JSON.stringify(body) }),
@@ -74,19 +76,23 @@ export class AgentMemoryClient {
     return this.#request('POST', '/agentmemory/smart-search', smartSearchResponseSchema, input);
   }
 
-  remember(input: { content: string; concepts?: string[]; metadata?: Record<string, unknown> }) {
+  remember(input: { content: string; concepts?: string[]; metadata?: Record<string, unknown>; project?: string }) {
     return this.#request('POST', '/agentmemory/remember', rememberResponseSchema, input);
   }
 
-  verify(input: { ids?: string[]; query?: string }) {
+  verify(input: { ids?: string[]; query?: string; project?: string }) {
     return this.#request('POST', '/agentmemory/verify', genericAgentMemoryResponseSchema, input);
   }
 
-  timeline(input: { query?: string; limit?: number; start?: string; end?: string }) {
+  timeline(input: { query?: string; limit?: number; start?: string; end?: string; project?: string }) {
     return this.#request('POST', '/agentmemory/timeline', genericAgentMemoryResponseSchema, input);
   }
 
-  sessions() {
-    return this.#request('GET', '/agentmemory/sessions', genericAgentMemoryResponseSchema);
+  sessions(input: { project?: string } = {}) {
+    return this.#request('GET', '/agentmemory/sessions', genericAgentMemoryResponseSchema, undefined, input.project ? { project: input.project } : undefined);
+  }
+
+  governanceDelete(input: { memoryIds: string[]; project: string; reason: string }) {
+    return this.#request('DELETE', '/agentmemory/governance/memories', genericAgentMemoryResponseSchema, input);
   }
 }

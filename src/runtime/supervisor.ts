@@ -84,7 +84,7 @@ export async function startRuntime(
       const managed = await controller.start(
         command,
         path.join(layout.logsDir, `${name}.log`),
-        options.environment?.[backend],
+        { ...command.environment, ...options.environment?.[backend] },
       );
       started.push(managed);
       processes[name] = managed.pid;

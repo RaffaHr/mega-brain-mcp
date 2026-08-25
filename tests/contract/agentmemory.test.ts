@@ -1,7 +1,7 @@
 import { describe, expect, test, vi } from 'vitest';
 
 import { AgentMemoryClient, AgentMemoryError } from '../../src/adapters/agentmemory/client.js';
-import { probeAgentMemory } from '../../src/adapters/agentmemory/capabilities.js';
+import { probeAgentMemory, probeRemoteAgentMemoryIsolation } from '../../src/adapters/agentmemory/capabilities.js';
 
 function jsonResponse(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
@@ -37,5 +37,44 @@ describe('AgentMemory REST adapter', () => {
       fetch: async () => jsonResponse(['unexpected']),
     });
     await expect(incompatible.health()).rejects.toBeInstanceOf(AgentMemoryError);
+  });
+
+  test('AC-049: probe remoto prova A, ausência em B e cleanup confirmado @spec:AC-049', async () => {
+    const records = new Map<string, Array<{ id: string; content: string }>>();
+    const bodies: Array<Record<string, unknown>> = [];
+    const fetch = vi.fn<typeof globalThis.fetch>(async (request, init) => {
+      const url = new URL(String(request));
+      const body = init?.body ? JSON.parse(String(init.body)) as Record<string, unknown> : {};
+      bodies.push(body);
+      if (url.pathname.endsWith('/remember')) {
+        const project = String(body.project);
+        const record = { id: 'probe-memory', content: String(body.content) };
+        records.set(project, [...(records.get(project) ?? []), record]);
+        return jsonResponse({ id: record.id }, 201);
+      }
+      if (url.pathname.endsWith('/smart-search')) {
+        const project = String(body.project);
+        const query = String(body.query);
+        return jsonResponse({ results: (records.get(project) ?? []).filter(({ content }) => content.includes(query)) });
+      }
+      if (url.pathname.endsWith('/governance/memories')) {
+        const ids = new Set((body.memoryIds ?? []) as string[]);
+        const project = String(body.project);
+        records.set(project, (records.get(project) ?? []).filter(({ id }) => !ids.has(id)));
+        return jsonResponse({ deleted: ids.size });
+      }
+      return jsonResponse({ status: 'ok' });
+    });
+    const client = new AgentMemoryClient({ baseUrl: 'https://memory.example.test', authToken: 'secret', fetch });
+
+    await expect(probeRemoteAgentMemoryIsolation(client, {
+      projectA: 'worktree-a',
+      projectB: 'worktree-b',
+      sentinel: 'mega-brain-isolation-sentinel',
+    })).resolves.toMatchObject({ isolated: true, cleanupConfirmed: true });
+
+    expect(records.get('worktree-a')).toEqual([]);
+    expect(records.get('worktree-b') ?? []).toEqual([]);
+    expect(bodies.filter((body) => body.project).every((body) => typeof body.project === 'string')).toBe(true);
   });
 });

@@ -44,6 +44,14 @@ test('AC-031: compatible preflight selects an executable Python with venv suppor
     if (!(key in values)) throw new Error('unexpected command');
     return { stdout: values[key]!, stderr: '' };
   } } });
-  expect(result).toEqual({ nodeVersion: '24.19.0', pythonVersion: '3.12.10', pythonCommand: 'python3', gitVersion: '2.50.1', npmVersion: '11.6.0' });
+  expect(result).toEqual({
+    platform: 'linux',
+    managedIiiEngineRequired: false,
+    nodeVersion: '24.19.0',
+    pythonVersion: '3.12.10',
+    pythonCommand: 'python3',
+    gitVersion: '2.50.1',
+    npmVersion: '11.6.0',
+  });
   expect(calls.at(-1)).toBe('python3 -c import ensurepip, venv');
 });

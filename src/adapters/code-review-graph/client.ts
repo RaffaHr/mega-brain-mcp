@@ -1,5 +1,6 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { getDefaultEnvironment, StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
+import path from 'node:path';
 
 import { assertAllowedCrgTool, assertExactCrgSurface, CRG_READ_ONLY_TOOLS, type CrgReadOnlyTool } from './allowlist.js';
 import { crgToolResultSchema, crgToolsResponseSchema, type CrgToolResult } from './schemas.js';
@@ -16,9 +17,22 @@ export interface CrgClientOptions {
   command: string;
   args?: string[];
   cwd: string;
+  repoRoot?: string;
+  dataDir?: string;
   environment?: Record<string, string>;
   timeoutMs?: number;
   sessionFactory?: () => CrgSession;
+}
+
+function effectiveEnvironment(options: CrgClientOptions): Record<string, string> {
+  const repoRoot = path.resolve(options.repoRoot ?? options.cwd);
+  const dataDir = path.resolve(options.dataDir ?? path.join(repoRoot, '.mega-brain-crg'));
+  return {
+    ...(options.environment ?? {}),
+    CRG_DATA_DIR: dataDir,
+    CRG_REPO_ROOT: repoRoot,
+    CRG_TOOLS: CRG_READ_ONLY_TOOLS.join(','),
+  };
 }
 
 function sdkSession(options: CrgClientOptions): CrgSession {
@@ -29,8 +43,7 @@ function sdkSession(options: CrgClientOptions): CrgSession {
     cwd: options.cwd,
     env: {
       ...getDefaultEnvironment(),
-      ...(options.environment ?? {}),
-      CRG_TOOLS: CRG_READ_ONLY_TOOLS.join(','),
+      ...effectiveEnvironment(options),
     },
     stderr: 'pipe',
   });
@@ -135,5 +148,9 @@ export class CodeReviewGraphClient {
 
   tools(): readonly string[] {
     return [...this.#tools];
+  }
+
+  effectiveEnvironment(): Readonly<Record<string, string>> {
+    return Object.freeze(effectiveEnvironment(this.#options));
   }
 }

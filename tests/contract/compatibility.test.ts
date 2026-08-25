@@ -42,4 +42,12 @@ describe('pinned backend contracts', () => {
       }),
     ).toThrow(CompatibilityError);
   });
+
+  test('AC-049/AC-052: contracts declare namespace and storage isolation @spec:AC-049 @spec:AC-052', async () => {
+    const agentMemory = await loadCompatibilityManifest(path.join(root, 'compatibility', 'agentmemory-0.9.29.json'));
+    const crg = await loadCompatibilityManifest(path.join(root, 'compatibility', 'crg-2.3.7.json'));
+
+    expect(agentMemory.isolation?.namespaceField).toBe('project');
+    expect(crg.isolation?.requiredEnvironment).toEqual(['CRG_DATA_DIR', 'CRG_REPO_ROOT']);
+  });
 });
