@@ -34,18 +34,30 @@ mega-brain --help
 
 ## Set up Codex or Claude Code
 
-Choose one host, or both:
+For an interactive terminal, use the guided setup. It validates everything before
+the final confirmation and defaults to a managed local runtime with strict
+per-project isolation:
+
+```powershell
+mega-brain setup --repo .
+```
+
+For CI and scripts, use the deterministic non-interactive command:
 
 ```powershell
 # Codex
-mega-brain install --repo . --hosts codex --port 3000
+mega-brain install --repo . --hosts codex
 
 # Claude Code
-mega-brain install --repo . --hosts claude --port 3000
+mega-brain install --repo . --hosts claude
 
 # Both
-mega-brain install --repo . --hosts codex,claude --port 3000
+mega-brain install --repo . --hosts codex,claude
 ```
+
+On Windows, managed AgentMemory also requires explicit acceptance of the pinned,
+checksummed iii-engine artifact: add `--accept-iii-engine`. The interactive setup
+asks for this confirmation directly.
 
 Installation performs all project setup:
 
@@ -55,21 +67,44 @@ Installation performs all project setup:
 - Claude Code hooks: `.claude/settings.local.json`
 - Git hook multiplexer: isolated `core.hooksPath`
 
-Existing MCP servers and hooks remain in place. Backups are stored in the isolated Mega Brain data directory so uninstall can restore the original bytes. Only the public endpoint `http://127.0.0.1:3000/mcp` is registered; AgentMemory and Code Review Graph remain private.
+Existing MCP servers and hooks remain in place. Backups are stored in the isolated Mega Brain data directory so uninstall can restore the original bytes. The host registers `mega-brain mcp --repo <root>` over `stdio`; AgentMemory and Code Review Graph remain private.
 
 After installation, approve the project MCP/hooks when Codex (`/mcp`, `/hooks`) or Claude Code (`/mcp`) asks for project trust.
 
-## Start and verify
+## Use and verify
 
-Run the managed backend, then the public MCP server in a second terminal:
+Reopen the configured Codex or Claude Code project. The first MCP client starts
+the private project supervisor and backends automatically; the last client to
+disconnect releases its lease and the runtime shuts down after the grace period.
+No manual `start` or `serve` is needed.
+
+Use `doctor` to inspect the effective worktree identity, paths, ports and backend
+health:
 
 ```powershell
-mega-brain start --repo .
 mega-brain doctor --repo .
-mega-brain serve --repo . --port 3000
 ```
 
-`start` returns only after AgentMemory passes its readiness probe. `doctor` verifies the runtime lock, AgentMemory REST API, Code Review Graph MCP handshake/tool surface, and Git HEAD. The configured coding agent can then discover and call the six `brain_*` tools.
+`start`, `stop`, and `serve` remain available as advanced
+diagnostic and compatibility commands.
+
+## Use an existing remote AgentMemory
+
+Remote mode does not install or start AgentMemory locally. Supply the service URL,
+the name of the environment variable containing its secret, and the secret only
+in the process environment:
+
+```powershell
+$env:MEGA_BRAIN_AGENTMEMORY_MODE = 'remote'
+$env:MEGA_BRAIN_AGENTMEMORY_URL = 'https://memory.example.com'
+$env:MEGA_BRAIN_AGENTMEMORY_SECRET_ENV = 'REMOTE_MEMORY_SECRET'
+$env:REMOTE_MEMORY_SECRET = '<secret>'
+mega-brain install --repo . --hosts codex,claude
+```
+
+Before any file or download is created, install performs a reversible namespace
+A/B probe and confirms cleanup. If validation fails, fix URL/secret and rerun;
+interactive setup stays on that step and also allows switching to managed mode.
 
 No provider key, external egress, or paid LLM is enabled by default. See [configuration](docs/configuration.md) for opt-in variables.
 
@@ -77,7 +112,6 @@ No provider key, external egress, or paid LLM is enabled by default. See [config
 
 ```powershell
 mega-brain upgrade --repo .
-mega-brain stop --repo .
 mega-brain uninstall --repo . --hosts codex,claude
 ```
 

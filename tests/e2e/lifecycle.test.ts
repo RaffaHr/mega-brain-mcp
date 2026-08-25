@@ -81,11 +81,11 @@ test('AC-022: doctor comprova o ciclo real dos backends @spec:AC-022', async () 
 test('AC-023: upgrade e uninstall são reversíveis @spec:AC-023', async () => {
   const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-lifecycle-'));
   const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
-  await installManagedRuntime({ dataDir, identity, runner: noOpRunner, now: new Date('2026-08-24T10:00:00.000Z') });
+  await installManagedRuntime({ dataDir, identity, runner: noOpRunner, preflight: false, now: new Date('2026-08-24T10:00:00.000Z') });
   const layout = runtimeLayout(dataDir, identity);
   await writeFile(path.join(layout.current, 'sentinel.txt'), 'previous-runtime', 'utf8');
   await expect(upgradeManagedRuntime({
-    dataDir, identity, runner: noOpRunner, now: new Date('2026-08-24T11:00:00.000Z'),
+    dataDir, identity, runner: noOpRunner, preflight: false, now: new Date('2026-08-24T11:00:00.000Z'),
     validate: async () => { throw new Error('failed post-upgrade validation'); },
   })).rejects.toThrow('failed post-upgrade validation');
   expect(await readFile(path.join(layout.current, 'sentinel.txt'), 'utf8')).toBe('previous-runtime');
@@ -131,7 +131,7 @@ test('AC-028: opt-ins encaminham credencial apenas à autenticação REST e nunc
 
   const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-runtime-opt-in-'));
   const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
-  await installManagedRuntime({ dataDir, identity, runner: noOpRunner });
+  await installManagedRuntime({ dataDir, identity, runner: noOpRunner, preflight: false });
   const spawnedEnvironments: Array<NodeJS.ProcessEnv | undefined> = [];
   const controller: ProcessController = {
     async start(_command, _logFile, environment) {

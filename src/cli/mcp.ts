@@ -31,14 +31,16 @@ export async function runMcpCommand(input: {
   streams?: { input?: Readable; output?: Writable };
 }): Promise<void> {
   const layout = runtimeLayout(input.config.dataDir, input.identity);
-  const supervisor = await ensureProjectSupervisor({ layout, identity: input.identity });
+  const supervisor = await ensureProjectSupervisor({ layout, identity: input.identity, timeoutMs: 60_000 });
   await withProjectLease(supervisor.client, randomUUID(), async () => {
     const inspection = await inspectManagedRuntime(input.config.dataDir, input.identity);
     const command = inspection.manifest.backends.codeReviewGraph;
     const dataDir = command.environment?.CRG_DATA_DIR ?? input.config.codeReviewGraph.dataDir;
     const git = await GitRepository.discover(input.identity.root);
     const agentMemory = new AgentMemoryClient({
-      baseUrl: input.config.agentMemory.baseUrl,
+      baseUrl: input.config.agentMemory.mode === 'managed' && inspection.manifest.isolation
+        ? `http://127.0.0.1:${inspection.manifest.isolation.ports.rest}`
+        : input.config.agentMemory.baseUrl,
       ...(input.config.agentMemory.authToken ? { authToken: input.config.agentMemory.authToken } : {}),
     });
     const codeReviewGraph = new CodeReviewGraphClient({

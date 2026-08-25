@@ -13,6 +13,7 @@ export const REQUIRED_AGENTMEMORY_ENDPOINTS = [
   'POST /agentmemory/remember',
   'POST /agentmemory/verify',
   'POST /agentmemory/timeline',
+  'GET /agentmemory/memories',
   'GET /agentmemory/sessions',
   'DELETE /agentmemory/governance/memories',
 ] as const;

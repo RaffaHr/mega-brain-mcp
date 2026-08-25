@@ -15,6 +15,7 @@ import { discoverProjectIdentity } from '../projects/identity.js';
 import { openProvenanceDatabase } from '../provenance/database.js';
 import { ProvenanceRepository } from '../provenance/repository.js';
 import { runtimeLayout } from '../runtime/layout.js';
+import type { RuntimeLockManifest } from '../runtime/lock-manifest.js';
 import { readRuntimeState } from '../runtime/supervisor.js';
 import { downloadOfficialIiiEngine } from '../runtime/iii-engine.js';
 import { projectConfigPath, writeProjectConfig } from '../config/project-config.js';
@@ -106,9 +107,13 @@ async function projectContext(args: string[]) {
 export function createAgentMemoryClient(
   config: MegaBrainConfig,
   fetch?: typeof globalThis.fetch,
+  manifest?: RuntimeLockManifest,
 ): AgentMemoryClient {
+  const baseUrl = config.agentMemory.mode === 'managed' && manifest?.isolation
+    ? `http://127.0.0.1:${manifest.isolation.ports.rest}`
+    : config.agentMemory.baseUrl;
   return new AgentMemoryClient({
-    baseUrl: config.agentMemory.baseUrl,
+    baseUrl,
     ...(config.agentMemory.authToken ? { authToken: config.agentMemory.authToken } : {}),
     ...(fetch ? { fetch } : {}),
   });
@@ -121,8 +126,8 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid --port');
     const { config, identity } = await projectContext(args);
     const git = await GitRepository.discover(identity.root);
-    const agentMemory = createAgentMemoryClient(config);
     const installed = await inspectManagedRuntime(config.dataDir, identity).catch(() => null);
+    const agentMemory = createAgentMemoryClient(config, undefined, installed?.manifest);
     const crgRuntime = installed?.manifest.backends.codeReviewGraph;
     const crgDataDir = crgRuntime?.environment?.CRG_DATA_DIR ?? config.codeReviewGraph.dataDir;
     const codeReviewGraph = new CodeReviewGraphClient({
@@ -250,11 +255,12 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     return;
   }
   if (command === 'supervisor') {
+    const inspection = await inspectManagedRuntime(config.dataDir, identity);
     await startManagedRuntime(config.dataDir, identity, {
       agentMemoryMode: config.agentMemory.mode,
       agentMemoryEnvironment: config.agentMemory.environment,
       ready: () => waitForService(async () => {
-        const health = await createAgentMemoryClient(config).health();
+        const health = await createAgentMemoryClient(config, undefined, inspection.manifest).health();
         if (!(health.healthy ?? (health.status === 'ok' || health.status === 'healthy'))) {
           throw new Error('AgentMemory health endpoint is not healthy');
         }
@@ -356,11 +362,12 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     return;
   }
   if (command === 'start') {
+    const inspection = await inspectManagedRuntime(config.dataDir, identity);
     output(JSON.stringify(await startManagedRuntime(config.dataDir, identity, {
       agentMemoryMode: config.agentMemory.mode,
       agentMemoryEnvironment: config.agentMemory.environment,
       ready: () => waitForService(async () => {
-        const health = await createAgentMemoryClient(config).health();
+        const health = await createAgentMemoryClient(config, undefined, inspection.manifest).health();
         if (!(health.healthy ?? (health.status === 'ok' || health.status === 'healthy'))) {
           throw new Error('AgentMemory health endpoint is not healthy');
         }
@@ -462,7 +469,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
   if (command === 'doctor') {
     const inspection = await inspectManagedRuntime(config.dataDir, identity);
     const repository = await GitRepository.discover(identity.root);
-    const agentMemory = createAgentMemoryClient(config);
+    const agentMemory = createAgentMemoryClient(config, undefined, inspection.manifest);
     const crgCommand = inspection.manifest.backends.codeReviewGraph;
     const crgDataDir = crgCommand.environment?.CRG_DATA_DIR ?? config.codeReviewGraph.dataDir;
     const codeReviewGraph = new CodeReviewGraphClient({

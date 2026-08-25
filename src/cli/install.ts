@@ -23,6 +23,72 @@ export const MANAGED_VERSIONS = {
   codeReviewGraph: '2.3.7',
 } as const;
 
+function isolatedAgentMemoryIiiConfig(ports: { rest: number; streams: number; viewer: number; engine: number }): string {
+  const allowedOrigins = [
+    `http://localhost:${ports.rest}`,
+    `http://localhost:${ports.viewer}`,
+    `http://127.0.0.1:${ports.rest}`,
+    `http://127.0.0.1:${ports.viewer}`,
+  ].map((origin) => `"${origin}"`).join(', ');
+  return `workers:
+  - name: iii-http
+    config:
+      port: ${ports.rest}
+      host: 127.0.0.1
+      default_timeout: 180000
+      cors:
+        allowed_origins: [${allowedOrigins}]
+        allowed_methods: [GET, POST, PUT, DELETE, OPTIONS]
+  - name: iii-state
+    config:
+      adapter:
+        name: kv
+        config:
+          store_method: file_based
+          file_path: ./data/state_store.db
+  - name: iii-queue
+    config:
+      adapter:
+        name: builtin
+  - name: iii-pubsub
+    config:
+      adapter:
+        name: local
+  - name: iii-cron
+    config:
+      adapter:
+        name: kv
+  - name: iii-stream
+    config:
+      port: ${ports.streams}
+      host: 127.0.0.1
+      adapter:
+        name: kv
+        config:
+          store_method: file_based
+          file_path: ./data/stream_store
+  - name: iii-observability
+    config:
+      enabled: true
+      service_name: agentmemory
+      exporter: memory
+      sampling_ratio: 0.1
+      metrics_enabled: true
+      logs_enabled: true
+      logs_console_output: false
+  - name: iii-worker-manager
+    config:
+      port: ${ports.engine}
+      host: 127.0.0.1
+  - name: iii-exec
+    config:
+      watch:
+        - src/**/*.ts
+      exec:
+        - node dist/index.mjs
+`;
+}
+
 export interface CommandRunner {
   run(command: string, args: string[], options: { cwd: string; env?: NodeJS.ProcessEnv }): Promise<void>;
 }
@@ -166,6 +232,7 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
       : path.join(finalCrgDir, 'venv', 'bin', 'python');
     const stagedAgentMemoryEntrypoint = path.join(agentMemoryDir, 'node_modules', '@agentmemory', 'agentmemory', 'dist', 'cli.mjs');
     const finalAgentMemoryEntrypoint = path.join(finalAgentMemoryDir, 'node_modules', '@agentmemory', 'agentmemory', 'dist', 'cli.mjs');
+    const finalAgentMemoryIiiConfig = path.join(finalAgentMemoryDir, 'iii-config.yaml');
     if (options.validateArtifacts ?? runner === systemCommandRunner) {
       if (agentMemoryMode === 'managed' && !(await exists(stagedAgentMemoryEntrypoint))) {
         throw new Error('AgentMemory installation completed without an executable CLI entrypoint');
@@ -215,6 +282,16 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
             args: [finalAgentMemoryEntrypoint, '--data-dir', isolation.paths.agentMemory, '--port', String(isolation.ports.rest)],
             cwd: finalAgentMemoryDir,
             lifecycle: 'daemon' as const,
+            environment: {
+              AGENTMEMORY_III_CONFIG: finalAgentMemoryIiiConfig,
+              HOME: isolation.paths.iiiEngine,
+              III_ENGINE_PORT: String(isolation.ports.engine),
+              III_ENGINE_URL: `ws://127.0.0.1:${isolation.ports.engine}`,
+              III_REST_PORT: String(isolation.ports.rest),
+              III_STREAM_PORT: String(isolation.ports.streams),
+              III_VIEWER_PORT: String(isolation.ports.viewer),
+              USERPROFILE: isolation.paths.iiiEngine,
+            },
             ...(installIiiEngine ? { prependPath: isolation.paths.iiiEngine } : {}),
           },
         } : {}),
@@ -233,6 +310,9 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
       },
       isolation,
     };
+    if (agentMemoryMode === 'managed') {
+      await writeFile(path.join(agentMemoryDir, 'iii-config.yaml'), isolatedAgentMemoryIiiConfig(isolation.ports), 'utf8');
+    }
     await writeRuntimeLock(path.join(staging, 'runtime-lock.json'), manifest);
     if (agentMemoryMode === 'managed') {
       await writeFile(path.join(agentMemoryDir, '.installed'), MANAGED_VERSIONS.agentMemory, 'utf8');

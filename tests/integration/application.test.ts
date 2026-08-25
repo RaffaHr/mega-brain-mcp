@@ -25,10 +25,15 @@ test('composition root conecta as seis tools a handlers operacionais', async () 
   } satisfies MegaBrainConfig;
   const agentMemory = {
     health: async () => ({ healthy: true, version: '0.9.29' }),
+    smartSearch: async () => ({ results: [] }),
   } as unknown as AgentMemoryClient;
+  const crgCalls: Array<{ name: string; input: Record<string, unknown> }> = [];
   const codeReviewGraph = {
     start: async () => undefined,
-    call: async () => ({ content: [], structuredContent: { graphHead: 'abc' } }),
+    call: async (name: string, input: Record<string, unknown>) => {
+      crgCalls.push({ name, input });
+      return { content: [], structuredContent: { graphHead: 'abc' } };
+    },
     serverVersion: () => '2.3.7',
   } as unknown as CodeReviewGraphClient;
   const git = { head: async () => 'abc' } as unknown as GitRepository;
@@ -39,5 +44,11 @@ test('composition root conecta as seis tools a handlers operacionais', async () 
   const status = await handlers.brain_status!({});
   expect(status.status).toBe('ok');
   expect(status.result).not.toMatchObject({ available: false });
+  await handlers.brain_change_context!({ target: 'src/example.ts' });
+  expect(crgCalls).toEqual(expect.arrayContaining([
+    { name: 'get_impact_radius_tool', input: { changed_files: ['src/example.ts'] } },
+    { name: 'get_affected_flows_tool', input: { changed_files: ['src/example.ts'] } },
+    { name: 'query_graph_tool', input: { pattern: 'file_summary', target: 'src/example.ts' } },
+  ]));
   database.close();
 });

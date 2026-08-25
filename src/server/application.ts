@@ -209,9 +209,9 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
         head: await git.head(),
         async structure() {
           const [impact, flows, query] = await Promise.all([
-            codeReviewGraph.call('get_impact_radius_tool', { target }),
+            codeReviewGraph.call('get_impact_radius_tool', { changed_files: [target] }),
             codeReviewGraph.call('get_affected_flows_tool', { changed_files: [target] }),
-            codeReviewGraph.call('query_graph_tool', { pattern: 'related', target }),
+            codeReviewGraph.call('query_graph_tool', { pattern: 'file_summary', target }),
           ]);
           return { dependencies: stringsFromUnknown(impact.structuredContent ?? impact.content), flows: stringsFromUnknown(flows.structuredContent ?? flows.content), tests: stringsFromUnknown(query.structuredContent ?? query.content) };
         },
@@ -234,7 +234,7 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
         project: identity.worktreeId,
         head: await git.head(),
         commits: async () => (await gitHistory(git, query.limit ?? 50)).map((commit) => ({ id: commit.hash, source: 'git', occurredAt: commit.authoredAt, summary: commit.subject, reference: commit.hash })),
-        memories: async () => temporalItems(await agentMemory.timeline({ ...query, project: identity.worktreeId }), 'agentmemory_memory'),
+        memories: async () => temporalItems(await agentMemory.memories({ project: identity.worktreeId }), 'agentmemory_memory'),
         sessions: async () => temporalItems(await agentMemory.sessions({ project: identity.worktreeId }), 'agentmemory_session'),
         currentStructure: async () => (await codeReviewGraph.call('get_architecture_overview_tool', {})).structuredContent ?? {},
       });

@@ -1,5 +1,5 @@
 {
-  "testCommand": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
+  "testCommand": "npx vitest run --pool=threads --maxWorkers=1 --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "reporterOutputFile": ".spec/verification/vitest-results.json",
   "testGlobs": [

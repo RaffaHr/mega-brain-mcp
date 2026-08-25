@@ -1,12 +1,12 @@
 {
-  "runId": "mega-brain-mcp-autonomous-project-runtime-mt8qvho0",
+  "runId": "mega-brain-mcp-autonomous-project-runtime-mt8qx8oi",
   "feature": "autonomous-project-runtime",
   "agent": "codex",
   "modo": "sequencial",
   "paralelizar": null,
   "modeloForcado": null,
   "esforcoForcado": null,
-  "geradoEm": "2026-08-25 14:12",
+  "geradoEm": "2026-08-25 14:14",
   "branchTrabalho": "spec/autonomous-project-runtime",
   "baseDir": ".spec/features/autonomous-project-runtime",
   "specDir": ".spec",
@@ -58,5 +58,7 @@
     "T-027",
     "T-028"
   ],
-  "avisos": []
+  "avisos": [
+    "T-030 está [em-andamento] — entrou no plano; se já houver trabalho local, commite antes de executar"
+  ]
 }

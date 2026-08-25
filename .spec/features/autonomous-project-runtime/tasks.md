@@ -44,8 +44,7 @@
 - Esforço: xalto
 - Notas: Fazer staging, snapshot de runtime, `iii-engine`, backends e integrações e commit coordenado; em qualquer erro restaurar tudo. `install` inválido falha antes de downloads, arquivos ou processos. Uninstall drena leases, restaura host/hooks e mantém dados salvo `--purge`. Depende de T-024, T-025, T-026, T-027 e T-029.
 
-## T-030 — Provar lifecycle autônomo, concorrência e matriz completa [pendente]
-
+## T-030 — Provar lifecycle autônomo, concorrência e matriz completa [concluida]
 - Refs: AC-039, AC-041, AC-044, AC-045, AC-047, AC-048, AC-049, AC-050, AC-051, AC-052, AC-054, AC-055, AC-056
 - Arquivos: tests/spec/autonomous-project-runtime.spec.test.ts, tests/e2e/autonomous-lifecycle.test.ts, tests/e2e/concurrent-projects.test.ts, tests/e2e/package-lifecycle.test.ts, scripts/test-isolated-lifecycle.mjs, tests/contract/package-boundary.test.ts, .github/workflows/ci.yml, README.md, docs/configuration.md, docs/troubleshooting.md, package.json
 - Modelo: gpt-5.6-sol

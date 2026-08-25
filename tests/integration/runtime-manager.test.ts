@@ -61,6 +61,21 @@ test('AC-001: instalação cria runtime isolado e verificável @spec:AC-001', as
     '--data-dir', manifest.isolation!.paths.agentMemory,
     '--port', String(manifest.isolation!.ports.rest),
   ]));
+  expect(manifest.backends.agentMemory?.environment).toEqual({
+    AGENTMEMORY_III_CONFIG: path.join(manifest.backends.agentMemory!.cwd, 'iii-config.yaml'),
+    HOME: manifest.isolation!.paths.iiiEngine,
+    III_ENGINE_PORT: String(manifest.isolation!.ports.engine),
+    III_ENGINE_URL: `ws://127.0.0.1:${manifest.isolation!.ports.engine}`,
+    III_REST_PORT: String(manifest.isolation!.ports.rest),
+    III_STREAM_PORT: String(manifest.isolation!.ports.streams),
+    III_VIEWER_PORT: String(manifest.isolation!.ports.viewer),
+    USERPROFILE: manifest.isolation!.paths.iiiEngine,
+  });
+  const iiiConfig = await readFile(manifest.backends.agentMemory!.environment!.AGENTMEMORY_III_CONFIG!, 'utf8');
+  expect(iiiConfig).toContain(`port: ${manifest.isolation!.ports.rest}`);
+  expect(iiiConfig).toContain(`port: ${manifest.isolation!.ports.streams}`);
+  expect(iiiConfig).toContain('name: iii-worker-manager');
+  expect(iiiConfig).toContain(`port: ${manifest.isolation!.ports.engine}`);
 });
 
 test('AC-026: modo remoto instala somente Code Review Graph e nunca inicia AgentMemory local @spec:AC-026', async () => {
@@ -142,10 +157,11 @@ test('AC-027: modo gerenciado injeta ambiente no spawn sem persistir secrets @sp
     controller,
   });
 
-  expect(receivedEnvironment).toEqual([{
+  expect(receivedEnvironment).toHaveLength(1);
+  expect(receivedEnvironment[0]).toMatchObject({
     AGENTMEMORY_SECRET: 'managed-secret-value',
     AGENTMEMORY_TOOLS: 'core',
-  }]);
+  });
   const layout = runtimeLayout(dataDir, identity);
   const serialized = [
     await readFile(path.join(layout.current, 'runtime-lock.json'), 'utf8'),

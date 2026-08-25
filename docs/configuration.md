@@ -1,8 +1,8 @@
 # Configuration
 
 Mega Brain reads `.env` from the repository selected by `--repo`. Configuration
-precedence is process environment, repository `.env`, JSON configuration file,
-then built-in defaults. Keep the real `.env` uncommitted; `.env.example` contains
+precedence is CLI flags, process environment, repository `.env`, JSON
+configuration file, then built-in defaults. Keep the real `.env` uncommitted; `.env.example` contains
 only safe defaults and empty credential placeholders.
 
 ## AgentMemory profiles
@@ -11,10 +11,10 @@ only safe defaults and empty credential placeholders.
 
 - `managed` (default): Mega Brain installs and starts the pinned local runtime.
   Recognized AgentMemory variables are passed to that child process in memory.
-- `remote`: Mega Brain connects with `MEGA_BRAIN_AGENTMEMORY_URL` and
-  `MEGA_BRAIN_AGENTMEMORY_TOKEN`. It does not forward local AgentMemory settings
-  or provider credentials, and runtime lifecycle commands do not manage the
-  remote service.
+- `remote`: Mega Brain connects with `MEGA_BRAIN_AGENTMEMORY_URL` and the secret
+  referenced by `MEGA_BRAIN_AGENTMEMORY_SECRET_ENV`. It does not install or
+  start AgentMemory locally, does not forward local settings or provider
+  credentials, and lifecycle commands never manage the remote service.
 
 In managed mode, `AGENTMEMORY_SECRET` is also used as the local REST bearer token
 when `MEGA_BRAIN_AGENTMEMORY_TOKEN` is empty. An explicit Mega Brain token always
@@ -28,6 +28,7 @@ wins. Neither value belongs in a committed file or a runtime lock manifest.
 | `MEGA_BRAIN_PORT` | HTTP MCP port | `3000` |
 | `MEGA_BRAIN_AGENTMEMORY_MODE` | `managed` or `remote` ownership profile | `managed` |
 | `MEGA_BRAIN_AGENTMEMORY_URL` | AgentMemory REST base URL | `http://127.0.0.1:3111` |
+| `MEGA_BRAIN_AGENTMEMORY_SECRET_ENV` | Name of the environment variable containing the remote secret | unset |
 | `MEGA_BRAIN_AGENTMEMORY_TOKEN` | Bearer token for AgentMemory | unset |
 | `MEGA_BRAIN_AGENTMEMORY_ENV_JSON` | Advanced allowlisted environment map for managed mode | `{}` |
 | `MEGA_BRAIN_CRG_COMMAND` | Code Review Graph executable override | managed executable |
@@ -85,21 +86,24 @@ global opt-ins are present:
 
 Diagnostics redact bearer tokens, `AGENTMEMORY_SECRET`, and provider API keys.
 
-Each Git checkout/worktree receives a separate runtime identity. AgentMemory may
-be shared by the user, while CRG data and Mega Brain provenance remain
-checkout-scoped.
+Each Git checkout/worktree receives separate AgentMemory data, iii-engine, CRG
+data, provenance, IPC and four backend ports in managed mode. Remote AgentMemory
+is accepted only after its namespace A/B probe proves that one worktree cannot
+read another and confirms sentinel cleanup.
 
 ## Host integration files
 
-`mega-brain install --hosts codex` merges the public server into
+`mega-brain setup` guides interactive configuration. `mega-brain install` is the
+non-interactive equivalent and never prompts. `mega-brain install --hosts codex` merges the public server into
 `.codex/config.toml` and native lifecycle hooks into `.codex/hooks.json`.
 `mega-brain install --hosts claude` merges the same public server into
 `.mcp.json` and hooks into `.claude/settings.local.json`. Passing
 `--hosts codex,claude` configures both.
 
-The URL is `http://127.0.0.1:<MEGA_BRAIN_PORT>/mcp`; `--port` overrides the
-port during install. Only `mega-brain` is registered. AgentMemory and Code
-Review Graph are private adapters and must not be added to either host.
+The default host entry is the `mega-brain mcp --repo <root>` command over stdio.
+HTTP remains opt-in through `--transport http`; only then does
+`MEGA_BRAIN_PORT` select the public endpoint. AgentMemory and Code Review Graph
+are private adapters and must not be added to either host.
 
 The first install stores byte-preserving backups below
 `MEGA_BRAIN_DATA_DIR/projects/<worktree>/integration-backups`. Repeated install

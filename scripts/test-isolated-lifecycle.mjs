@@ -6,6 +6,9 @@ import { spawnSync } from 'node:child_process';
 
 const root = process.cwd();
 const positiveOnly = process.argv.includes('--positive-only');
+const negativeOnly = process.argv.includes('--negative-only');
+const scenarioIndex = process.argv.indexOf('--scenario');
+const selectedScenario = scenarioIndex >= 0 ? process.argv[scenarioIndex + 1] : undefined;
 const artifactDir = mkdtempSync(path.join(tmpdir(), 'mega-brain-isolated-'));
 
 function run(command, args, options = {}) {
@@ -24,7 +27,9 @@ function run(command, args, options = {}) {
 }
 
 function dockerScenario(name, image, script) {
-  if (positiveOnly && name !== 'supported-full-lifecycle') return;
+  if (selectedScenario && name !== selectedScenario) return;
+  if (positiveOnly && !name.startsWith('supported-')) return;
+  if (negativeOnly && name.startsWith('supported-')) return;
   process.stdout.write(`\n=== isolated scenario: ${name} (${image}) ===\n`);
   run('docker', ['run', '--rm', '--volume', `${artifactDir}:/artifact:ro`, image, 'bash', '-lc', script], { stdio: 'inherit' });
 }
@@ -40,31 +45,49 @@ git -C /tmp/repo commit -m 'add handler architecture' >/dev/null
 export MEGA_BRAIN_DATA_DIR=/tmp/mega-data
 `;
 
-const installPackage = `npm install --global /artifact/package.tgz --no-audit --no-fund >/dev/null`;
+const installPackage = `
+export NPM_CONFIG_USERCONFIG=/tmp/mega-brain-npmrc
+export NPM_CONFIG_CACHE=/tmp/mega-brain-npm-cache
+npm install --global /artifact/package.tgz --no-audit --no-fund >/dev/null
+`;
+
+const waitForAutonomousShutdown = `
+for attempt in $(seq 1 30); do
+  remaining="$(find /tmp/mega-data/projects -path '*/runtime-state.json' -o -path '*/supervisor/manifest.json')"
+  test -z "$remaining" && break
+  sleep 1
+done
+remaining="$(find /tmp/mega-data/projects -path '*/runtime-state.json' -o -path '*/supervisor/manifest.json')"
+test -z "$remaining" || { echo "autonomous shutdown left runtime files:" >&2; echo "$remaining" >&2; exit 1; }
+`;
 
 const probe = `
 import { Client } from 'file:///usr/local/lib/node_modules/@raffahr/mega-brain-mcp/node_modules/@modelcontextprotocol/sdk/dist/esm/client/index.js';
-import { StreamableHTTPClientTransport } from 'file:///usr/local/lib/node_modules/@raffahr/mega-brain-mcp/node_modules/@modelcontextprotocol/sdk/dist/esm/client/streamableHttp.js';
+import { StdioClientTransport } from 'file:///usr/local/lib/node_modules/@raffahr/mega-brain-mcp/node_modules/@modelcontextprotocol/sdk/dist/esm/client/stdio.js';
 const expected = ['brain_recall','brain_learn','brain_change_context','brain_history','brain_validate','brain_status'];
-let client;
-let lastError;
-for (let attempt = 0; attempt < 40; attempt += 1) {
-  try {
-    client = new Client({ name: 'isolated-probe', version: '1.0.0' });
-    await client.connect(new StreamableHTTPClientTransport(new URL('http://127.0.0.1:3000/mcp')));
-    break;
-  } catch (error) {
-    lastError = error;
-    await client?.close().catch(() => undefined);
-    client = undefined;
-    await new Promise((resolve) => setTimeout(resolve, 250));
-  }
-}
-if (!client) throw lastError ?? new Error('MCP server did not become ready');
+const repository = process.env.MEGA_BRAIN_REPO;
+const sentinel = process.env.MEGA_BRAIN_SENTINEL;
+if (!repository || !sentinel) throw new Error('probe requires repository and sentinel');
+const client = new Client({ name: 'isolated-probe', version: '1.0.0' });
+await client.connect(new StdioClientTransport({ command: 'mega-brain', args: ['mcp', '--repo', repository], env: process.env, stderr: 'pipe' }));
 const names = (await client.listTools()).tools.map(({ name }) => name);
 if (JSON.stringify(names) !== JSON.stringify(expected)) throw new Error('Unexpected public tools: ' + names.join(','));
-const status = await client.callTool({ name: 'brain_status', arguments: {} });
-if (!('structuredContent' in status) || status.structuredContent?.schemaVersion !== '1.0') throw new Error('brain_status returned no structured envelope');
+const learned = await client.callTool({ name: 'brain_learn', arguments: { statement: sentinel, type: 'decision' } });
+const memoryId = String(learned.structuredContent?.result?.memoryId ?? '');
+const calls = [
+  ['brain_recall', { query: sentinel }],
+  ['brain_change_context', { target: 'example.ts' }],
+  ['brain_history', { limit: 5 }],
+  ['brain_validate', { memoryId, outcome: 'confirmed', evidence: ['isolated-lifecycle'] }],
+  ['brain_status', {}],
+];
+const results = await Promise.all(calls.map(([name, args]) => client.callTool({ name, arguments: args })));
+const namedResults = [['brain_learn', learned], ...calls.map(([name], index) => [name, results[index]])];
+const failures = namedResults.filter(([, result]) => result.isError || result.structuredContent?.schemaVersion !== '1.0');
+if (failures.length) throw new Error('public tool failure: ' + JSON.stringify(failures));
+const recall = JSON.stringify(results[0].structuredContent);
+if (!recall.includes(sentinel)) throw new Error('own sentinel was not recalled');
+if (process.env.MEGA_BRAIN_OTHER_SENTINEL && recall.includes(process.env.MEGA_BRAIN_OTHER_SENTINEL)) throw new Error('cross-project sentinel leak');
 await client.close();
 `;
 
@@ -116,7 +139,7 @@ test ! -e /tmp/mega-data
 test ! -e /tmp/repo/.codex
 `);
 
-  dockerScenario('supported-full-lifecycle', 'node:22.22.0-bookworm', `
+  dockerScenario('supported-node-22-stdio-lifecycle', 'node:22.22.0-bookworm', `
 set -euo pipefail
 apt-get update -qq && apt-get install -y -qq python3-venv >/dev/null
 ${installPackage}
@@ -127,31 +150,58 @@ cp /tmp/codex-original.toml /tmp/repo/.codex/config.toml
 export AGENTMEMORY_USE_DOCKER=false
 export AGENTMEMORY_TOOLS=core
 mega-brain --help | grep 'Usage: mega-brain'
-mega-brain install --repo /tmp/repo --hosts codex --port 3000
+mega-brain install --repo /tmp/repo --hosts codex
 grep '\\[mcp_servers.mega-brain\\]' /tmp/repo/.codex/config.toml
+grep 'command = "mega-brain"' /tmp/repo/.codex/config.toml
 grep 'mega-brain hook host codex' /tmp/repo/.codex/hooks.json
 ! grep -R '\\.staging-' /tmp/mega-data/projects/*/runtime/current/runtime-lock.json
-serve_pid=''
 cleanup() {
-  cat /tmp/mega-brain-serve.log 2>/dev/null || true
   find /tmp/mega-data/projects -path '*/logs/*.log' -type f -exec sh -c 'echo "--- $1"; cat "$1"' _ {} \\; 2>/dev/null || true
-  test -z "$serve_pid" || kill "$serve_pid" 2>/dev/null || true
   mega-brain stop --repo /tmp/repo >/dev/null 2>&1 || true
 }
 trap cleanup EXIT
-mega-brain start --repo /tmp/repo
-doctor_output=$(mega-brain doctor --repo /tmp/repo)
-echo "$doctor_output"
-echo "$doctor_output" | grep '"status":"ok"'
-mega-brain serve --repo /tmp/repo --port 3000 >/tmp/mega-brain-serve.log 2>&1 &
-serve_pid=$!
+export MEGA_BRAIN_REPO=/tmp/repo
+export MEGA_BRAIN_SENTINEL=node-22-project-sentinel
 node /artifact/probe.mjs
-mega-brain stop --repo /tmp/repo
-mega-brain uninstall --repo /tmp/repo --hosts codex --port 3000
+${waitForAutonomousShutdown}
+mega-brain uninstall --repo /tmp/repo --hosts codex
 cmp /tmp/codex-original.toml /tmp/repo/.codex/config.toml
 test ! -e /tmp/mega-data/projects/*/runtime/current
 trap - EXIT
-kill "$serve_pid" 2>/dev/null || true
+`);
+
+  dockerScenario('supported-node-24-concurrent-isolation', 'node:24.19.0-bookworm', `
+set -euo pipefail
+apt-get update -qq && apt-get install -y -qq python3-venv >/dev/null
+${installPackage}
+for repo in repo-a repo-b; do
+  mkdir -p "/tmp/$repo"
+  git init "/tmp/$repo" >/dev/null
+  git -C "/tmp/$repo" config user.name 'Mega Brain Isolated Test'
+  git -C "/tmp/$repo" config user.email 'mega-brain@example.test'
+  printf 'export const handler = () => "ok";\n' > "/tmp/$repo/example.ts"
+  git -C "/tmp/$repo" add example.ts
+  git -C "/tmp/$repo" commit -m "add $repo handler architecture" >/dev/null
+  mkdir -p "/tmp/$repo/.codex"
+  printf '[mcp_servers.existing]\nurl = "http://localhost:9999/mcp"\n' > "/tmp/$repo/.codex/config.toml"
+done
+export MEGA_BRAIN_DATA_DIR=/tmp/mega-data
+export AGENTMEMORY_USE_DOCKER=false
+export AGENTMEMORY_TOOLS=core
+mega-brain install --repo /tmp/repo-a --hosts codex
+mega-brain install --repo /tmp/repo-b --hosts codex
+test "$(find /tmp/mega-data/projects -path '*/runtime/current/runtime-lock.json' | wc -l)" -eq 2
+MEGA_BRAIN_REPO=/tmp/repo-a MEGA_BRAIN_SENTINEL=repo-a-only MEGA_BRAIN_OTHER_SENTINEL=repo-b-only node /artifact/probe.mjs > /tmp/probe-a.log 2>&1 &
+probe_a=$!
+MEGA_BRAIN_REPO=/tmp/repo-b MEGA_BRAIN_SENTINEL=repo-b-only MEGA_BRAIN_OTHER_SENTINEL=repo-a-only node /artifact/probe.mjs > /tmp/probe-b.log 2>&1 &
+probe_b=$!
+wait "$probe_a" || { cat /tmp/probe-a.log; exit 1; }
+wait "$probe_b" || { cat /tmp/probe-b.log; exit 1; }
+${waitForAutonomousShutdown}
+node -e "const fs=require('fs'),path=require('path');const roots=fs.readdirSync('/tmp/mega-data/projects').map(x=>path.join('/tmp/mega-data/projects',x,'runtime/current/runtime-lock.json'));const ports=roots.flatMap(x=>Object.values(JSON.parse(fs.readFileSync(x)).isolation.ports));if(new Set(ports).size!==ports.length)throw new Error('backend port collision')"
+mega-brain uninstall --repo /tmp/repo-a --hosts codex
+mega-brain uninstall --repo /tmp/repo-b --hosts codex
+test -z "$(find /tmp/mega-data/projects -path '*/runtime/current')"
 `);
 
   process.stdout.write('\nAll isolated lifecycle scenarios passed.\n');

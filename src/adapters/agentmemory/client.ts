@@ -2,8 +2,12 @@ import type { z } from 'zod';
 
 import {
   agentMemoryHealthSchema,
+  expandedSmartSearchResponseSchema,
   genericAgentMemoryResponseSchema,
+  memoriesResponseSchema,
+  memoryByIdResponseSchema,
   rememberResponseSchema,
+  sessionsResponseSchema,
   smartSearchResponseSchema,
 } from './schemas.js';
 
@@ -72,24 +76,63 @@ export class AgentMemoryClient {
     return this.#request('GET', '/agentmemory/health', agentMemoryHealthSchema);
   }
 
-  smartSearch(input: { query: string; limit?: number; project?: string }) {
-    return this.#request('POST', '/agentmemory/smart-search', smartSearchResponseSchema, input);
+  async smartSearch(input: { query: string; limit?: number; project?: string }) {
+    const compact = await this.#request('POST', '/agentmemory/smart-search', smartSearchResponseSchema, input);
+    const expandIds = compact.results.flatMap(({ content, obsId }) => !content && obsId ? [obsId] : []);
+    if (expandIds.length === 0) return compact;
+    const expanded = await this.#request('POST', '/agentmemory/smart-search', expandedSmartSearchResponseSchema, { expandIds });
+    const expandedById = new Map(expanded.results.flatMap((record) => record.id ? [[record.id, record] as const] : []));
+    const missingIds = expandIds.filter((id) => !expandedById.has(id));
+    const memoryResults = await Promise.allSettled(missingIds.map((id) => this.#request(
+      'GET', `/agentmemory/memories/${encodeURIComponent(id)}`, memoryByIdResponseSchema,
+    )));
+    const memoriesById = new Map(memoryResults.flatMap((result) => result.status === 'fulfilled' && result.value.id
+      ? [[result.value.id, result.value] as const]
+      : []));
+    const scores = new Map(compact.results.flatMap(({ id, obsId, score }) => {
+      const key = id ?? obsId;
+      return key && score !== undefined ? [[key, score] as const] : [];
+    }));
+    return {
+      results: compact.results.map((record) => {
+        const id = record.id ?? record.obsId;
+        const hydrated = id ? expandedById.get(id) ?? memoriesById.get(id) : undefined;
+        const normalized = hydrated ?? { ...record, id, content: record.content ?? record.title };
+        return { ...normalized, ...(id && scores.has(id) ? { score: scores.get(id) } : {}) };
+      }),
+    };
   }
 
   remember(input: { content: string; concepts?: string[]; metadata?: Record<string, unknown>; project?: string }) {
     return this.#request('POST', '/agentmemory/remember', rememberResponseSchema, input);
   }
 
+  async memories(input: { project?: string } = {}) {
+    const response = await this.#request('GET', '/agentmemory/memories', memoriesResponseSchema);
+    return {
+      ...response,
+      memories: input.project
+        ? response.memories.filter(({ project }) => project === input.project)
+        : response.memories,
+    };
+  }
+
   verify(input: { ids?: string[]; query?: string; project?: string }) {
     return this.#request('POST', '/agentmemory/verify', genericAgentMemoryResponseSchema, input);
   }
 
-  timeline(input: { query?: string; limit?: number; start?: string; end?: string; project?: string }) {
+  timeline(input: { anchor: string; before?: number; after?: number; project?: string }) {
     return this.#request('POST', '/agentmemory/timeline', genericAgentMemoryResponseSchema, input);
   }
 
-  sessions(input: { project?: string } = {}) {
-    return this.#request('GET', '/agentmemory/sessions', genericAgentMemoryResponseSchema, undefined, input.project ? { project: input.project } : undefined);
+  async sessions(input: { project?: string } = {}) {
+    const response = await this.#request('GET', '/agentmemory/sessions', sessionsResponseSchema);
+    return {
+      ...response,
+      sessions: input.project
+        ? response.sessions.filter(({ project }) => project === input.project)
+        : response.sessions,
+    };
   }
 
   governanceDelete(input: { memoryIds: string[]; project: string; reason: string }) {

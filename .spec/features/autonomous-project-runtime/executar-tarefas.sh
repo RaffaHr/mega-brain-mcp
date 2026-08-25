@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# executar-tarefas.sh — gerado por `onp-spec plano autonomous-project-runtime` em 2026-08-25 14:12
+# executar-tarefas.sh — gerado por `onp-spec plano autonomous-project-runtime` em 2026-08-25 14:14
 # NÃO edite à mão: mudou tasks.md ou a config, regenere o plano.
 #
 # uso:
@@ -14,7 +14,7 @@
 set -u
 set -o pipefail
 
-RUN_ID='mega-brain-mcp-autonomous-project-runtime-mt8qvho0'
+RUN_ID='mega-brain-mcp-autonomous-project-runtime-mt8qx8oi'
 FEATURE='autonomous-project-runtime'
 BASE_BRANCH='spec/autonomous-project-runtime'
 ENGINE='C:\Users\raphael.moreira\.agents\skills\onp-spec-driven\scripts\onp-spec.mjs'
