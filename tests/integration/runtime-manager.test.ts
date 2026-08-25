@@ -179,3 +179,24 @@ test('AC-034: start gerenciado só retorna após executar a verificação de rea
 
   expect(readinessChecks).toBe(1);
 });
+
+test('AC-043: CRG customizado é validado e persistido sem instalar o pacote gerenciado @spec:AC-043', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-custom-crg-'));
+  temporaryDirectories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const commands: Array<{ command: string; args: string[] }> = [];
+  const manifest = await installManagedRuntime({
+    dataDir,
+    identity,
+    preflight: false,
+    runner: { async run(command, args) { commands.push({ command, args }); } },
+    codeReviewGraph: { mode: 'custom', command: 'custom-crg', args: ['--profile', 'isolated'] },
+  });
+
+  expect(commands.flatMap(({ args }) => args)).not.toContain('code-review-graph==2.3.7');
+  expect(commands).toContainEqual({ command: 'custom-crg', args: ['--profile', 'isolated', 'build'] });
+  expect(manifest.backends.codeReviewGraph).toMatchObject({
+    command: 'custom-crg',
+    args: ['--profile', 'isolated', 'serve'],
+  });
+});

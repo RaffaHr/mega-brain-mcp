@@ -30,8 +30,7 @@
 - Esforço: xalto
 - Notas: Registrar comando+args do projeto em vez de URL no fluxo padrão; preservar Streamable HTTP como modo explícito; conectar cada processo stdio ao supervisor por lease e expor somente as seis tools. Depende de T-025.
 
-## T-027 — Criar o assistente interativo de setup [pendente]
-
+## T-027 — Criar o assistente interativo de setup [concluida]
 - Refs: US-018, AC-042, AC-043, AC-044, AC-045, AC-049, AC-053
 - Arquivos: src/cli/setup.ts, src/cli/prompts.ts, src/cli/index.ts, src/config/project-config.ts, tests/integration/setup.test.ts, tests/fixtures/setup-answers.ts
 - Modelo: gpt-5.6-terra

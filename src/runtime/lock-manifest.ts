@@ -10,6 +10,7 @@ export const runtimeCommandSchema = z.object({
   cwd: z.string().min(1),
   lifecycle: z.enum(['daemon', 'on-demand']),
   environment: z.record(z.string(), z.string()).optional(),
+  prependPath: z.string().refine(path.isAbsolute).optional(),
 });
 
 export const agentMemoryModeSchema = z.enum(['managed', 'remote']);

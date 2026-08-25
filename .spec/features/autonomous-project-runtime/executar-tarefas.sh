@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# executar-tarefas.sh — gerado por `onp-spec plano autonomous-project-runtime` em 2026-08-25 13:21
+# executar-tarefas.sh — gerado por `onp-spec plano autonomous-project-runtime` em 2026-08-25 13:45
 # NÃO edite à mão: mudou tasks.md ou a config, regenere o plano.
 #
 # uso:
@@ -14,7 +14,7 @@
 set -u
 set -o pipefail
 
-RUN_ID='mega-brain-mcp-autonomous-project-runtime-mt8p1ix2'
+RUN_ID='mega-brain-mcp-autonomous-project-runtime-mt8pwj1f'
 FEATURE='autonomous-project-runtime'
 BASE_BRANCH='spec/autonomous-project-runtime'
 ENGINE='C:\Users\raphael.moreira\.agents\skills\onp-spec-driven\scripts\onp-spec.mjs'
@@ -168,38 +168,6 @@ iniciar_resumos() {
   trap 'parar_resumos; node "$ENGINE" resumo "$FEATURE" --gravar >/dev/null 2>&1 || true' EXIT
 }
 
-# ── sequencial T-027 (ordem do tasks.md) ──
-executar_seq_T_027() {
-  info 'sequencial T-027 — Criar o assistente interativo de setup'
-  if rodar_tarefa seq 'T-027' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
-Leia primeiro: .spec/features/autonomous-project-runtime/spec.md, .spec/features/autonomous-project-runtime/tasks.md e .spec/constituicao.md.
-
-Sua tarefa (somente ela):
-T-027 — "Criar o assistente interativo de setup"
-  critérios/refs: AC-042 (Setup descobre projeto e valida pré-requisitos), AC-043 (Setup oferece configuração completa com defaults seguros), AC-044 (Caminho feliz exige apenas escolhas essenciais), AC-045 (Instalação não interativa continua determinística), AC-049 (Backend remoto respeita isolamento estrito), AC-053 (Segredos permanecem apenas em memória ou ambiente)
-  arquivos permitidos (e seus testes): src/cli/setup.ts, src/cli/prompts.ts, src/cli/index.ts, src/config/project-config.ts, tests/integration/setup.test.ts, tests/fixtures/setup-answers.ts
-  mensagem de commit: "T-027 autonomous-project-runtime: Criar o assistente interativo de setup"
-
-Regras inegociáveis:
-- Todo critério de aceite referenciado vira teste com @spec:AC-xxx no título.
-- NUNCA enfraqueça, pule (skip/todo) ou apague um teste para passar — teste pulado não é prova e o audit acusa.
-- Rode os testes localmente com `npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json` até passarem.
-- NÃO edite tasks.md, NÃO rode onp-spec verify/audit e NÃO toque em outras tarefas — o orquestrador cuida disso.
-- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-terra' high >> "$LOG_DIR/seq.log" 2>&1; then
-    # commit de segurança se o agente esqueceu (rastreabilidade > perfeição)
-    if [ -n "$(git status --porcelain)" ]; then
-      git add -A && git commit -q -m 'T-027 autonomous-project-runtime: Criar o assistente interativo de setup (auto-commit do plano)'
-    fi
-    marcar_concluidas T-027
-    verde "✔ T-027 concluída"
-    return 0
-  fi
-  vermelho "✘ T-027 falhou (log: $LOG_DIR/seq.log)"
-  amarelo "  reexecute só ela: bash .spec/features/autonomous-project-runtime/executar-tarefas.sh --seq T-027"
-  FALHAS="$FALHAS T-027"
-  return 1
-}
-
 # ── sequencial T-028 (ordem do tasks.md) ──
 executar_seq_T_028() {
   info 'sequencial T-028 — Tornar instalação, upgrade e rollback uma transação única'
@@ -317,7 +285,6 @@ executar_tudo() {
   iniciar_resumos
   info "logs em: $LOG_DIR"
   info "resumo geral de andamento: a cada 1 min aqui no terminal (e via: onp-spec resumo)"
-  executar_seq_T_027 || true
   executar_seq_T_028 || true
   executar_seq_T_030 || true
   encerrar tudo
@@ -325,7 +292,6 @@ executar_tudo() {
 
 listar() {
   echo "execução: $RUN_ID (feature $FEATURE, branch $BASE_BRANCH)"
-  echo "  seq       T-027 (sequencial)"
   echo "  seq       T-028 (sequencial)"
   echo "  seq       T-030 (sequencial)"
   echo
@@ -362,7 +328,6 @@ case "$MODO" in
     esac ;;
   seq)
     case "$ALVO" in
-      T-027) evento --tipo inicio --escopo "seq:T-027"; iniciar_resumos; executar_seq_T_027 || true; encerrar "seq:T-027" ;;
       T-028) evento --tipo inicio --escopo "seq:T-028"; iniciar_resumos; executar_seq_T_028 || true; encerrar "seq:T-028" ;;
       T-030) evento --tipo inicio --escopo "seq:T-030"; iniciar_resumos; executar_seq_T_030 || true; encerrar "seq:T-030" ;;
       *) falhar "tarefa sequencial desconhecida: '$ALVO' — veja as disponíveis com --listar" ;;

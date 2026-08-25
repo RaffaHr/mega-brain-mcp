@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import { realpathSync } from 'node:fs';
 import { randomUUID } from 'node:crypto';
+import { homedir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -14,6 +15,8 @@ import { discoverProjectIdentity } from '../projects/identity.js';
 import { openProvenanceDatabase } from '../provenance/database.js';
 import { ProvenanceRepository } from '../provenance/repository.js';
 import { runtimeLayout } from '../runtime/layout.js';
+import { downloadOfficialIiiEngine } from '../runtime/iii-engine.js';
+import { writeProjectConfig } from '../config/project-config.js';
 import { installGitHookMultiplexer, restoreGitHooks } from '../hooks/git/install.js';
 import type { MegaBrainGitHook } from '../hooks/git/multiplexer.js';
 import { createApplicationHandlers } from '../server/application.js';
@@ -25,6 +28,8 @@ import { installHostHookFiles, parseHosts, restoreHostHookFiles } from './host-h
 import { installManagedRuntime, inspectManagedRuntime } from './install.js';
 import { runMcpCommand } from './mcp.js';
 import { runInstallPreflight } from './preflight.js';
+import { createTerminalPrompts } from './prompts.js';
+import { runSetupWizard } from './setup.js';
 import { startManagedRuntime, waitForService } from './start.js';
 import { stopManagedRuntime } from './stop.js';
 import { runSupervisorCommand } from './supervisor.js';
@@ -116,7 +121,83 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     return;
   }
   if (command === 'help' || flag(args, '--help')) {
-    output('Usage: mega-brain <mcp|serve|install|start|stop|doctor|upgrade|uninstall> [--repo PATH] [--config FILE] [--hosts codex,claude] [--transport stdio|http] [--python COMMAND] [--port PORT]');
+    output('Usage: mega-brain <setup|mcp|serve|install|start|stop|doctor|upgrade|uninstall> [--repo PATH] [--config FILE] [--hosts codex,claude] [--transport stdio|http] [--python COMMAND] [--port PORT]');
+    return;
+  }
+  if (command === 'setup') {
+    const prompts = createTerminalPrompts();
+    const setupPython = option(args, '--python');
+    const result = await runSetupWizard({
+      prompts,
+      currentDirectory: path.resolve(option(args, '--repo') ?? process.cwd()),
+      defaultDataDir: path.join(
+        process.env.LOCALAPPDATA ?? process.env.XDG_DATA_HOME ?? path.join(homedir(), '.local', 'share'),
+        'mega-brain',
+      ),
+      environment: process.env,
+      preflight: (_repository) => runInstallPreflight({ ...(setupPython ? { pythonCommand: setupPython } : {}) }),
+      discoverIdentity: discoverProjectIdentity,
+      probeRemote: ({ baseUrl, secret, identity }) => probeRemoteAgentMemoryIsolation(
+        new AgentMemoryClient({ baseUrl, authToken: secret }),
+        {
+          projectA: identity.worktreeId,
+          projectB: `${identity.worktreeId}-isolation-control`,
+          sentinel: `mega-brain-setup-probe-${randomUUID()}`,
+        },
+      ),
+      async install(plan) {
+        const iiiArtifact = plan.iiiEngineConfirmed ? await downloadOfficialIiiEngine() : undefined;
+        const remoteSecretEnv = plan.config.agentMemory.secretEnvVar;
+        const remoteSecret = remoteSecretEnv ? process.env[remoteSecretEnv] : undefined;
+        const manifest = await installManagedRuntime({
+          dataDir: plan.config.dataDir,
+          identity: plan.identity,
+          agentMemoryMode: plan.config.agentMemory.mode,
+          pythonCommand: plan.preflight.pythonCommand,
+          preflight: false,
+          platform: plan.preflight.platform,
+          codeReviewGraph: plan.codeReviewGraphMode === 'managed'
+            ? { mode: 'managed' }
+            : { mode: 'custom', command: plan.config.codeReviewGraph.command, args: plan.config.codeReviewGraph.args },
+          ...(iiiArtifact ? {
+            iiiEngine: {
+              confirmed: true,
+              expectedSha256: iiiArtifact.sha256,
+              download: async () => iiiArtifact.bytes,
+            },
+          } : {}),
+          ...(plan.config.agentMemory.mode === 'remote' ? {
+            remoteAgentMemory: {
+              baseUrl: plan.config.agentMemory.baseUrl,
+              secretEnvVar: remoteSecretEnv!,
+            },
+            remoteIsolationProbe: () => probeRemoteAgentMemoryIsolation(new AgentMemoryClient({
+              baseUrl: plan.config.agentMemory.baseUrl,
+              ...(remoteSecret ? { authToken: remoteSecret } : {}),
+            }), {
+              projectA: plan.identity.worktreeId,
+              projectB: `${plan.identity.worktreeId}-isolation-control`,
+              sentinel: `mega-brain-install-probe-${randomUUID()}`,
+            }),
+          } : {}),
+        });
+        await writeProjectConfig(plan.identity.root, plan.config);
+        const repository = await GitRepository.discover(plan.identity.root);
+        const layout = runtimeLayout(plan.config.dataDir, plan.identity);
+        const backupDir = path.join(layout.projectRoot, 'integration-backups');
+        const managedHooksPath = path.join(layout.projectRoot, 'hooks', 'git');
+        await installHostMcpFiles({
+          root: plan.identity.root,
+          backupDir,
+          hosts: plan.hosts,
+          connection: { transport: 'stdio', command: 'mega-brain', args: ['mcp', '--repo', plan.identity.root] },
+        });
+        await installHostHookFiles({ root: plan.identity.root, backupDir, hosts: plan.hosts });
+        await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: ['mega-brain'] });
+        prompts.notify(`Setup complete for ${manifest.project.worktreeId}. Reopen ${plan.hosts.join(' and ')} to start Mega Brain automatically.`);
+      },
+    });
+    if (result.status === 'cancelled') prompts.notify('Setup cancelled; no changes were applied.');
     return;
   }
   const pythonOption = option(args, '--python');
@@ -196,6 +277,10 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       agentMemoryMode: config.agentMemory.mode,
       pythonCommand: installPreflight!.pythonCommand,
       preflight: false,
+      platform: installPreflight!.platform,
+      codeReviewGraph: config.codeReviewGraph.command === 'code-review-graph'
+        ? { mode: 'managed' }
+        : { mode: 'custom', command: config.codeReviewGraph.command, args: config.codeReviewGraph.args },
       ...(config.agentMemory.mode === 'remote' ? {
         remoteAgentMemory: {
           baseUrl: config.agentMemory.baseUrl,

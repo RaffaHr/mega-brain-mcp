@@ -283,6 +283,12 @@ export async function loadConfigWithSources(options: LoadConfigOptions = {}): Pr
   if (options.filePath) {
     const filePath = resolveAgainstRepo(repoPath, options.filePath);
     fileConfig = JSON.parse(await readFile(filePath, 'utf8')) as Partial<MegaBrainConfigInput>;
+  } else if (!options.fileConfig) {
+    try {
+      fileConfig = JSON.parse(await readFile(path.join(repoPath, '.mega-brain', 'config.json'), 'utf8')) as Partial<MegaBrainConfigInput>;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+    }
   }
 
   const flags = options.flags ?? {};

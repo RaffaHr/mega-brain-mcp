@@ -23,7 +23,11 @@ export const systemProcessController: ProcessController = {
       child = spawn(command.command, command.args, {
         cwd: command.cwd,
         detached: process.platform !== 'win32',
-        env: { ...process.env, ...(environment ?? {}) },
+        env: {
+          ...process.env,
+          ...(command.prependPath ? { PATH: `${command.prependPath}${path.delimiter}${process.env.PATH ?? ''}` } : {}),
+          ...(environment ?? {}),
+        },
         stdio: ['ignore', log.fd, log.fd],
         windowsHide: true,
       });

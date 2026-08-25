@@ -51,6 +51,9 @@ export interface InstallRuntimeOptions {
     expectedSha256: string;
     download(): Promise<Uint8Array>;
   };
+  codeReviewGraph?:
+    | { mode: 'managed' }
+    | { mode: 'custom'; command: string; args?: string[] };
 }
 
 export interface RuntimeInspection {
@@ -85,7 +88,10 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
     : await runInstallPreflight({ ...options.preflight, ...(options.pythonCommand ? { pythonCommand: options.pythonCommand } : {}) });
   const layout = runtimeLayout(options.dataDir, options.identity);
   const isolation = createRuntimeIsolation(layout, options.identity.worktreeId);
-  const platform = options.platform ?? preflight?.platform ?? process.platform;
+  const platform = options.platform ?? preflight?.platform ?? (options.preflight === false ? undefined : process.platform);
+  if (agentMemoryMode === 'managed' && platform === 'win32' && !options.iiiEngine) {
+    throw new Error('Managed AgentMemory on Windows requires a confirmed, checksummed iii-engine artifact. No files were changed.');
+  }
   const installIiiEngine = agentMemoryMode === 'managed' && platform === 'win32' && options.iiiEngine;
   if (installIiiEngine && !installIiiEngine.confirmed) {
     throw new Error('iii-engine installation requires explicit user confirmation. No files were changed.');
@@ -100,6 +106,7 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
   const venvDir = path.join(crgDir, 'venv');
   const npm = npmInvocation();
   const python = options.pythonCommand ?? preflight?.pythonCommand ?? (process.platform === 'win32' ? 'python.exe' : 'python3');
+  const codeReviewGraph = options.codeReviewGraph ?? { mode: 'managed' as const };
 
   if (agentMemoryMode === 'managed') await mkdir(agentMemoryDir, { recursive: true });
   await mkdir(crgDir, { recursive: true });
@@ -120,11 +127,15 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
       );
     }
     await mkdir(isolation.paths.codeReviewGraph, { recursive: true });
-    await runner.run(python, ['-m', 'venv', venvDir], { cwd: staging });
+    if (codeReviewGraph.mode === 'managed') {
+      await runner.run(python, ['-m', 'venv', venvDir], { cwd: staging });
+    }
     const venvPython = process.platform === 'win32'
       ? path.join(venvDir, 'Scripts', 'python.exe')
       : path.join(venvDir, 'bin', 'python');
-    await runner.run(venvPython, ['-m', 'pip', 'install', `code-review-graph==${MANAGED_VERSIONS.codeReviewGraph}`], { cwd: staging });
+    if (codeReviewGraph.mode === 'managed') {
+      await runner.run(venvPython, ['-m', 'pip', 'install', `code-review-graph==${MANAGED_VERSIONS.codeReviewGraph}`], { cwd: staging });
+    }
 
     const finalAgentMemoryDir = path.join(layout.current, 'agentmemory');
     const finalCrgDir = path.join(layout.current, 'code-review-graph');
@@ -137,17 +148,21 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
       if (agentMemoryMode === 'managed' && !(await exists(stagedAgentMemoryEntrypoint))) {
         throw new Error('AgentMemory installation completed without an executable CLI entrypoint');
       }
-      if (!(await exists(venvPython))) {
+      if (codeReviewGraph.mode === 'managed' && !(await exists(venvPython))) {
         throw new Error('Code Review Graph installation completed without a virtualenv Python executable');
       }
-      await runner.run(venvPython, ['-c', 'import code_review_graph'], { cwd: staging });
+      if (codeReviewGraph.mode === 'managed') {
+        await runner.run(venvPython, ['-c', 'import code_review_graph'], { cwd: staging });
+      }
     }
     const crgEnvironment = {
       ...process.env,
       CRG_DATA_DIR: isolation.paths.codeReviewGraph,
       CRG_REPO_ROOT: path.resolve(options.identity.root),
     };
-    await runner.run(venvPython, ['-m', 'code_review_graph', 'build'], {
+    const crgCommand = codeReviewGraph.mode === 'managed' ? venvPython : codeReviewGraph.command;
+    const crgBaseArgs = codeReviewGraph.mode === 'managed' ? ['-m', 'code_review_graph'] : codeReviewGraph.args ?? [];
+    await runner.run(crgCommand, [...crgBaseArgs, 'build'], {
       cwd: options.identity.root,
       env: crgEnvironment,
     });
@@ -178,11 +193,14 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
             args: [finalAgentMemoryEntrypoint, '--data-dir', isolation.paths.agentMemory, '--port', String(isolation.ports.rest)],
             cwd: finalAgentMemoryDir,
             lifecycle: 'daemon' as const,
+            ...(installIiiEngine ? { prependPath: isolation.paths.iiiEngine } : {}),
           },
         } : {}),
         codeReviewGraph: {
-          command: finalVenvPython,
-          args: ['-m', 'code_review_graph', 'serve'],
+          command: codeReviewGraph.mode === 'managed' ? finalVenvPython : codeReviewGraph.command,
+          args: codeReviewGraph.mode === 'managed'
+            ? ['-m', 'code_review_graph', 'serve']
+            : [...(codeReviewGraph.args ?? []), 'serve'],
           cwd: options.identity.root,
           lifecycle: 'on-demand',
           environment: {
@@ -197,7 +215,7 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
     if (agentMemoryMode === 'managed') {
       await writeFile(path.join(agentMemoryDir, '.installed'), MANAGED_VERSIONS.agentMemory, 'utf8');
     }
-    await writeFile(path.join(crgDir, '.installed'), MANAGED_VERSIONS.codeReviewGraph, 'utf8');
+    await writeFile(path.join(crgDir, '.installed'), codeReviewGraph.mode === 'managed' ? MANAGED_VERSIONS.codeReviewGraph : 'custom', 'utf8');
 
     await mkdir(layout.runtimeRoot, { recursive: true });
     if (await exists(layout.current)) {
