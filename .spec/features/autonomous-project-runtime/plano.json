@@ -1,12 +1,12 @@
 {
-  "runId": "mega-brain-mcp-autonomous-project-runtime-mt8olili",
+  "runId": "mega-brain-mcp-autonomous-project-runtime-mt8p1ix2",
   "feature": "autonomous-project-runtime",
   "agent": "codex",
   "modo": "sequencial",
   "paralelizar": null,
   "modeloForcado": null,
   "esforcoForcado": null,
-  "geradoEm": "2026-08-25 13:09",
+  "geradoEm": "2026-08-25 13:21",
   "branchTrabalho": "spec/autonomous-project-runtime",
   "baseDir": ".spec/features/autonomous-project-runtime",
   "specDir": ".spec",
@@ -15,27 +15,6 @@
   "ondas": [],
   "faixas": [],
   "sequenciais": [
-    {
-      "id": "T-026",
-      "titulo": "Expor MCP stdio autônomo e adaptar os hosts",
-      "modelo": "gpt-5.6-sol",
-      "esforco": "xhigh",
-      "arquivos": [
-        "src/cli/mcp.ts",
-        "src/server/stdio.ts",
-        "src/cli/host-integration.ts",
-        "src/hooks/hosts/codex.ts",
-        "src/hooks/hosts/claude.ts",
-        "tests/integration/stdio-mcp.test.ts",
-        "tests/integration/host-integration.test.ts"
-      ],
-      "refs": [
-        "US-017",
-        "AC-039",
-        "AC-040",
-        "AC-041"
-      ]
-    },
     {
       "id": "T-027",
       "titulo": "Criar o assistente interativo de setup",
@@ -120,7 +99,8 @@
   "concluidas": [
     "T-024",
     "T-025",
-    "T-029"
+    "T-029",
+    "T-026"
   ],
   "avisos": []
 }

@@ -40,6 +40,7 @@ export const detachedSupervisorSpawner: SupervisorProcessSpawner = {
 export interface ProjectSupervisorServer {
   manifest: SupervisorManifest;
   leases: LeaseRegistry;
+  closed: Promise<void>;
   checkIdle(): Promise<boolean>;
   close(): Promise<void>;
 }
@@ -92,6 +93,8 @@ export async function startProjectSupervisor(input: {
   }
 
   let closed = false;
+  let resolveClosed!: () => void;
+  const closedPromise = new Promise<void>((resolve) => { resolveClosed = resolve; });
   let closing: Promise<void> | undefined;
   const close = async (): Promise<void> => {
     if (closing) return closing;
@@ -101,6 +104,7 @@ export async function startProjectSupervisor(input: {
       clearInterval(timer);
       await ipc.close();
       await removeSupervisorManifest(input.layout);
+      resolveClosed();
     })();
     return closing;
   };
@@ -115,7 +119,7 @@ export async function startProjectSupervisor(input: {
   }, Math.min(1_000, Math.max(100, leases.shutdownGraceMs)));
   timer.unref();
 
-  return { manifest, leases, checkIdle, close };
+  return { manifest, leases, closed: closedPromise, checkIdle, close };
 }
 
 export interface EnsureProjectSupervisorOptions {

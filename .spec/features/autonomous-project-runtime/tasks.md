@@ -23,8 +23,7 @@
 - Esforço: xalto
 - Notas: Em `managed`, alocar os quatro endpoints AgentMemory por projeto e, no Windows, instalar o `iii-engine` pinado em runtime isolado após confirmação e checksum, sem PATH global. Em `remote`, persistir apenas URL e nome da variável que contém o SECRET, sem instalar/iniciar runtime local. Propagar `project` em todas as chamadas, provar namespace com sentinel A/B reversível e cleanup confirmado somente contra backend fake/descartável, encaminhar `CRG_DATA_DIR` e `CRG_REPO_ROOT` absolutos e validar identidade/readiness. Depende de T-024.
 
-## T-026 — Expor MCP stdio autônomo e adaptar os hosts [pendente]
-
+## T-026 — Expor MCP stdio autônomo e adaptar os hosts [concluida]
 - Refs: US-017, AC-039, AC-040, AC-041
 - Arquivos: src/cli/mcp.ts, src/server/stdio.ts, src/cli/host-integration.ts, src/hooks/hosts/codex.ts, src/hooks/hosts/claude.ts, tests/integration/stdio-mcp.test.ts, tests/integration/host-integration.test.ts
 - Modelo: gpt-5.6-sol

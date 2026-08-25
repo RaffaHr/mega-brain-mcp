@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# executar-tarefas.sh — gerado por `onp-spec plano autonomous-project-runtime` em 2026-08-25 13:09
+# executar-tarefas.sh — gerado por `onp-spec plano autonomous-project-runtime` em 2026-08-25 13:21
 # NÃO edite à mão: mudou tasks.md ou a config, regenere o plano.
 #
 # uso:
@@ -14,7 +14,7 @@
 set -u
 set -o pipefail
 
-RUN_ID='mega-brain-mcp-autonomous-project-runtime-mt8olili'
+RUN_ID='mega-brain-mcp-autonomous-project-runtime-mt8p1ix2'
 FEATURE='autonomous-project-runtime'
 BASE_BRANCH='spec/autonomous-project-runtime'
 ENGINE='C:\Users\raphael.moreira\.agents\skills\onp-spec-driven\scripts\onp-spec.mjs'
@@ -168,38 +168,6 @@ iniciar_resumos() {
   trap 'parar_resumos; node "$ENGINE" resumo "$FEATURE" --gravar >/dev/null 2>&1 || true' EXIT
 }
 
-# ── sequencial T-026 (ordem do tasks.md) ──
-executar_seq_T_026() {
-  info 'sequencial T-026 — Expor MCP stdio autônomo e adaptar os hosts'
-  if rodar_tarefa seq 'T-026' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
-Leia primeiro: .spec/features/autonomous-project-runtime/spec.md, .spec/features/autonomous-project-runtime/tasks.md e .spec/constituicao.md.
-
-Sua tarefa (somente ela):
-T-026 — "Expor MCP stdio autônomo e adaptar os hosts"
-  critérios/refs: AC-039 (Host inicia o MCP stdio automaticamente), AC-040 (MCP sobe e aguarda backends privados), AC-041 (Sessões do mesmo projeto compartilham leases)
-  arquivos permitidos (e seus testes): src/cli/mcp.ts, src/server/stdio.ts, src/cli/host-integration.ts, src/hooks/hosts/codex.ts, src/hooks/hosts/claude.ts, tests/integration/stdio-mcp.test.ts, tests/integration/host-integration.test.ts
-  mensagem de commit: "T-026 autonomous-project-runtime: Expor MCP stdio autônomo e adaptar os hosts"
-
-Regras inegociáveis:
-- Todo critério de aceite referenciado vira teste com @spec:AC-xxx no título.
-- NUNCA enfraqueça, pule (skip/todo) ou apague um teste para passar — teste pulado não é prova e o audit acusa.
-- Rode os testes localmente com `npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json` até passarem.
-- NÃO edite tasks.md, NÃO rode onp-spec verify/audit e NÃO toque em outras tarefas — o orquestrador cuida disso.
-- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-sol' xhigh >> "$LOG_DIR/seq.log" 2>&1; then
-    # commit de segurança se o agente esqueceu (rastreabilidade > perfeição)
-    if [ -n "$(git status --porcelain)" ]; then
-      git add -A && git commit -q -m 'T-026 autonomous-project-runtime: Expor MCP stdio autônomo e adaptar os hosts (auto-commit do plano)'
-    fi
-    marcar_concluidas T-026
-    verde "✔ T-026 concluída"
-    return 0
-  fi
-  vermelho "✘ T-026 falhou (log: $LOG_DIR/seq.log)"
-  amarelo "  reexecute só ela: bash .spec/features/autonomous-project-runtime/executar-tarefas.sh --seq T-026"
-  FALHAS="$FALHAS T-026"
-  return 1
-}
-
 # ── sequencial T-027 (ordem do tasks.md) ──
 executar_seq_T_027() {
   info 'sequencial T-027 — Criar o assistente interativo de setup'
@@ -349,7 +317,6 @@ executar_tudo() {
   iniciar_resumos
   info "logs em: $LOG_DIR"
   info "resumo geral de andamento: a cada 1 min aqui no terminal (e via: onp-spec resumo)"
-  executar_seq_T_026 || true
   executar_seq_T_027 || true
   executar_seq_T_028 || true
   executar_seq_T_030 || true
@@ -358,7 +325,6 @@ executar_tudo() {
 
 listar() {
   echo "execução: $RUN_ID (feature $FEATURE, branch $BASE_BRANCH)"
-  echo "  seq       T-026 (sequencial)"
   echo "  seq       T-027 (sequencial)"
   echo "  seq       T-028 (sequencial)"
   echo "  seq       T-030 (sequencial)"
@@ -396,7 +362,6 @@ case "$MODO" in
     esac ;;
   seq)
     case "$ALVO" in
-      T-026) evento --tipo inicio --escopo "seq:T-026"; iniciar_resumos; executar_seq_T_026 || true; encerrar "seq:T-026" ;;
       T-027) evento --tipo inicio --escopo "seq:T-027"; iniciar_resumos; executar_seq_T_027 || true; encerrar "seq:T-027" ;;
       T-028) evento --tipo inicio --escopo "seq:T-028"; iniciar_resumos; executar_seq_T_028 || true; encerrar "seq:T-028" ;;
       T-030) evento --tipo inicio --escopo "seq:T-030"; iniciar_resumos; executar_seq_T_030 || true; encerrar "seq:T-030" ;;
