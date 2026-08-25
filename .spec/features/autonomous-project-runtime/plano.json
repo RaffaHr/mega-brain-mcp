@@ -1,0 +1,230 @@
+{
+  "runId": "mega-brain-mcp-autonomous-project-runtime-mt83ahx7",
+  "feature": "autonomous-project-runtime",
+  "agent": "codex",
+  "modo": "paralelo",
+  "paralelizar": null,
+  "modeloForcado": null,
+  "esforcoForcado": null,
+  "geradoEm": "2026-08-25 03:12",
+  "branchTrabalho": "spec/autonomous-project-runtime",
+  "baseDir": ".spec/features/autonomous-project-runtime",
+  "specDir": ".spec",
+  "repoName": "mega-brain-mcp",
+  "logsDir": "../onp-worktrees/mega-brain-mcp-autonomous-project-runtime-logs",
+  "ondas": [
+    [
+      "faixa-1",
+      "faixa-2",
+      "faixa-3"
+    ],
+    [
+      "faixa-4"
+    ]
+  ],
+  "faixas": [
+    {
+      "id": "faixa-1",
+      "branch": "spec/autonomous-project-runtime-faixa-1",
+      "worktree": "../onp-worktrees/mega-brain-mcp-autonomous-project-runtime-faixa-1",
+      "tarefas": [
+        {
+          "id": "T-024",
+          "titulo": "Unificar configuração e resolução de caminhos",
+          "modelo": "gpt-5.6-sol",
+          "esforco": "high",
+          "arquivos": [
+            "src/config/schema.ts",
+            "src/config/load.ts",
+            "src/config/project-config.ts",
+            "src/runtime/layout.ts",
+            "tests/unit/config.test.ts",
+            "tests/unit/project-identity.test.ts",
+            ".env.example"
+          ],
+          "refs": [
+            "US-020",
+            "AC-046",
+            "AC-050",
+            "AC-051",
+            "AC-053"
+          ]
+        },
+        {
+          "id": "T-027",
+          "titulo": "Criar o assistente interativo de setup",
+          "modelo": "gpt-5.6-terra",
+          "esforco": "high",
+          "arquivos": [
+            "src/cli/setup.ts",
+            "src/cli/prompts.ts",
+            "src/cli/index.ts",
+            "src/config/project-config.ts",
+            "tests/integration/setup.test.ts",
+            "tests/fixtures/setup-answers.ts"
+          ],
+          "refs": [
+            "US-018",
+            "AC-042",
+            "AC-043",
+            "AC-044",
+            "AC-045",
+            "AC-049",
+            "AC-053"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "faixa-2",
+      "branch": "spec/autonomous-project-runtime-faixa-2",
+      "worktree": "../onp-worktrees/mega-brain-mcp-autonomous-project-runtime-faixa-2",
+      "tarefas": [
+        {
+          "id": "T-025",
+          "titulo": "Implementar supervisor por projeto, IPC e leases",
+          "modelo": "gpt-5.6-sol",
+          "esforco": "xhigh",
+          "arquivos": [
+            "src/runtime/project-supervisor.ts",
+            "src/runtime/ipc.ts",
+            "src/runtime/leases.ts",
+            "src/runtime/supervisor.ts",
+            "src/runtime/types.ts",
+            "tests/integration/project-supervisor.test.ts",
+            "tests/security/path-boundary.test.ts"
+          ],
+          "refs": [
+            "US-017",
+            "AC-040",
+            "AC-041",
+            "US-019",
+            "AC-048"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "faixa-3",
+      "branch": "spec/autonomous-project-runtime-faixa-3",
+      "worktree": "../onp-worktrees/mega-brain-mcp-autonomous-project-runtime-faixa-3",
+      "tarefas": [
+        {
+          "id": "T-026",
+          "titulo": "Expor MCP stdio autônomo e adaptar os hosts",
+          "modelo": "gpt-5.6-sol",
+          "esforco": "xhigh",
+          "arquivos": [
+            "src/cli/mcp.ts",
+            "src/server/stdio.ts",
+            "src/server/application.ts",
+            "src/cli/host-integration.ts",
+            "src/hooks/hosts/codex.ts",
+            "src/hooks/hosts/claude.ts",
+            "tests/integration/stdio-mcp.test.ts",
+            "tests/integration/host-integration.test.ts"
+          ],
+          "refs": [
+            "US-017",
+            "AC-039",
+            "AC-040",
+            "AC-041"
+          ]
+        },
+        {
+          "id": "T-028",
+          "titulo": "Tornar instalação, upgrade e rollback uma transação única",
+          "modelo": "gpt-5.6-sol",
+          "esforco": "xhigh",
+          "arquivos": [
+            "src/runtime/transaction.ts",
+            "src/cli/install.ts",
+            "src/cli/upgrade.ts",
+            "src/cli/uninstall.ts",
+            "src/cli/host-hooks.ts",
+            "src/cli/host-integration.ts",
+            "tests/integration/install-transaction.test.ts",
+            "tests/integration/runtime-manager.test.ts"
+          ],
+          "refs": [
+            "US-018",
+            "AC-042",
+            "AC-045",
+            "US-021",
+            "AC-054"
+          ]
+        },
+        {
+          "id": "T-029",
+          "titulo": "Garantir isolamento físico dos backends",
+          "modelo": "gpt-5.6-sol",
+          "esforco": "xhigh",
+          "arquivos": [
+            "src/cli/install.ts",
+            "src/cli/start.ts",
+            "src/cli/doctor.ts",
+            "src/adapters/agentmemory/client.ts",
+            "src/adapters/agentmemory/capabilities.ts",
+            "src/adapters/code-review-graph/client.ts",
+            "src/adapters/code-review-graph/capabilities.ts",
+            "src/compatibility/manifest.ts",
+            "tests/contract/agentmemory.test.ts",
+            "tests/contract/code-review-graph.test.ts",
+            "tests/integration/backend-isolation.test.ts"
+          ],
+          "refs": [
+            "US-019",
+            "AC-046",
+            "AC-047",
+            "AC-048",
+            "AC-049",
+            "US-020",
+            "AC-052"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "faixa-4",
+      "branch": "spec/autonomous-project-runtime-faixa-4",
+      "worktree": "../onp-worktrees/mega-brain-mcp-autonomous-project-runtime-faixa-4",
+      "tarefas": [
+        {
+          "id": "T-030",
+          "titulo": "Provar lifecycle autônomo, concorrência e matriz completa",
+          "modelo": "gpt-5.6-sol",
+          "esforco": "xhigh",
+          "arquivos": [
+            "tests/e2e/autonomous-lifecycle.test.ts",
+            "tests/e2e/concurrent-projects.test.ts",
+            "tests/e2e/package-lifecycle.test.ts",
+            "scripts/test-isolated-lifecycle.mjs",
+            "tests/contract/package-boundary.test.ts",
+            ".github/workflows/ci.yml",
+            "README.md",
+            "docs/configuration.md",
+            "docs/troubleshooting.md",
+            "package.json"
+          ],
+          "refs": [
+            "AC-039",
+            "AC-041",
+            "AC-044",
+            "AC-045",
+            "AC-047",
+            "AC-048",
+            "AC-050",
+            "AC-051",
+            "AC-052",
+            "AC-054",
+            "AC-055",
+            "AC-056"
+          ]
+        }
+      ]
+    }
+  ],
+  "sequenciais": [],
+  "concluidas": [],
+  "avisos": []
+}

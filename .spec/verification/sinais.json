@@ -1161,6 +1161,240 @@
       "primeiraVez": "2026-08-25T01:50:04.323Z",
       "ultimaVez": "2026-08-25T01:50:04.323Z",
       "gitRev": "2c89483"
+    },
+    "STATUS_INVALIDO::autonomous-project-runtime::.spec\\features\\autonomous-project-runtime\\spec.md": {
+      "codigo": "STATUS_INVALIDO",
+      "feature": "autonomous-project-runtime",
+      "ref": ".spec\\features\\autonomous-project-runtime\\spec.md",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-25T03:12:06.794Z",
+      "ultimaVez": "2026-08-25T03:12:06.795Z",
+      "gitRev": "38e4952"
+    },
+    "ARQUIVO_INEXISTENTE::autonomous-project-runtime::T-024": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "T-024",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.716Z",
+      "gitRev": "38e4952"
+    },
+    "ARQUIVO_INEXISTENTE::autonomous-project-runtime::T-025": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "T-025",
+      "ocorrencias": 8,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "ARQUIVO_INEXISTENTE::autonomous-project-runtime::T-026": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "T-026",
+      "ocorrencias": 6,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "ARQUIVO_INEXISTENTE::autonomous-project-runtime::T-027": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "T-027",
+      "ocorrencias": 10,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "ARQUIVO_INEXISTENTE::autonomous-project-runtime::T-028": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "T-028",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "ARQUIVO_INEXISTENTE::autonomous-project-runtime::T-029": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "T-029",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "ARQUIVO_INEXISTENTE::autonomous-project-runtime::T-030": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "T-030",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "AC_SEM_TESTE::autonomous-project-runtime::AC-039": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-039",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "AC_SEM_TESTE::autonomous-project-runtime::AC-040": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-040",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "AC_SEM_TESTE::autonomous-project-runtime::AC-041": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-041",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "AC_SEM_TESTE::autonomous-project-runtime::AC-042": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-042",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "AC_SEM_TESTE::autonomous-project-runtime::AC-043": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-043",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "AC_SEM_TESTE::autonomous-project-runtime::AC-044": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-044",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "AC_SEM_TESTE::autonomous-project-runtime::AC-045": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-045",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "AC_SEM_TESTE::autonomous-project-runtime::AC-046": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-046",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "AC_SEM_TESTE::autonomous-project-runtime::AC-047": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-047",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "AC_SEM_TESTE::autonomous-project-runtime::AC-048": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-048",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "AC_SEM_TESTE::autonomous-project-runtime::AC-049": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-049",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "AC_SEM_TESTE::autonomous-project-runtime::AC-050": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-050",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "AC_SEM_TESTE::autonomous-project-runtime::AC-051": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-051",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "AC_SEM_TESTE::autonomous-project-runtime::AC-052": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-052",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "AC_SEM_TESTE::autonomous-project-runtime::AC-053": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-053",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "AC_SEM_TESTE::autonomous-project-runtime::AC-054": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-054",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "AC_SEM_TESTE::autonomous-project-runtime::AC-055": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-055",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
+    },
+    "AC_SEM_TESTE::autonomous-project-runtime::AC-056": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-056",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-25T03:12:06.795Z",
+      "ultimaVez": "2026-08-25T03:13:56.717Z",
+      "gitRev": "38e4952"
     }
   }
 }
