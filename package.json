@@ -3,8 +3,24 @@
   "version": "0.1.0",
   "description": "Evidence-aware MCP orchestration for AgentMemory, Code Review Graph, and Git",
   "type": "module",
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "agentmemory",
+    "code-review-graph",
+    "codex",
+    "claude"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/RaffaHr/mega-brain-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/RaffaHr/mega-brain-mcp/issues"
+  },
+  "homepage": "https://github.com/RaffaHr/mega-brain-mcp#readme",
   "bin": {
-    "mega-brain": "./dist/cli/index.js"
+    "mega-brain": "dist/cli/index.js"
   },
   "engines": {
     "node": ">=22.22.0"
