@@ -68,11 +68,14 @@ export async function startProjectSupervisor(input: {
     startedAt,
     updatedAt: startedAt,
   };
+  let draining = false;
   const ipc = await startSupervisorIpcServer({
     address: paths.ipcAddress,
     handle(request) {
       if (request.worktreeId !== input.identity.worktreeId) throw new Error('Supervisor worktree identity mismatch');
-      if (request.type !== 'status' && !request.leaseId) throw new Error(`${request.type} requires leaseId`);
+      if (request.type !== 'status' && request.type !== 'drain' && !request.leaseId) throw new Error(`${request.type} requires leaseId`);
+      if (request.type === 'acquire' && draining) throw new Error('Supervisor is draining and does not accept new leases');
+      if (request.type === 'drain') draining = true;
       if (request.type === 'acquire') leases.acquire(request.leaseId!);
       if (request.type === 'heartbeat') leases.heartbeat(request.leaseId!);
       if (request.type === 'release') leases.release(request.leaseId!);
@@ -82,6 +85,7 @@ export async function startProjectSupervisor(input: {
         worktreeId: input.identity.worktreeId,
         pid,
         leases: leases.activeIds(),
+        draining,
       };
     },
   });

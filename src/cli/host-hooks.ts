@@ -3,6 +3,7 @@ import path from 'node:path';
 
 import { installClaudeHooks } from '../hooks/hosts/claude.js';
 import { installCodexHooks, type HostHookConfig } from '../hooks/hosts/codex.js';
+import { snapshotFile, type RuntimeTransaction } from '../runtime/transaction.js';
 
 export type SupportedHost = 'codex' | 'claude';
 
@@ -21,8 +22,12 @@ function hostTarget(root: string, host: SupportedHost): string {
 async function atomicWrite(target: string, content: string): Promise<void> {
   await mkdir(path.dirname(target), { recursive: true });
   const temporary = `${target}.${process.pid}.tmp`;
-  await writeFile(temporary, content, { encoding: 'utf8', mode: 0o600 });
-  await rename(temporary, target);
+  try {
+    await writeFile(temporary, content, { encoding: 'utf8', mode: 0o600 });
+    await rename(temporary, target);
+  } finally {
+    await rm(temporary, { force: true });
+  }
 }
 
 async function readOptional(target: string): Promise<{ existed: boolean; content: string }> {
@@ -38,11 +43,16 @@ export async function installHostHookFiles(input: {
   backupDir: string;
   hosts: SupportedHost[];
   command?: string;
+  transaction?: RuntimeTransaction;
 }): Promise<void> {
   await mkdir(input.backupDir, { recursive: true });
   for (const host of input.hosts) {
     const target = hostTarget(input.root, host);
     const backupPath = path.join(input.backupDir, `${host}.json`);
+    if (input.transaction) {
+      await snapshotFile(input.transaction, target);
+      await snapshotFile(input.transaction, backupPath);
+    }
     let backup: HostFileBackup;
     try { backup = JSON.parse(await readFile(backupPath, 'utf8')) as HostFileBackup; }
     catch (error) {

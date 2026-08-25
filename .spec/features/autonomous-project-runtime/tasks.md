@@ -37,8 +37,7 @@
 - Esforço: alto
 - Notas: Modelar o wizard como máquina de estados injetável/testável; defaults locais seguros; resumo redigido; cancelamento e preflight sem mutação; terminal sem TTY orienta `install`. URL/SECRET remoto inválido mantém o usuário no mesmo passo para novas tentativas ou troca para `managed`; o setup delega a instalação ao mesmo serviço transacional. Depende de T-024 e T-029.
 
-## T-028 — Tornar instalação, upgrade e rollback uma transação única [pendente]
-
+## T-028 — Tornar instalação, upgrade e rollback uma transação única [concluida]
 - Refs: US-018, AC-042, AC-045, US-021, AC-054
 - Arquivos: src/runtime/transaction.ts, src/cli/install.ts, src/cli/upgrade.ts, src/cli/uninstall.ts, src/cli/host-hooks.ts, src/cli/host-integration.ts, tests/integration/install-transaction.test.ts, tests/integration/runtime-manager.test.ts
 - Modelo: gpt-5.6-sol

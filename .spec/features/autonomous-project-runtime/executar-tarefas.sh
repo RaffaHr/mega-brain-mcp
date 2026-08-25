@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# executar-tarefas.sh — gerado por `onp-spec plano autonomous-project-runtime` em 2026-08-25 13:45
+# executar-tarefas.sh — gerado por `onp-spec plano autonomous-project-runtime` em 2026-08-25 14:12
 # NÃO edite à mão: mudou tasks.md ou a config, regenere o plano.
 #
 # uso:
@@ -14,7 +14,7 @@
 set -u
 set -o pipefail
 
-RUN_ID='mega-brain-mcp-autonomous-project-runtime-mt8pwj1f'
+RUN_ID='mega-brain-mcp-autonomous-project-runtime-mt8qvho0'
 FEATURE='autonomous-project-runtime'
 BASE_BRANCH='spec/autonomous-project-runtime'
 ENGINE='C:\Users\raphael.moreira\.agents\skills\onp-spec-driven\scripts\onp-spec.mjs'
@@ -168,38 +168,6 @@ iniciar_resumos() {
   trap 'parar_resumos; node "$ENGINE" resumo "$FEATURE" --gravar >/dev/null 2>&1 || true' EXIT
 }
 
-# ── sequencial T-028 (ordem do tasks.md) ──
-executar_seq_T_028() {
-  info 'sequencial T-028 — Tornar instalação, upgrade e rollback uma transação única'
-  if rodar_tarefa seq 'T-028' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
-Leia primeiro: .spec/features/autonomous-project-runtime/spec.md, .spec/features/autonomous-project-runtime/tasks.md e .spec/constituicao.md.
-
-Sua tarefa (somente ela):
-T-028 — "Tornar instalação, upgrade e rollback uma transação única"
-  critérios/refs: AC-042 (Setup descobre projeto e valida pré-requisitos), AC-045 (Instalação não interativa continua determinística), AC-054 (Falha restaura runtime e integrações juntos)
-  arquivos permitidos (e seus testes): src/runtime/transaction.ts, src/cli/install.ts, src/cli/upgrade.ts, src/cli/uninstall.ts, src/cli/host-hooks.ts, src/cli/host-integration.ts, tests/integration/install-transaction.test.ts, tests/integration/runtime-manager.test.ts
-  mensagem de commit: "T-028 autonomous-project-runtime: Tornar instalação, upgrade e rollback uma transação única"
-
-Regras inegociáveis:
-- Todo critério de aceite referenciado vira teste com @spec:AC-xxx no título.
-- NUNCA enfraqueça, pule (skip/todo) ou apague um teste para passar — teste pulado não é prova e o audit acusa.
-- Rode os testes localmente com `npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json` até passarem.
-- NÃO edite tasks.md, NÃO rode onp-spec verify/audit e NÃO toque em outras tarefas — o orquestrador cuida disso.
-- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-sol' xhigh >> "$LOG_DIR/seq.log" 2>&1; then
-    # commit de segurança se o agente esqueceu (rastreabilidade > perfeição)
-    if [ -n "$(git status --porcelain)" ]; then
-      git add -A && git commit -q -m 'T-028 autonomous-project-runtime: Tornar instalação, upgrade e rollback uma transação única (auto-commit do plano)'
-    fi
-    marcar_concluidas T-028
-    verde "✔ T-028 concluída"
-    return 0
-  fi
-  vermelho "✘ T-028 falhou (log: $LOG_DIR/seq.log)"
-  amarelo "  reexecute só ela: bash .spec/features/autonomous-project-runtime/executar-tarefas.sh --seq T-028"
-  FALHAS="$FALHAS T-028"
-  return 1
-}
-
 # ── sequencial T-030 (ordem do tasks.md) ──
 executar_seq_T_030() {
   info 'sequencial T-030 — Provar lifecycle autônomo, concorrência e matriz completa'
@@ -285,14 +253,12 @@ executar_tudo() {
   iniciar_resumos
   info "logs em: $LOG_DIR"
   info "resumo geral de andamento: a cada 1 min aqui no terminal (e via: onp-spec resumo)"
-  executar_seq_T_028 || true
   executar_seq_T_030 || true
   encerrar tudo
 }
 
 listar() {
   echo "execução: $RUN_ID (feature $FEATURE, branch $BASE_BRANCH)"
-  echo "  seq       T-028 (sequencial)"
   echo "  seq       T-030 (sequencial)"
   echo
   echo "reexecutar uma faixa:    --faixa <id>"
@@ -328,7 +294,6 @@ case "$MODO" in
     esac ;;
   seq)
     case "$ALVO" in
-      T-028) evento --tipo inicio --escopo "seq:T-028"; iniciar_resumos; executar_seq_T_028 || true; encerrar "seq:T-028" ;;
       T-030) evento --tipo inicio --escopo "seq:T-030"; iniciar_resumos; executar_seq_T_030 || true; encerrar "seq:T-030" ;;
       *) falhar "tarefa sequencial desconhecida: '$ALVO' — veja as disponíveis com --listar" ;;
     esac ;;

@@ -1,12 +1,12 @@
 {
-  "runId": "mega-brain-mcp-autonomous-project-runtime-mt8pwj1f",
+  "runId": "mega-brain-mcp-autonomous-project-runtime-mt8qvho0",
   "feature": "autonomous-project-runtime",
   "agent": "codex",
   "modo": "sequencial",
   "paralelizar": null,
   "modeloForcado": null,
   "esforcoForcado": null,
-  "geradoEm": "2026-08-25 13:45",
+  "geradoEm": "2026-08-25 14:12",
   "branchTrabalho": "spec/autonomous-project-runtime",
   "baseDir": ".spec/features/autonomous-project-runtime",
   "specDir": ".spec",
@@ -15,29 +15,6 @@
   "ondas": [],
   "faixas": [],
   "sequenciais": [
-    {
-      "id": "T-028",
-      "titulo": "Tornar instalação, upgrade e rollback uma transação única",
-      "modelo": "gpt-5.6-sol",
-      "esforco": "xhigh",
-      "arquivos": [
-        "src/runtime/transaction.ts",
-        "src/cli/install.ts",
-        "src/cli/upgrade.ts",
-        "src/cli/uninstall.ts",
-        "src/cli/host-hooks.ts",
-        "src/cli/host-integration.ts",
-        "tests/integration/install-transaction.test.ts",
-        "tests/integration/runtime-manager.test.ts"
-      ],
-      "refs": [
-        "US-018",
-        "AC-042",
-        "AC-045",
-        "US-021",
-        "AC-054"
-      ]
-    },
     {
       "id": "T-030",
       "titulo": "Provar lifecycle autônomo, concorrência e matriz completa",
@@ -78,7 +55,8 @@
     "T-025",
     "T-029",
     "T-026",
-    "T-027"
+    "T-027",
+    "T-028"
   ],
   "avisos": []
 }

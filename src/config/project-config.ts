@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { z } from 'zod';
@@ -87,8 +87,12 @@ export async function writeProjectConfig(repositoryRoot: string, input: ProjectC
   const target = projectConfigPath(repositoryRoot);
   await mkdir(path.dirname(target), { recursive: true, mode: 0o700 });
   const temporary = `${target}.${randomUUID()}.tmp`;
-  await writeFile(temporary, `${JSON.stringify(config, null, 2)}\n`, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
-  await rename(temporary, target);
+  try {
+    await writeFile(temporary, `${JSON.stringify(config, null, 2)}\n`, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
+    await rename(temporary, target);
+  } finally {
+    await rm(temporary, { force: true });
+  }
   if (process.platform !== 'win32') await chmod(target, 0o600);
   return target;
 }

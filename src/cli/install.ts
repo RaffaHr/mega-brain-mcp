@@ -1,12 +1,17 @@
 import { execFile } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { access, mkdir, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
 import type { ProjectIdentity } from '../projects/identity.js';
 import { assertRuntimeChild, runtimeLayout } from '../runtime/layout.js';
 import { createRuntimeIsolation, writeRuntimeLock, type RuntimeLockManifest } from '../runtime/lock-manifest.js';
+import {
+  RuntimeTransaction,
+  swapStagedPath,
+  withRuntimeTransaction,
+} from '../runtime/transaction.js';
 import { III_ENGINE_VERSION, installIiiEngineArtifact } from '../runtime/iii-engine.js';
 import type { AgentMemoryMode } from '../runtime/types.js';
 import { npmInvocation, runInstallPreflight, type InstallPreflightOptions } from './preflight.js';
@@ -54,6 +59,14 @@ export interface InstallRuntimeOptions {
   codeReviewGraph?:
     | { mode: 'managed' }
     | { mode: 'custom'; command: string; args?: string[] };
+  transaction?: RuntimeTransaction;
+  beforeSwap?(transaction: RuntimeTransaction): Promise<void>;
+  afterSwap?(transaction: RuntimeTransaction, manifest: RuntimeLockManifest): Promise<void>;
+}
+
+export interface InstallProjectTransactionOptions extends Omit<InstallRuntimeOptions, 'transaction'> {
+  configure?(transaction: RuntimeTransaction, manifest: RuntimeLockManifest): Promise<void>;
+  validate?(inspection: RuntimeInspection): Promise<void>;
 }
 
 export interface RuntimeInspection {
@@ -67,6 +80,10 @@ async function exists(filePath: string): Promise<boolean> {
 }
 
 export async function installManagedRuntime(options: InstallRuntimeOptions): Promise<RuntimeLockManifest> {
+  if (!options.transaction) {
+    return withRuntimeTransaction((transaction) => installManagedRuntime({ ...options, transaction }));
+  }
+  const transaction = options.transaction;
   const agentMemoryMode = options.agentMemoryMode ?? 'managed';
   if (agentMemoryMode === 'remote') {
     if (!options.remoteAgentMemory) {
@@ -89,6 +106,7 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
   const layout = runtimeLayout(options.dataDir, options.identity);
   const isolation = createRuntimeIsolation(layout, options.identity.worktreeId);
   const platform = options.platform ?? preflight?.platform ?? (options.preflight === false ? undefined : process.platform);
+  const runtimePlatform = platform ?? process.platform;
   if (agentMemoryMode === 'managed' && platform === 'win32' && !options.iiiEngine) {
     throw new Error('Managed AgentMemory on Windows requires a confirmed, checksummed iii-engine artifact. No files were changed.');
   }
@@ -100,21 +118,26 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
     throw new Error('iii-engine checksum is invalid. No files were changed.');
   }
   const staging = assertRuntimeChild(layout, path.join(layout.runtimeRoot, `.staging-${randomUUID()}`));
-  const backup = assertRuntimeChild(layout, path.join(layout.runtimeRoot, `.backup-${randomUUID()}`));
   const agentMemoryDir = path.join(staging, 'agentmemory');
   const crgDir = path.join(staging, 'code-review-graph');
   const venvDir = path.join(crgDir, 'venv');
+  const stagedBackendData = path.join(staging, '.backend-data');
+  const stagedCrgData = path.join(stagedBackendData, 'code-review-graph');
+  const stagedIiiEngine = path.join(stagedBackendData, 'iii-engine');
   const npm = npmInvocation();
   const python = options.pythonCommand ?? preflight?.pythonCommand ?? (process.platform === 'win32' ? 'python.exe' : 'python3');
   const codeReviewGraph = options.codeReviewGraph ?? { mode: 'managed' as const };
 
+  await mkdir(layout.runtimeRoot, { recursive: true });
+  await mkdir(staging, { recursive: true });
+  transaction.addRollback(() => rm(staging, { recursive: true, force: true }));
+  transaction.addCommit(() => rm(staging, { recursive: true, force: true }));
   if (agentMemoryMode === 'managed') await mkdir(agentMemoryDir, { recursive: true });
   await mkdir(crgDir, { recursive: true });
-  let movedCurrent = false;
-  try {
+  await mkdir(stagedCrgData, { recursive: true });
     if (installIiiEngine) {
       await installIiiEngineArtifact({
-        destination: path.join(isolation.paths.iiiEngine, 'iii.exe'),
+        destination: path.join(stagedIiiEngine, 'iii.exe'),
         version: III_ENGINE_VERSION,
         ...installIiiEngine,
       });
@@ -126,11 +149,10 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
         { cwd: staging },
       );
     }
-    await mkdir(isolation.paths.codeReviewGraph, { recursive: true });
     if (codeReviewGraph.mode === 'managed') {
       await runner.run(python, ['-m', 'venv', venvDir], { cwd: staging });
     }
-    const venvPython = process.platform === 'win32'
+    const venvPython = runtimePlatform === 'win32'
       ? path.join(venvDir, 'Scripts', 'python.exe')
       : path.join(venvDir, 'bin', 'python');
     if (codeReviewGraph.mode === 'managed') {
@@ -139,7 +161,7 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
 
     const finalAgentMemoryDir = path.join(layout.current, 'agentmemory');
     const finalCrgDir = path.join(layout.current, 'code-review-graph');
-    const finalVenvPython = process.platform === 'win32'
+    const finalVenvPython = runtimePlatform === 'win32'
       ? path.join(finalCrgDir, 'venv', 'Scripts', 'python.exe')
       : path.join(finalCrgDir, 'venv', 'bin', 'python');
     const stagedAgentMemoryEntrypoint = path.join(agentMemoryDir, 'node_modules', '@agentmemory', 'agentmemory', 'dist', 'cli.mjs');
@@ -157,7 +179,7 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
     }
     const crgEnvironment = {
       ...process.env,
-      CRG_DATA_DIR: isolation.paths.codeReviewGraph,
+      CRG_DATA_DIR: stagedCrgData,
       CRG_REPO_ROOT: path.resolve(options.identity.root),
     };
     const crgCommand = codeReviewGraph.mode === 'managed' ? venvPython : codeReviewGraph.command;
@@ -167,8 +189,8 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
       env: crgEnvironment,
     });
     if ((options.validateArtifacts ?? runner === systemCommandRunner)
-      && (await readdir(isolation.paths.codeReviewGraph)).length === 0) {
-      throw new Error(`Code Review Graph did not persist artifacts in ${isolation.paths.codeReviewGraph}`);
+      && (await readdir(stagedCrgData)).length === 0) {
+      throw new Error(`Code Review Graph did not persist artifacts in staging for ${isolation.paths.codeReviewGraph}`);
     }
 
     const manifest: RuntimeLockManifest = {
@@ -217,21 +239,27 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
     }
     await writeFile(path.join(crgDir, '.installed'), codeReviewGraph.mode === 'managed' ? MANAGED_VERSIONS.codeReviewGraph : 'custom', 'utf8');
 
-    await mkdir(layout.runtimeRoot, { recursive: true });
-    if (await exists(layout.current)) {
-      await rename(layout.current, backup);
-      movedCurrent = true;
-    }
-    await rename(staging, layout.current);
-    if (movedCurrent) await rm(backup, { recursive: true, force: true });
+    await options.beforeSwap?.(transaction);
+    if (installIiiEngine) await swapStagedPath(transaction, stagedIiiEngine, isolation.paths.iiiEngine);
+    await swapStagedPath(transaction, stagedCrgData, isolation.paths.codeReviewGraph);
+    await rm(stagedBackendData, { recursive: true, force: true });
+    await swapStagedPath(transaction, staging, layout.current);
+    await options.afterSwap?.(transaction, manifest);
     return manifest;
-  } catch (error) {
-    await rm(staging, { recursive: true, force: true });
-    if (movedCurrent && !(await exists(layout.current)) && (await exists(backup))) {
-      await rename(backup, layout.current);
-    }
-    throw error;
-  }
+}
+
+export async function installProjectTransaction(
+  options: InstallProjectTransactionOptions,
+): Promise<RuntimeLockManifest> {
+  const { configure, validate, ...runtimeOptions } = options;
+  return withRuntimeTransaction(async (transaction) => {
+    const manifest = await installManagedRuntime({ ...runtimeOptions, transaction });
+    await configure?.(transaction, manifest);
+    const inspection = await inspectManagedRuntime(options.dataDir, options.identity);
+    if (!inspection.healthy) throw new Error('Installed runtime failed post-commit inspection');
+    await validate?.(inspection);
+    return manifest;
+  });
 }
 
 export async function inspectManagedRuntime(dataDir: string, identity: ProjectIdentity): Promise<RuntimeInspection> {

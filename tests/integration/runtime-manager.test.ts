@@ -45,10 +45,10 @@ test('AC-001: instalação cria runtime isolado e verificável @spec:AC-001', as
   expect(commands[0]?.args).toContain('@agentmemory/agentmemory@0.9.29');
   expect(commands[2]?.args).toContain('code-review-graph==2.3.7');
   expect(commands[3]?.args).toEqual(['-m', 'code_review_graph', 'build']);
-  expect(commands[3]?.options.env).toMatchObject({
-    CRG_DATA_DIR: manifest.isolation!.paths.codeReviewGraph,
-    CRG_REPO_ROOT: path.resolve(identity.root),
-  });
+  expect(commands[3]?.options.env).toMatchObject({ CRG_REPO_ROOT: path.resolve(identity.root) });
+  expect(path.isAbsolute(commands[3]?.options.env?.CRG_DATA_DIR ?? '')).toBe(true);
+  expect(commands[3]?.options.env?.CRG_DATA_DIR).toContain(path.join('runtime', '.staging-'));
+  expect(manifest.backends.codeReviewGraph.environment?.CRG_DATA_DIR).toBe(manifest.isolation!.paths.codeReviewGraph);
   expect(manifest.versions).toEqual({ megaBrain: '0.1.0', agentMemory: '0.9.29', codeReviewGraph: '2.3.7' });
   expect(inspection.healthy).toBe(true);
   expect(inspection.checks).toEqual({ project: true, isolation: true, agentMemory: true, codeReviewGraph: true });

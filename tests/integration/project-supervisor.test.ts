@@ -104,6 +104,22 @@ test('AC-041: supervisor encerra cinco segundos após a última lease @spec:AC-0
   await expect(readSupervisorManifest(layout)).rejects.toMatchObject({ code: 'ENOENT' });
 });
 
+test('AC-054: drain preserva leases existentes e bloqueia novas aquisições @spec:AC-054', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-drain-'));
+  directories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  const server = await startProjectSupervisor({ layout, identity, pid: process.pid });
+  const handle = await ensureProjectSupervisor({ layout, identity, processExists: () => true });
+
+  await handle.client.acquire('existing-gateway');
+  expect(await handle.client.drain()).toEqual({ leases: ['existing-gateway'] });
+  expect(await handle.client.status()).toEqual({ leases: ['existing-gateway'], draining: true });
+  await expect(handle.client.acquire('new-gateway')).rejects.toThrow(/draining/u);
+  await handle.client.release('existing-gateway');
+  await server.close();
+});
+
 test('AC-040: startup lock de processo morto é recuperado antes de iniciar @spec:AC-040', async () => {
   const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-stale-lock-'));
   directories.push(dataDir);

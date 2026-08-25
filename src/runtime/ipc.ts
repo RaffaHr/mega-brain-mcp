@@ -8,7 +8,7 @@ import { SUPERVISOR_PROTOCOL_VERSION, type SupervisorManifest } from './supervis
 const requestSchema = z.object({
   protocolVersion: z.literal(SUPERVISOR_PROTOCOL_VERSION),
   worktreeId: z.string().regex(/^[a-f0-9]{24}$/u),
-  type: z.enum(['status', 'acquire', 'heartbeat', 'release']),
+  type: z.enum(['status', 'acquire', 'heartbeat', 'release', 'drain']),
   leaseId: z.string().min(1).optional(),
 }).strict();
 
@@ -21,6 +21,7 @@ const responseSchema = z.discriminatedUnion('ok', [
     worktreeId: z.string(),
     pid: z.number().int().positive(),
     leases: z.array(z.string()),
+    draining: z.boolean(),
   }).strict(),
   z.object({ ok: z.literal(false), error: z.string() }).strict(),
 ]);
@@ -113,10 +114,14 @@ export class SupervisorIpcClient {
     return response;
   }
 
-  async status(): Promise<{ leases: string[] }> {
-    return { leases: (await this.request('status')).leases };
+  async status(): Promise<{ leases: string[]; draining: boolean }> {
+    const response = await this.request('status');
+    return { leases: response.leases, draining: response.draining };
   }
 
+  async drain(): Promise<{ leases: string[] }> {
+    return { leases: (await this.request('drain')).leases };
+  }
   async acquire(leaseId: string): Promise<void> { await this.request('acquire', leaseId); }
   async heartbeat(leaseId: string): Promise<void> { await this.request('heartbeat', leaseId); }
   async release(leaseId: string): Promise<void> { await this.request('release', leaseId); }

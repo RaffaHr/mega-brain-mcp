@@ -1,11 +1,11 @@
 # Plano de execução — autonomous-project-runtime
 
-> gerado por `onp-spec plano` em 2026-08-25 13:45 — NÃO edite à mão;
+> gerado por `onp-spec plano` em 2026-08-25 14:12 — NÃO edite à mão;
 > mudou tasks.md ou a config? Regenere: `onp-spec plano autonomous-project-runtime --sequencial`
 
 ## Resumo — o que vai acontecer
 
-- **modo SEQUENCIAL (escolha do usuário)**: 2 tarefa(s) pendente(s), UMA APÓS A OUTRA, na árvore principal (5 já concluída(s): T-024, T-025, T-029, T-026, T-027)
+- **modo SEQUENCIAL (escolha do usuário)**: 1 tarefa(s) pendente(s), UMA APÓS A OUTRA, na árvore principal (6 já concluída(s): T-024, T-025, T-029, T-026, T-027, T-028)
 - sem worktrees e sem paralelismo — cada tarefa roda numa janela de contexto limpa, na ordem do tasks.md
 - tudo acontece na branch de trabalho `spec/autonomous-project-runtime`; levar para a main é decisão sua
 
@@ -13,7 +13,6 @@
 
 | tarefa | título | modelo | esforço |
 |---|---|---|---|
-| T-028 | Tornar instalação, upgrade e rollback uma transação única | `gpt-5.6-sol` | xhigh |
 | T-030 | Provar lifecycle autônomo, concorrência e matriz completa | `gpt-5.6-sol` | xhigh |
 
 ## Gestão de branches e commits
