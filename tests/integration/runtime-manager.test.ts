@@ -25,10 +25,10 @@ test('AC-001: instalação cria runtime isolado e verificável @spec:AC-001', as
     commonGitDir: '.git',
     remote: 'https://github.com/example/project.git',
   });
-  const commands: Array<{ command: string; args: string[] }> = [];
+  const commands: Array<{ command: string; args: string[]; options: { cwd: string; env?: NodeJS.ProcessEnv } }> = [];
   const runner: CommandRunner = {
-    async run(command, args) {
-      commands.push({ command, args });
+    async run(command, args, options) {
+      commands.push({ command, args, options });
     },
   };
 
@@ -45,14 +45,37 @@ test('AC-001: instalação cria runtime isolado e verificável @spec:AC-001', as
   expect(commands[0]?.args).toContain('@agentmemory/agentmemory@0.9.29');
   expect(commands[2]?.args).toContain('code-review-graph==2.3.7');
   expect(commands[3]?.args).toEqual(['-m', 'code_review_graph', 'build']);
+  expect(commands[3]?.options.env).toMatchObject({ CRG_REPO_ROOT: path.resolve(identity.root) });
+  expect(path.isAbsolute(commands[3]?.options.env?.CRG_DATA_DIR ?? '')).toBe(true);
+  expect(commands[3]?.options.env?.CRG_DATA_DIR).toContain(path.join('runtime', '.staging-'));
+  expect(manifest.backends.codeReviewGraph.environment?.CRG_DATA_DIR).toBe(manifest.isolation!.paths.codeReviewGraph);
   expect(manifest.versions).toEqual({ megaBrain: '0.1.0', agentMemory: '0.9.29', codeReviewGraph: '2.3.7' });
   expect(inspection.healthy).toBe(true);
-  expect(inspection.checks).toEqual({ project: true, agentMemory: true, codeReviewGraph: true });
+  expect(inspection.checks).toEqual({ project: true, isolation: true, agentMemory: true, codeReviewGraph: true });
   expect(manifest.backends.codeReviewGraph.lifecycle).toBe('on-demand');
   expect(manifest.backends.codeReviewGraph.command).toContain(path.join('runtime', 'current', 'code-review-graph'));
   expect(manifest.backends.codeReviewGraph.command).not.toContain('.staging-');
   expect(manifest.backends.agentMemory?.cwd).toContain(path.join('runtime', 'current', 'agentmemory'));
   expect(manifest.backends.agentMemory?.cwd).not.toContain('.staging-');
+  expect(manifest.backends.agentMemory?.args).toEqual(expect.arrayContaining([
+    '--data-dir', manifest.isolation!.paths.agentMemory,
+    '--port', String(manifest.isolation!.ports.rest),
+  ]));
+  expect(manifest.backends.agentMemory?.environment).toEqual({
+    AGENTMEMORY_III_CONFIG: path.join(manifest.backends.agentMemory!.cwd, 'iii-config.yaml'),
+    HOME: manifest.isolation!.paths.iiiEngine,
+    III_ENGINE_PORT: String(manifest.isolation!.ports.engine),
+    III_ENGINE_URL: `ws://127.0.0.1:${manifest.isolation!.ports.engine}`,
+    III_REST_PORT: String(manifest.isolation!.ports.rest),
+    III_STREAM_PORT: String(manifest.isolation!.ports.streams),
+    III_VIEWER_PORT: String(manifest.isolation!.ports.viewer),
+    USERPROFILE: manifest.isolation!.paths.iiiEngine,
+  });
+  const iiiConfig = await readFile(manifest.backends.agentMemory!.environment!.AGENTMEMORY_III_CONFIG!, 'utf8');
+  expect(iiiConfig).toContain(`port: ${manifest.isolation!.ports.rest}`);
+  expect(iiiConfig).toContain(`port: ${manifest.isolation!.ports.streams}`);
+  expect(iiiConfig).toContain('name: iii-worker-manager');
+  expect(iiiConfig).toContain(`port: ${manifest.isolation!.ports.engine}`);
 });
 
 test('AC-026: modo remoto instala somente Code Review Graph e nunca inicia AgentMemory local @spec:AC-026', async () => {
@@ -74,6 +97,8 @@ test('AC-026: modo remoto instala somente Code Review Graph e nunca inicia Agent
     dataDir,
     identity,
     agentMemoryMode: 'remote',
+    remoteAgentMemory: { baseUrl: 'https://memory.example.test', secretEnvVar: 'REMOTE_MEMORY_SECRET' },
+    remoteIsolationProbe: async () => undefined,
     runner,
     preflight: false,
     now: new Date('2026-08-24T12:00:00.000Z'),
@@ -97,7 +122,11 @@ test('AC-026: modo remoto instala somente Code Review Graph e nunca inicia Agent
   expect(commands[1]?.args).toContain('code-review-graph==2.3.7');
   expect(manifest.agentMemoryMode).toBe('remote');
   expect(manifest.backends).not.toHaveProperty('agentMemory');
-  expect(inspection.checks).toEqual({ project: true, codeReviewGraph: true });
+  expect(inspection.checks).toEqual({ project: true, isolation: true, codeReviewGraph: true });
+  expect(manifest.remoteAgentMemory).toEqual({
+    baseUrl: 'https://memory.example.test',
+    secretEnvVar: 'REMOTE_MEMORY_SECRET',
+  });
   expect(starts).toEqual([]);
   expect(state.processes).toEqual({});
 });
@@ -128,10 +157,11 @@ test('AC-027: modo gerenciado injeta ambiente no spawn sem persistir secrets @sp
     controller,
   });
 
-  expect(receivedEnvironment).toEqual([{
+  expect(receivedEnvironment).toHaveLength(1);
+  expect(receivedEnvironment[0]).toMatchObject({
     AGENTMEMORY_SECRET: 'managed-secret-value',
     AGENTMEMORY_TOOLS: 'core',
-  }]);
+  });
   const layout = runtimeLayout(dataDir, identity);
   const serialized = [
     await readFile(path.join(layout.current, 'runtime-lock.json'), 'utf8'),
@@ -164,4 +194,25 @@ test('AC-034: start gerenciado só retorna após executar a verificação de rea
   });
 
   expect(readinessChecks).toBe(1);
+});
+
+test('AC-043: CRG customizado é validado e persistido sem instalar o pacote gerenciado @spec:AC-043', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-custom-crg-'));
+  temporaryDirectories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const commands: Array<{ command: string; args: string[] }> = [];
+  const manifest = await installManagedRuntime({
+    dataDir,
+    identity,
+    preflight: false,
+    runner: { async run(command, args) { commands.push({ command, args }); } },
+    codeReviewGraph: { mode: 'custom', command: 'custom-crg', args: ['--profile', 'isolated'] },
+  });
+
+  expect(commands.flatMap(({ args }) => args)).not.toContain('code-review-graph==2.3.7');
+  expect(commands).toContainEqual({ command: 'custom-crg', args: ['--profile', 'isolated', 'build'] });
+  expect(manifest.backends.codeReviewGraph).toMatchObject({
+    command: 'custom-crg',
+    args: ['--profile', 'isolated', 'serve'],
+  });
 });

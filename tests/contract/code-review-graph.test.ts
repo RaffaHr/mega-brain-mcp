@@ -1,7 +1,9 @@
 import { expect, test, vi } from 'vitest';
+import path from 'node:path';
 
 import { CRG_READ_ONLY_TOOLS } from '../../src/adapters/code-review-graph/allowlist.js';
 import { CodeReviewGraphClient, type CrgSession } from '../../src/adapters/code-review-graph/client.js';
+import { probeCodeReviewGraphIsolation } from '../../src/adapters/code-review-graph/capabilities.js';
 
 function fakeSession(callTool = vi.fn(async () => ({ content: [], structuredContent: { ok: true } }))): CrgSession {
   return {
@@ -44,4 +46,24 @@ test('rejects an expanded surface and restarts once after a transport failure', 
     structuredContent: { ok: true },
   });
   expect(factory).toHaveBeenCalledTimes(2);
+});
+
+test('AC-052: CRG recebe data dir e raiz absolutos no ambiente efetivo @spec:AC-052', () => {
+  const repoRoot = path.resolve('repo-root');
+  const dataDir = path.resolve('isolated-data', 'crg');
+  const client = new CodeReviewGraphClient({
+    command: 'crg',
+    cwd: repoRoot,
+    repoRoot,
+    dataDir,
+    environment: { CRG_EMBEDDINGS: 'local' },
+    sessionFactory: () => fakeSession(),
+  });
+
+  expect(client.effectiveEnvironment()).toMatchObject({
+    CRG_DATA_DIR: dataDir,
+    CRG_REPO_ROOT: repoRoot,
+    CRG_EMBEDDINGS: 'local',
+  });
+  expect(probeCodeReviewGraphIsolation(client, repoRoot)).toEqual({ dataDir, repoRoot });
 });

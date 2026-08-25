@@ -1,0 +1,127 @@
+{
+  "feature": "autonomous-project-runtime",
+  "timestamp": "2026-08-25T19:35:24.586Z",
+  "gitRev": "2eae7ff",
+  "command": "npx vitest run --pool=threads --maxWorkers=1 --reporter=json --outputFile=.spec/verification/vitest-results.json",
+  "reporter": "vitest-json",
+  "exitCode": 0,
+  "testsParsed": 128,
+  "results": {
+    "AC-039": {
+      "status": "pass",
+      "testName": "AC-039/041/044: cliente stdio real inicia, usa seis tools e encerra o supervisor autônomo @spec:AC-039 @spec:AC-041 @spec:AC-044 AC-039/041/044: cliente stdio real inicia, usa seis tools e encerra o supervisor autônomo @spec:AC-039 @spec:AC-041 @spec:AC-044",
+      "method": "vitest-json"
+    },
+    "AC-040": {
+      "status": "pass",
+      "testName": "AC-040: gateways concorrentes iniciam e reutilizam um único supervisor independente @spec:AC-040 AC-040: gateways concorrentes iniciam e reutilizam um único supervisor independente @spec:AC-040",
+      "method": "vitest-json"
+    },
+    "AC-041": {
+      "status": "pass",
+      "testName": "AC-039/041/044: cliente stdio real inicia, usa seis tools e encerra o supervisor autônomo @spec:AC-039 @spec:AC-041 @spec:AC-044 AC-039/041/044: cliente stdio real inicia, usa seis tools e encerra o supervisor autônomo @spec:AC-039 @spec:AC-041 @spec:AC-044",
+      "method": "vitest-json"
+    },
+    "AC-042": {
+      "status": "pass",
+      "testName": "AC-042/AC-044: defaults geram plano managed estrito e só instalam após confirmação @spec:AC-042 @spec:AC-044 AC-042/AC-044: defaults geram plano managed estrito e só instalam após confirmação @spec:AC-042 @spec:AC-044",
+      "method": "vitest-json"
+    },
+    "AC-043": {
+      "status": "pass",
+      "testName": "AC-043: CRG customizado é validado e persistido sem instalar o pacote gerenciado @spec:AC-043 AC-043: CRG customizado é validado e persistido sem instalar o pacote gerenciado @spec:AC-043",
+      "method": "vitest-json"
+    },
+    "AC-044": {
+      "status": "pass",
+      "testName": "AC-039/041/044: cliente stdio real inicia, usa seis tools e encerra o supervisor autônomo @spec:AC-039 @spec:AC-041 @spec:AC-044 AC-039/041/044: cliente stdio real inicia, usa seis tools e encerra o supervisor autônomo @spec:AC-039 @spec:AC-041 @spec:AC-044",
+      "method": "vitest-json"
+    },
+    "AC-045": {
+      "status": "pass",
+      "testName": "AC-045: uninstall preserva dados por default e só remove o namespace com purge explícito @spec:AC-045 AC-045: uninstall preserva dados por default e só remove o namespace com purge explícito @spec:AC-045",
+      "method": "vitest-json"
+    },
+    "AC-046": {
+      "status": "pass",
+      "testName": "AC-046: possui prova executável vinculada fora do scaffold @spec:AC-046 AC-046: possui prova executável vinculada fora do scaffold @spec:AC-046",
+      "method": "vitest-json"
+    },
+    "AC-047": {
+      "status": "pass",
+      "testName": "AC-047/048/056: projetos concorrentes mantêm namespaces, portas, IPC e leases separados @spec:AC-047 @spec:AC-048 @spec:AC-056 AC-047/048/056: projetos concorrentes mantêm namespaces, portas, IPC e leases separados @spec:AC-047 @spec:AC-048 @spec:AC-056",
+      "method": "vitest-json"
+    },
+    "AC-048": {
+      "status": "pass",
+      "testName": "AC-047/048/056: projetos concorrentes mantêm namespaces, portas, IPC e leases separados @spec:AC-047 @spec:AC-048 @spec:AC-056 AC-047/048/056: projetos concorrentes mantêm namespaces, portas, IPC e leases separados @spec:AC-047 @spec:AC-048 @spec:AC-056",
+      "method": "vitest-json"
+    },
+    "AC-049": {
+      "status": "pass",
+      "testName": "AgentMemory REST adapter AC-049: probe remoto prova A, ausência em B e cleanup confirmado @spec:AC-049 AC-049: probe remoto prova A, ausência em B e cleanup confirmado @spec:AC-049",
+      "method": "vitest-json"
+    },
+    "AC-050": {
+      "status": "pass",
+      "testName": "AC-050: possui prova executável vinculada fora do scaffold @spec:AC-050 AC-050: possui prova executável vinculada fora do scaffold @spec:AC-050",
+      "method": "vitest-json"
+    },
+    "AC-051": {
+      "status": "pass",
+      "testName": "AC-051: possui prova executável vinculada fora do scaffold @spec:AC-051 AC-051: possui prova executável vinculada fora do scaffold @spec:AC-051",
+      "method": "vitest-json"
+    },
+    "AC-052": {
+      "status": "pass",
+      "testName": "AC-052: CRG recebe data dir e raiz absolutos no ambiente efetivo @spec:AC-052 AC-052: CRG recebe data dir e raiz absolutos no ambiente efetivo @spec:AC-052",
+      "method": "vitest-json"
+    },
+    "AC-053": {
+      "status": "pass",
+      "testName": "AC-053: possui prova executável vinculada fora do scaffold @spec:AC-053 AC-053: possui prova executável vinculada fora do scaffold @spec:AC-053",
+      "method": "vitest-json"
+    },
+    "AC-054": {
+      "status": "pass",
+      "testName": "AC-054: falha pós-staging restaura runtime, iii-engine, grafo e hosts byte a byte @spec:AC-054 AC-054: falha pós-staging restaura runtime, iii-engine, grafo e hosts byte a byte @spec:AC-054",
+      "method": "vitest-json"
+    },
+    "AC-055": {
+      "status": "pass",
+      "testName": "AC-055: tarball isolado cobre Node 22.22 e 24.19 por MCP stdio sem montar o checkout @spec:AC-055 AC-055: tarball isolado cobre Node 22.22 e 24.19 por MCP stdio sem montar o checkout @spec:AC-055",
+      "method": "vitest-json"
+    },
+    "AC-056": {
+      "status": "pass",
+      "testName": "AC-056: matriz empacotada executa dois projetos concorrentes, sentinelas e shutdown @spec:AC-056 AC-056: matriz empacotada executa dois projetos concorrentes, sentinelas e shutdown @spec:AC-056",
+      "method": "vitest-json"
+    }
+  },
+  "principles": {
+    "P-004": {
+      "status": "pass",
+      "testName": "P-004: tools públicas de consulta não alteram o repositório @principle:P-004 P-004: tools públicas de consulta não alteram o repositório @principle:P-004"
+    },
+    "P-005": {
+      "status": "pass",
+      "testName": "P-005: backends permanecem privados e com privilégio mínimo @principle:P-005 P-005: backends permanecem privados e com privilégio mínimo @principle:P-005"
+    },
+    "P-002": {
+      "status": "pass",
+      "testName": "AC-028: opt-ins encaminham credencial apenas à autenticação REST e nunca à configuração serializada @spec:AC-028 @principle:P-002 AC-028: opt-ins encaminham credencial apenas à autenticação REST e nunca à configuração serializada @spec:AC-028 @principle:P-002"
+    },
+    "P-003": {
+      "status": "pass",
+      "testName": "P-003: freshness exige evidência atual @principle:P-003 P-003: freshness exige evidência atual @principle:P-003"
+    },
+    "P-006": {
+      "status": "pass",
+      "testName": "host hook dispatcher P-006: hooks preservam integrações e falham de forma aberta @principle:P-006 P-006: hooks preservam integrações e falham de forma aberta @principle:P-006"
+    },
+    "P-007": {
+      "status": "pass",
+      "testName": "P-007: egress e consumo de LLM são opt-in @principle:P-007 P-007: egress e consumo de LLM são opt-in @principle:P-007"
+    }
+  }
+}

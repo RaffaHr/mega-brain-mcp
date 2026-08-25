@@ -18,7 +18,12 @@ test('AC-032: install merges one public MCP in Codex and Claude without exposing
   await writeFile(path.join(root, '.codex', 'hooks.json'), '{"custom":true,"hooks":{}}\n', 'utf8');
   await writeFile(path.join(root, '.mcp.json'), claudeOriginal, 'utf8');
   const backupDir = path.join(root, '.state', 'backups');
-  const input = { root, backupDir, hosts: ['codex', 'claude'] as const, endpoint: 'http://127.0.0.1:3000/mcp' };
+  const input = {
+    root,
+    backupDir,
+    hosts: ['codex', 'claude'] as const,
+    connection: { transport: 'stdio' as const, command: 'mega-brain', args: ['mcp', '--repo', root] },
+  };
   await installHostMcpFiles(input);
   await installHostHookFiles({ root, backupDir, hosts: ['codex', 'claude'] });
   await installHostMcpFiles(input);
@@ -29,7 +34,13 @@ test('AC-032: install merges one public MCP in Codex and Claude without exposing
   expect(codex.match(/\[mcp_servers\.mega-brain]/g)).toHaveLength(1);
   expect(codex).toContain('[mcp_servers.existing]');
   expect(claude).toContain('"existing"');
-  expect(claude.match(/"mega-brain"/g)).toHaveLength(1);
+  expect(Object.keys((JSON.parse(claude) as { mcpServers: Record<string, unknown> }).mcpServers)
+    .filter((name) => name === 'mega-brain')).toHaveLength(1);
+  expect(codex).toContain('command = "mega-brain"');
+  expect(codex).toContain('args = ["mcp"');
+  expect(claude).toContain('"type": "stdio"');
+  expect(claude).toContain('"command": "mega-brain"');
+  expect(`${codex}\n${claude}`).not.toContain('127.0.0.1:3000');
   expect(`${codex}\n${claude}`).not.toContain('agentmemory');
   expect(`${codex}\n${claude}`).not.toContain('code-review-graph');
   expect(await readFile(path.join(root, '.codex', 'hooks.json'), 'utf8')).toContain('mega-brain hook host codex');
@@ -45,7 +56,12 @@ test('AC-033: repeated restore returns host MCP files byte for byte and removes 
   const hooksOriginal = '{\r\n  "custom": true,\r\n  "hooks": {}\r\n}\r\n';
   await writeFile(path.join(root, '.codex', 'hooks.json'), hooksOriginal, 'utf8');
   const backupDir = path.join(root, '.state', 'backups');
-  await installHostMcpFiles({ root, backupDir, hosts: ['codex', 'claude'], endpoint: 'http://127.0.0.1:3000/mcp' });
+  await installHostMcpFiles({
+    root,
+    backupDir,
+    hosts: ['codex', 'claude'],
+    connection: { transport: 'stdio', command: 'mega-brain', args: ['mcp', '--repo', root] },
+  });
   await installHostHookFiles({ root, backupDir, hosts: ['codex', 'claude'] });
   await restoreHostHookFiles(backupDir, ['codex', 'claude']);
   await restoreHostHookFiles(backupDir, ['codex', 'claude']);
@@ -55,4 +71,19 @@ test('AC-033: repeated restore returns host MCP files byte for byte and removes 
   expect(await readFile(path.join(root, '.codex', 'hooks.json'), 'utf8')).toBe(hooksOriginal);
   await expect(readFile(path.join(root, '.mcp.json'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
   await expect(readFile(path.join(root, '.claude', 'settings.local.json'), 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+});
+
+test('AC-039: Streamable HTTP permanece disponível somente quando solicitado explicitamente @spec:AC-039', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-host-http-'));
+  temporaryDirectories.push(root);
+  const backupDir = path.join(root, '.state', 'backups');
+  await installHostMcpFiles({
+    root,
+    backupDir,
+    hosts: ['codex', 'claude'],
+    connection: { transport: 'http', url: 'http://127.0.0.1:4321/mcp' },
+  });
+
+  expect(await readFile(path.join(root, '.codex', 'config.toml'), 'utf8')).toContain('url = "http://127.0.0.1:4321/mcp"');
+  expect(await readFile(path.join(root, '.mcp.json'), 'utf8')).toContain('"type": "http"');
 });

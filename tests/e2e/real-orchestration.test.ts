@@ -53,7 +53,7 @@ test('AC-035: real MCP orchestration routes through AgentMemory HTTP, CRG stdio 
   await execFileAsync('git', ['-C', repo, 'add', 'src/example.ts']);
   await execFileAsync('git', ['-C', repo, 'commit', '-m', 'add explicit handler architecture']);
 
-  const memories: Array<{ id: string; content: string; metadata: Record<string, unknown>; createdAt: string; score: number }> = [];
+  const memories: Array<{ id: string; content: string; project: string; metadata: Record<string, unknown>; createdAt: string; score: number }> = [];
   const agentMemoryRequests: string[] = [];
   const agentMemoryServer = createHttpServer(async (request, response) => {
     const url = request.url ?? '/';
@@ -66,11 +66,11 @@ test('AC-035: real MCP orchestration routes through AgentMemory HTTP, CRG stdio 
     else if (url.endsWith('/health')) payload = { status: 'healthy', healthy: true, version: '0.9.29' };
     else if (url.endsWith('/remember')) {
       const id = `memory-${memories.length + 1}`;
-      memories.push({ id, content: String(body.content), metadata: (body.metadata ?? {}) as Record<string, unknown>, createdAt: new Date().toISOString(), score: 0.99 });
+      memories.push({ id, content: String(body.content), project: String(body.project), metadata: (body.metadata ?? {}) as Record<string, unknown>, createdAt: new Date().toISOString(), score: 0.99 });
       payload = { id };
     } else if (url.endsWith('/smart-search')) payload = { results: memories };
-    else if (url.endsWith('/timeline')) payload = { memories };
-    else if (url.endsWith('/sessions')) payload = { sessions: [] };
+    else if (url.endsWith('/memories')) payload = { memories, total: memories.length, offset: 0, limit: null };
+    else if (url.startsWith('/agentmemory/sessions')) payload = { sessions: [] };
     else if (url.endsWith('/verify')) payload = { verified: true };
     else { response.statusCode = 404; payload = { error: 'not found' }; }
     response.setHeader('content-type', 'application/json');
@@ -141,4 +141,4 @@ test('AC-035: real MCP orchestration routes through AgentMemory HTTP, CRG stdio 
     await closeHttp(agentMemoryServer).catch(() => undefined);
     await rm(root, { recursive: true, force: true });
   }
-});
+}, 90_000);

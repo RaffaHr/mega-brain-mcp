@@ -35,25 +35,34 @@ The supported package flow does not require `npm link`.
 
 ## `doctor` reports AgentMemory unavailable
 
-Run `mega-brain start --repo .` first. It waits up to 60 seconds for
-`/agentmemory/health`; inspect the project log directory under
-`MEGA_BRAIN_DATA_DIR` if readiness times out. Confirm that
-`MEGA_BRAIN_AGENTMEMORY_TOKEN` matches `AGENTMEMORY_SECRET` when authentication
-is enabled. The default REST endpoint is `http://127.0.0.1:3111`.
+Open the configured MCP once or run `mega-brain start --repo .` as an advanced
+diagnostic. Readiness waits for the worktree-specific AgentMemory port shown by
+`doctor`; managed mode does not assume the legacy fixed port `3111`. Inspect the
+project log directory under `MEGA_BRAIN_DATA_DIR` if readiness times out.
 
-On native Windows, AgentMemory's engine may require Docker Desktop or WSL2.
-Mega Brain reports that backend failure instead of enabling egress or a paid
-provider silently.
+On native Windows, rerun interactive setup and accept the pinned iii-engine, or
+use `mega-brain install ... --accept-iii-engine`. The binary is downloaded from
+the pinned release, checksum-verified and installed only in the project runtime;
+global `PATH` is not changed.
 
 ## MCP is configured but the host shows it offline
 
-Keep `mega-brain serve --repo . --port 3000` running and verify
-`http://127.0.0.1:3000/mcp`. The install port and serve port must match. In
-Codex, inspect `/mcp` and `/hooks` and approve project trust. In Claude Code,
-inspect `/mcp` and approve the project server.
+Confirm that the host entry runs `mega-brain mcp --repo <project>` over stdio,
+then reopen the host. In Codex, inspect `/mcp` and `/hooks` and approve project
+trust. In Claude Code, inspect `/mcp` and approve the project server. A manually
+running HTTP server is not required unless `--transport http` was selected.
 
 Codex configuration is in `.codex/config.toml`; Claude Code configuration is
 in `.mcp.json`. Do not register AgentMemory or Code Review Graph separately.
+
+## Remote AgentMemory validation does not advance
+
+Confirm `MEGA_BRAIN_AGENTMEMORY_URL`, then set
+`MEGA_BRAIN_AGENTMEMORY_SECRET_ENV` to the name of an environment variable that
+contains the secret. The secret value itself must never be placed in config.
+Setup intentionally remains on this step when the URL, authentication,
+namespace separation or cleanup probe fails; retry or switch to managed mode.
+Non-interactive install exits with `No files were changed` and must be rerun.
 
 ## Code Review Graph is behind Git HEAD
 

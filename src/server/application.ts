@@ -105,28 +105,29 @@ function gitRecall(repository: GitRepository): RecallSourceAdapter {
   };
 }
 
-function learningStore(client: AgentMemoryClient): LearningStore {
+function learningStore(client: AgentMemoryClient, project: string): LearningStore {
   return {
     async findEquivalent(statement) {
-      const found = (await client.smartSearch({ query: statement, limit: 3 })).results.find(({ content }) => content?.trim().toLowerCase() === statement.trim().toLowerCase());
+      const found = (await client.smartSearch({ query: statement, limit: 3, project })).results.find(({ content }) => content?.trim().toLowerCase() === statement.trim().toLowerCase());
       return found?.id && found.content ? { id: found.id, statement: found.content } : undefined;
     },
     async save(input) {
       const response = await client.remember({
         content: String(input.statement),
         metadata: input,
+        project,
       });
       if (!response.id) throw new Error('AgentMemory did not return a memory id');
       return { id: response.id };
     },
     async reinforce(id, evidence) {
-      await client.remember({ content: `Reinforcement for memory ${id}`, metadata: { relationship: 'reinforcement', memoryId: id, evidence } });
+      await client.remember({ content: `Reinforcement for memory ${id}`, metadata: { relationship: 'reinforcement', memoryId: id, evidence }, project });
     },
     async recordConflict(existingId, replacementId) {
-      await client.remember({ content: `Conflict between memories ${existingId} and ${replacementId}`, metadata: { relationship: 'conflict', existingId, replacementId } });
+      await client.remember({ content: `Conflict between memories ${existingId} and ${replacementId}`, metadata: { relationship: 'conflict', existingId, replacementId }, project });
     },
     async supersede(existingId, replacementId) {
-      await client.remember({ content: `Memory ${existingId} superseded by ${replacementId}`, metadata: { relationship: 'supersession', existingId, replacementId } });
+      await client.remember({ content: `Memory ${existingId} superseded by ${replacementId}`, metadata: { relationship: 'supersession', existingId, replacementId }, project });
     },
   };
 }
@@ -189,7 +190,7 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
         type: (input.type ?? 'experience') as KnowledgeType,
         evidence,
         ...(input.supersedes ? { supersedes: String(input.supersedes) } : {}),
-      }, learningStore(agentMemory));
+      }, learningStore(agentMemory, identity.worktreeId));
       const memoryId = typeof learned.result.memoryId === 'string' ? learned.result.memoryId : null;
       const verifiable = evidence.flatMap((item) => item.blobHash && item.commitHash ? [{
         path: item.path, blobHash: item.blobHash, commitHash: item.commitHash,
@@ -208,9 +209,9 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
         head: await git.head(),
         async structure() {
           const [impact, flows, query] = await Promise.all([
-            codeReviewGraph.call('get_impact_radius_tool', { target }),
+            codeReviewGraph.call('get_impact_radius_tool', { changed_files: [target] }),
             codeReviewGraph.call('get_affected_flows_tool', { changed_files: [target] }),
-            codeReviewGraph.call('query_graph_tool', { pattern: 'related', target }),
+            codeReviewGraph.call('query_graph_tool', { pattern: 'file_summary', target }),
           ]);
           return { dependencies: stringsFromUnknown(impact.structuredContent ?? impact.content), flows: stringsFromUnknown(flows.structuredContent ?? flows.content), tests: stringsFromUnknown(query.structuredContent ?? query.content) };
         },
@@ -233,8 +234,8 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
         project: identity.worktreeId,
         head: await git.head(),
         commits: async () => (await gitHistory(git, query.limit ?? 50)).map((commit) => ({ id: commit.hash, source: 'git', occurredAt: commit.authoredAt, summary: commit.subject, reference: commit.hash })),
-        memories: async () => temporalItems(await agentMemory.timeline(query), 'agentmemory_memory'),
-        sessions: async () => temporalItems(await agentMemory.sessions(), 'agentmemory_session'),
+        memories: async () => temporalItems(await agentMemory.memories({ project: identity.worktreeId }), 'agentmemory_memory'),
+        sessions: async () => temporalItems(await agentMemory.sessions({ project: identity.worktreeId }), 'agentmemory_session'),
         currentStructure: async () => (await codeReviewGraph.call('get_architecture_overview_tool', {})).structuredContent ?? {},
       });
     },

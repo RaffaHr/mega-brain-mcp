@@ -1,0 +1,29 @@
+{
+  "schema": 1,
+  "proximoId": 2,
+  "licoes": [
+    {
+      "id": "L-001",
+      "texto": "Em Windows, execute gates que combinam empacotamento e backends em um unico worker e use configuracao npm descartavel.",
+      "chave": "VERIFY_FALHOU::em windows execute gates que combinam empacotamento e backends em um unico worker e use configuracao npm descartavel",
+      "sinal": "VERIFY_FALHOU",
+      "escopo": "testes-windows",
+      "status": "candidata",
+      "recorrencia": 1,
+      "features": [
+        "product-lifecycle-hardening"
+      ],
+      "evidencias": [
+        {
+          "fonte": "AC-036",
+          "feature": "product-lifecycle-hardening",
+          "quando": "2026-08-25T19:42:40.617Z",
+          "gitRev": "cabd0a9"
+        }
+      ],
+      "penalidades": 0,
+      "criadaEm": "2026-08-25T19:42:40.617Z",
+      "ultimaVez": "2026-08-25T19:42:40.617Z"
+    }
+  ]
+}

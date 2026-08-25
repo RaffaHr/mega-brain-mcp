@@ -2,6 +2,7 @@ import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import type { GitRepository } from '../../adapters/git/repository.js';
+import { snapshotPath, type RuntimeTransaction } from '../../runtime/transaction.js';
 import { MEGA_BRAIN_GIT_HOOKS, renderHookMultiplexer } from './multiplexer.js';
 
 interface GitHooksBackup {
@@ -26,8 +27,21 @@ export async function installGitHookMultiplexer(input: {
   repository: GitRepository;
   managedHooksPath: string;
   megaBrainCommand: string[];
+  transaction?: RuntimeTransaction;
 }): Promise<GitHooksBackup> {
   const managed = path.resolve(input.managedHooksPath);
+  if (input.transaction) {
+    const currentHooksPath = await configuredHooksPath(input.repository);
+    await snapshotPath(input.transaction, managed);
+    input.transaction.addRollback(async () => {
+      if (currentHooksPath === null) {
+        try { await input.repository.run(['config', '--local', '--unset', 'core.hooksPath']); }
+        catch { /* Already unset. */ }
+      } else {
+        await input.repository.run(['config', '--local', 'core.hooksPath', currentHooksPath]);
+      }
+    });
+  }
   const backupPath = path.join(managed, 'installation.json');
   let backup: GitHooksBackup;
   try {

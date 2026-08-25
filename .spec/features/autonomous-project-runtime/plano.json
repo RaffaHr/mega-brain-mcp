@@ -1,0 +1,64 @@
+{
+  "runId": "mega-brain-mcp-autonomous-project-runtime-mt8qx8oi",
+  "feature": "autonomous-project-runtime",
+  "agent": "codex",
+  "modo": "sequencial",
+  "paralelizar": null,
+  "modeloForcado": null,
+  "esforcoForcado": null,
+  "geradoEm": "2026-08-25 14:14",
+  "branchTrabalho": "spec/autonomous-project-runtime",
+  "baseDir": ".spec/features/autonomous-project-runtime",
+  "specDir": ".spec",
+  "repoName": "mega-brain-mcp",
+  "logsDir": "../onp-worktrees/mega-brain-mcp-autonomous-project-runtime-logs",
+  "ondas": [],
+  "faixas": [],
+  "sequenciais": [
+    {
+      "id": "T-030",
+      "titulo": "Provar lifecycle autônomo, concorrência e matriz completa",
+      "modelo": "gpt-5.6-sol",
+      "esforco": "xhigh",
+      "arquivos": [
+        "tests/spec/autonomous-project-runtime.spec.test.ts",
+        "tests/e2e/autonomous-lifecycle.test.ts",
+        "tests/e2e/concurrent-projects.test.ts",
+        "tests/e2e/package-lifecycle.test.ts",
+        "scripts/test-isolated-lifecycle.mjs",
+        "tests/contract/package-boundary.test.ts",
+        ".github/workflows/ci.yml",
+        "README.md",
+        "docs/configuration.md",
+        "docs/troubleshooting.md",
+        "package.json"
+      ],
+      "refs": [
+        "AC-039",
+        "AC-041",
+        "AC-044",
+        "AC-045",
+        "AC-047",
+        "AC-048",
+        "AC-049",
+        "AC-050",
+        "AC-051",
+        "AC-052",
+        "AC-054",
+        "AC-055",
+        "AC-056"
+      ]
+    }
+  ],
+  "concluidas": [
+    "T-024",
+    "T-025",
+    "T-029",
+    "T-026",
+    "T-027",
+    "T-028"
+  ],
+  "avisos": [
+    "T-030 está [em-andamento] — entrou no plano; se já houver trabalho local, commite antes de executar"
+  ]
+}

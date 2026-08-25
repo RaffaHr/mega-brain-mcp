@@ -20,6 +20,9 @@ export async function startManagedRuntime(
 ): Promise<RuntimeState> {
   const layout = runtimeLayout(dataDir, identity);
   const manifest = await readRuntimeLock(path.join(layout.current, 'runtime-lock.json'));
+  if (manifest.project.worktreeId !== identity.worktreeId || manifest.isolation?.worktreeId !== identity.worktreeId) {
+    throw new Error('Runtime identity does not match the selected worktree');
+  }
   const agentMemoryMode = options.agentMemoryMode ?? manifest.agentMemoryMode;
   return startRuntime(layout, manifest, options.controller, {
     agentMemoryMode,

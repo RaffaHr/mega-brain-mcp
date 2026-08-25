@@ -1,6 +1,7 @@
 import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import { snapshotFile, type RuntimeTransaction } from '../runtime/transaction.js';
 import type { SupportedHost } from './host-hooks.js';
 
 interface HostFileBackup {
@@ -12,11 +13,19 @@ interface HostFileBackup {
 const CODEX_BLOCK_START = '# >>> mega-brain mcp >>>';
 const CODEX_BLOCK_END = '# <<< mega-brain mcp <<<';
 
+export type HostMcpConnection =
+  | { transport: 'stdio'; command: string; args: string[] }
+  | { transport: 'http'; url: string };
+
 async function atomicWrite(target: string, content: string): Promise<void> {
   await mkdir(path.dirname(target), { recursive: true });
   const temporary = `${target}.${process.pid}.tmp`;
-  await writeFile(temporary, content, { encoding: 'utf8', mode: 0o600 });
-  await rename(temporary, target);
+  try {
+    await writeFile(temporary, content, { encoding: 'utf8', mode: 0o600 });
+    await rename(temporary, target);
+  } finally {
+    await rm(temporary, { force: true });
+  }
 }
 
 async function readOptional(target: string): Promise<{ existed: boolean; content: string }> {
@@ -51,21 +60,39 @@ function removeCodexMegaBrainSection(content: string): string {
   return kept.join('\n').trimEnd();
 }
 
-export function mergeCodexMcpConfig(existing: string, endpoint: string): string {
+function validatedConnection(connection: HostMcpConnection): HostMcpConnection {
+  if (connection.transport === 'stdio') {
+    if (!connection.command.trim()) throw new Error('MCP stdio command is required');
+    if (connection.args.some((argument) => argument.length === 0)) throw new Error('MCP stdio arguments cannot be empty');
+    return connection;
+  }
+  const endpoint = new URL(connection.url);
+  if (!['http:', 'https:'].includes(endpoint.protocol)) throw new Error('MCP endpoint must use HTTP or HTTPS');
+  return { transport: 'http', url: endpoint.href };
+}
+
+export function mergeCodexMcpConfig(existing: string, input: HostMcpConnection): string {
   const base = removeCodexMegaBrainSection(existing);
-  const block = `${CODEX_BLOCK_START}\n[mcp_servers.mega-brain]\nurl = ${JSON.stringify(endpoint)}\n${CODEX_BLOCK_END}`;
+  const connection = validatedConnection(input);
+  const fields = connection.transport === 'stdio'
+    ? `command = ${JSON.stringify(connection.command)}\nargs = ${JSON.stringify(connection.args)}`
+    : `url = ${JSON.stringify(connection.url)}`;
+  const block = `${CODEX_BLOCK_START}\n[mcp_servers.mega-brain]\n${fields}\n${CODEX_BLOCK_END}`;
   return `${base ? `${base}\n\n` : ''}${block}\n`;
 }
 
-export function mergeClaudeMcpConfig(existing: string, endpoint: string): string {
+export function mergeClaudeMcpConfig(existing: string, input: HostMcpConnection): string {
   const config = existing.trim() ? JSON.parse(existing) as Record<string, unknown> : {};
   const current = config.mcpServers;
   if (current !== undefined && (current === null || Array.isArray(current) || typeof current !== 'object')) {
     throw new Error('Claude .mcp.json mcpServers must be an object');
   }
+  const connection = validatedConnection(input);
   config.mcpServers = {
     ...((current ?? {}) as Record<string, unknown>),
-    'mega-brain': { type: 'http', url: endpoint },
+    'mega-brain': connection.transport === 'stdio'
+      ? { type: 'stdio', command: connection.command, args: connection.args }
+      : { type: 'http', url: connection.url },
   };
   return `${JSON.stringify(config, null, 2)}\n`;
 }
@@ -74,14 +101,18 @@ export async function installHostMcpFiles(input: {
   root: string;
   backupDir: string;
   hosts: SupportedHost[];
-  endpoint: string;
+  connection: HostMcpConnection;
+  transaction?: RuntimeTransaction;
 }): Promise<void> {
-  const endpoint = new URL(input.endpoint);
-  if (!['http:', 'https:'].includes(endpoint.protocol)) throw new Error('MCP endpoint must use HTTP or HTTPS');
+  const connection = validatedConnection(input.connection);
   await mkdir(input.backupDir, { recursive: true });
   for (const host of input.hosts) {
     const target = targetFor(input.root, host);
     const backupPath = path.join(input.backupDir, `${host}-mcp.json`);
+    if (input.transaction) {
+      await snapshotFile(input.transaction, target);
+      await snapshotFile(input.transaction, backupPath);
+    }
     try { await readFile(backupPath, 'utf8'); }
     catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
@@ -90,8 +121,8 @@ export async function installHostMcpFiles(input: {
     }
     const current = await readOptional(target);
     const merged = host === 'codex'
-      ? mergeCodexMcpConfig(current.content, endpoint.href)
-      : mergeClaudeMcpConfig(current.content, endpoint.href);
+      ? mergeCodexMcpConfig(current.content, connection)
+      : mergeClaudeMcpConfig(current.content, connection);
     await atomicWrite(target, merged);
   }
 }

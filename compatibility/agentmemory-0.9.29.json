@@ -5,6 +5,7 @@
   "transport": "rest",
   "protocol": "http-json",
   "allowAdditionalCapabilities": true,
+  "isolation": { "namespaceField": "project" },
   "capabilities": [
     {
       "name": "GET /agentmemory/livez",
@@ -23,17 +24,45 @@
     {
       "name": "POST /agentmemory/smart-search",
       "mutating": false,
-      "inputSchema": { "type": "object", "required": ["query"], "properties": { "query": { "type": "string" }, "limit": { "type": "integer" } } },
+      "inputSchema": { "type": "object", "required": ["query", "project"], "properties": { "query": { "type": "string" }, "limit": { "type": "integer" }, "project": { "type": "string" } } },
       "outputSchema": { "type": "object" },
-      "schemaHash": "sha256:f72a3078e515f7eb187a742f57fef933605d0e94d752adbe933cbbda6e9dd1d4"
+      "schemaHash": "sha256:3350418ec9b121d7b64f61fccf8584b56b4c83ec2c22341fbddc7dc78398e90c"
     },
     {
       "name": "POST /agentmemory/remember",
       "mutating": true,
-      "inputSchema": { "type": "object", "required": ["content"], "properties": { "content": { "type": "string" }, "concepts": { "type": "array", "items": { "type": "string" } } } },
+      "inputSchema": { "type": "object", "required": ["content", "project"], "properties": { "content": { "type": "string" }, "concepts": { "type": "array", "items": { "type": "string" } }, "project": { "type": "string" } } },
       "outputSchema": { "type": "object" },
-      "schemaHash": "sha256:768001a8c77cc73d5df7390c6b91adfceefafffb987246aed039681d2ae7b044"
+      "schemaHash": "sha256:7a50ddbe56f750b8355b5fd480a9c5e26fce86499856dabeaeaa6aaf677abd77"
+    },
+    {
+      "name": "POST /agentmemory/verify",
+      "mutating": false,
+      "inputSchema": { "type": "object", "required": ["project"], "properties": { "ids": { "type": "array", "items": { "type": "string" } }, "query": { "type": "string" }, "project": { "type": "string" } } },
+      "outputSchema": { "type": "object" },
+      "schemaHash": "sha256:d84f71c3c3263b38e7459c1f3d98a61cfa301559823640764bf16a5bc39c3fee"
+    },
+    {
+      "name": "POST /agentmemory/timeline",
+      "mutating": false,
+      "inputSchema": { "type": "object", "required": ["project"], "properties": { "query": { "type": "string" }, "limit": { "type": "integer" }, "project": { "type": "string" } } },
+      "outputSchema": { "type": "object" },
+      "schemaHash": "sha256:bccdc0004c0ebb6ff62835ecb03c388a06c07add4a213cf5824cb2aaf9f532df"
+    },
+    {
+      "name": "GET /agentmemory/sessions",
+      "mutating": false,
+      "inputSchema": { "type": "object", "required": ["project"], "properties": { "project": { "type": "string" } }, "additionalProperties": false },
+      "outputSchema": { "type": "object" },
+      "schemaHash": "sha256:647f48397205a3c960f6b6d7280d97775082c3d7469906cb711695dbdd9d9897"
+    },
+    {
+      "name": "DELETE /agentmemory/governance/memories",
+      "mutating": true,
+      "inputSchema": { "type": "object", "required": ["memoryIds", "project", "reason"], "properties": { "memoryIds": { "type": "array", "items": { "type": "string" } }, "project": { "type": "string" }, "reason": { "type": "string" } } },
+      "outputSchema": { "type": "object" },
+      "schemaHash": "sha256:80be6c478f13d11c4ac78c141b5ddca722c3dee38953a5d976bb53a8f3a51813"
     }
   ],
-  "contractHash": "sha256:cb93e2c5b37c8a4024890ece680cc8340be932460fa3cd5557fd5b19bbc343bc"
+  "contractHash": "sha256:139618db4593fb6de748910e1a8d422d490192e94baeaf52c55d46e531265aad"
 }
