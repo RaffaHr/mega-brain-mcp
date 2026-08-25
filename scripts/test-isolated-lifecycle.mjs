@@ -96,6 +96,17 @@ test ! -e /tmp/mega-data
 test ! -e /tmp/repo/.codex
 `);
 
+  dockerScenario('python-below-minimum', 'node:22.22.0-bookworm', `
+set -euo pipefail
+${installPackage}
+${repositorySetup}
+printf '#!/bin/sh\\nprintf "Python 3.9.19\\\\n"\\n' > /tmp/python-old
+chmod +x /tmp/python-old
+if mega-brain install --repo /tmp/repo --hosts codex --python /tmp/python-old; then echo 'install unexpectedly succeeded' >&2; exit 1; fi
+test ! -e /tmp/mega-data
+test ! -e /tmp/repo/.codex
+`);
+
   dockerScenario('python-without-venv', 'node:22.22.0-bookworm', `
 set -euo pipefail
 ${installPackage}

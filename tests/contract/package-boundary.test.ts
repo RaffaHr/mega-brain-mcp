@@ -38,6 +38,7 @@ test('AC-037: isolated harness defines supported and rejection scenarios @spec:A
   const harness = await readFile(path.join(root, 'scripts', 'test-isolated-lifecycle.mjs'), 'utf8');
   expect(harness).toContain("'node-below-minimum'");
   expect(harness).toContain("'python-missing'");
+  expect(harness).toContain("'python-below-minimum'");
   expect(harness).toContain("'python-without-venv'");
   expect(harness).toContain("'supported-full-lifecycle'");
   expect(harness).toContain("test ! -e /tmp/mega-data");

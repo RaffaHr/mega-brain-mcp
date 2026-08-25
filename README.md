@@ -103,7 +103,7 @@ npm run test:isolated
 npm pack --dry-run
 ```
 
-`test:isolated` builds the tarball and uses disposable Docker containers to prove supported installation plus rejection of old Node, missing Python, and Python without `venv`, before any project mutation.
+`test:isolated` builds the tarball and uses disposable Docker containers to prove supported installation plus rejection of old Node, missing or pre-3.10 Python, and Python without `venv`, before any project mutation.
 
 ## License
 
