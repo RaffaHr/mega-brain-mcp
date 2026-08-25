@@ -10,6 +10,7 @@ import {
   redactConfig,
   UnsafeEnvironmentVariableError,
 } from '../../src/config/load.js';
+import { resolveProjectConfig } from '../../src/config/project-config.js';
 
 test('AC-003: configuração dos backends é encaminhada com segurança @spec:AC-003', async () => {
   const config = await loadConfig({
@@ -31,7 +32,7 @@ test('AC-003: configuração dos backends é encaminhada com segurança @spec:AC
     },
   });
 
-  expect(config.dataDir).toBe('from-env');
+  expect(config.dataDir).toBe(path.resolve('from-env'));
   expect(config.agentMemory.environment).toEqual({
     EMBEDDING_PROVIDER: 'local',
     AGENTMEMORY_REFLECT: 'true',
@@ -80,6 +81,7 @@ test('AC-026: modo remoto usa somente URL e token e ignora configuração local 
     mode: 'remote',
     baseUrl: 'https://memory.example.test',
     authToken: 'remote-token',
+    ports: { rest: 3111, streams: 3112, viewer: 3113, engine: 3114 },
     environment: {},
   });
   expect(JSON.stringify(redactConfig(config))).not.toContain('remote-token');
@@ -117,6 +119,7 @@ test('AC-027: modo gerenciado combina .env e processo por allowlist e reutiliza 
     mode: 'managed',
     baseUrl: 'http://127.0.0.1:4111',
     authToken: 'managed-local-secret',
+    ports: { rest: 3111, streams: 3112, viewer: 3113, engine: 3114 },
     environment: {
       AGENTMEMORY_VERBOSE: 'true',
       AGENTMEMORY_TOOLS: 'all',
@@ -168,4 +171,106 @@ test('AC-028: credenciais e recursos remotos ou LLM exigem opt-ins e permanecem 
   const redacted = JSON.stringify(redactConfig(config));
   expect(redacted).not.toContain('provider-secret');
   expect(redacted).not.toContain('embedding-secret');
+});
+
+test('AC-050: resolver canônico aplica precedência e expõe somente a origem redigida @spec:AC-050', async () => {
+  const repoPath = await mkdtemp(path.join(tmpdir(), 'mega-brain-config-origin-'));
+  await writeFile(path.join(repoPath, '.env'), [
+    'MEGA_BRAIN_DATA_DIR=from-dotenv',
+    'MEGA_BRAIN_PORT=4100',
+    'MEGA_BRAIN_AGENTMEMORY_MODE=remote',
+    'MEGA_BRAIN_AGENTMEMORY_URL=https://dotenv.invalid',
+    'MEGA_BRAIN_AGENTMEMORY_SECRET_ENV=DOTENV_SECRET',
+  ].join('\n'));
+
+  const resolved = await resolveProjectConfig({
+    repoPath,
+    fileConfig: {
+      dataDir: 'from-config',
+      port: 3200,
+      agentMemory: {
+        mode: 'remote',
+        baseUrl: 'https://config.invalid',
+        secretEnvVar: 'CONFIG_SECRET',
+        environment: {},
+      },
+    },
+    env: {
+      MEGA_BRAIN_DATA_DIR: 'from-process',
+      MEGA_BRAIN_PORT: '4200',
+      MEGA_BRAIN_AGENTMEMORY_URL: 'https://process.invalid',
+      MEGA_BRAIN_AGENTMEMORY_SECRET_ENV: 'PROCESS_SECRET',
+      PROCESS_SECRET: 'must-never-appear-in-diagnostics',
+    },
+    flags: {
+      dataDir: 'from-flags',
+      port: 4300,
+      agentMemoryBaseUrl: 'https://flags.example.test',
+    },
+  });
+
+  expect(resolved.config).toMatchObject({
+    dataDir: path.resolve(repoPath, 'from-flags'),
+    port: 4300,
+    agentMemory: {
+      mode: 'remote',
+      baseUrl: 'https://flags.example.test',
+      secretEnvVar: 'PROCESS_SECRET',
+      authToken: 'must-never-appear-in-diagnostics',
+    },
+  });
+  expect(resolved.sources).toMatchObject({
+    dataDir: 'flag',
+    port: 'flag',
+    'agentMemory.baseUrl': 'flag',
+    'agentMemory.secretEnvVar': 'process',
+  });
+  expect(Object.isFrozen(resolved.config)).toBe(true);
+  expect(Object.isFrozen(resolved.config.agentMemory)).toBe(true);
+  expect(JSON.stringify(resolved.diagnostic)).not.toContain('must-never-appear-in-diagnostics');
+  expect(resolved.diagnostic).toMatchObject({
+    config: { agentMemory: { authToken: '[REDACTED]' } },
+    sources: { dataDir: 'flag', port: 'flag' },
+  });
+});
+
+test('AC-051: porta e diretórios relativos do .env são resolvidos contra o repositório @spec:AC-051', async () => {
+  const repoPath = await mkdtemp(path.join(tmpdir(), 'mega-brain-config-repo-'));
+  await writeFile(path.join(repoPath, '.env'), [
+    'MEGA_BRAIN_DATA_DIR=.runtime-data',
+    'MEGA_BRAIN_PORT=4567',
+    'MEGA_BRAIN_CRG_DATA_DIR=.runtime-data/crg',
+  ].join('\n'));
+
+  const resolved = await resolveProjectConfig({ repoPath, env: {} });
+
+  expect(resolved.config.dataDir).toBe(path.resolve(repoPath, '.runtime-data'));
+  expect(resolved.config.port).toBe(4567);
+  expect(resolved.config.codeReviewGraph.dataDir).toBe(path.resolve(repoPath, '.runtime-data/crg'));
+  expect(resolved.sources).toMatchObject({
+    dataDir: 'dotenv',
+    port: 'dotenv',
+    'codeReviewGraph.dataDir': 'dotenv',
+  });
+});
+
+test('AC-053: segredo remoto é lido pela referência e omitido do diagnóstico @spec:AC-053', async () => {
+  const resolved = await resolveProjectConfig({
+    envFilePath: false,
+    fileConfig: {
+      dataDir: '.data',
+      agentMemory: {
+        mode: 'remote',
+        baseUrl: 'https://memory.example.test',
+        secretEnvVar: 'MEGA_BRAIN_REMOTE_SECRET',
+        environment: {},
+      },
+    },
+    env: { MEGA_BRAIN_REMOTE_SECRET: 'runtime-only-secret' },
+  });
+
+  expect(resolved.config.agentMemory.secretEnvVar).toBe('MEGA_BRAIN_REMOTE_SECRET');
+  expect(resolved.config.agentMemory.authToken).toBe('runtime-only-secret');
+  expect(JSON.stringify(resolved.diagnostic)).not.toContain('runtime-only-secret');
+  expect(JSON.stringify(resolved.diagnostic)).not.toContain('authToken":"runtime-only-secret');
 });

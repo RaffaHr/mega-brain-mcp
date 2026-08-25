@@ -2,8 +2,7 @@
 
 > feature: autonomous-project-runtime
 
-## T-024 — Unificar configuração e resolução de caminhos [pendente]
-
+## T-024 — Unificar configuração e resolução de caminhos [concluida]
 - Refs: US-020, AC-046, AC-050, AC-051, AC-053
 - Arquivos: src/config/schema.ts, src/config/load.ts, src/config/project-config.ts, src/runtime/layout.ts, tests/unit/config.test.ts, tests/unit/project-identity.test.ts, .env.example
 - Modelo: gpt-5.6-sol

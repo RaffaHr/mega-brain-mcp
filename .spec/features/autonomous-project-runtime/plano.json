@@ -1,12 +1,12 @@
 {
-  "runId": "mega-brain-mcp-autonomous-project-runtime-mt8mff69",
+  "runId": "mega-brain-mcp-autonomous-project-runtime-mt8n4yzk",
   "feature": "autonomous-project-runtime",
   "agent": "codex",
   "modo": "sequencial",
   "paralelizar": null,
   "modeloForcado": null,
   "esforcoForcado": null,
-  "geradoEm": "2026-08-25 12:08",
+  "geradoEm": "2026-08-25 12:28",
   "branchTrabalho": "spec/autonomous-project-runtime",
   "baseDir": ".spec/features/autonomous-project-runtime",
   "specDir": ".spec",
@@ -15,28 +15,6 @@
   "ondas": [],
   "faixas": [],
   "sequenciais": [
-    {
-      "id": "T-024",
-      "titulo": "Unificar configuração e resolução de caminhos",
-      "modelo": "gpt-5.6-sol",
-      "esforco": "high",
-      "arquivos": [
-        "src/config/schema.ts",
-        "src/config/load.ts",
-        "src/config/project-config.ts",
-        "src/runtime/layout.ts",
-        "tests/unit/config.test.ts",
-        "tests/unit/project-identity.test.ts",
-        ".env.example"
-      ],
-      "refs": [
-        "US-020",
-        "AC-046",
-        "AC-050",
-        "AC-051",
-        "AC-053"
-      ]
-    },
     {
       "id": "T-025",
       "titulo": "Implementar supervisor por projeto, IPC e leases",
@@ -204,6 +182,8 @@
       ]
     }
   ],
-  "concluidas": [],
+  "concluidas": [
+    "T-024"
+  ],
   "avisos": []
 }

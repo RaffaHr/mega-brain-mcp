@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# executar-tarefas.sh — gerado por `onp-spec plano autonomous-project-runtime` em 2026-08-25 12:08
+# executar-tarefas.sh — gerado por `onp-spec plano autonomous-project-runtime` em 2026-08-25 12:28
 # NÃO edite à mão: mudou tasks.md ou a config, regenere o plano.
 #
 # uso:
@@ -14,7 +14,7 @@
 set -u
 set -o pipefail
 
-RUN_ID='mega-brain-mcp-autonomous-project-runtime-mt8mff69'
+RUN_ID='mega-brain-mcp-autonomous-project-runtime-mt8n4yzk'
 FEATURE='autonomous-project-runtime'
 BASE_BRANCH='spec/autonomous-project-runtime'
 ENGINE='C:\Users\raphael.moreira\.agents\skills\onp-spec-driven\scripts\onp-spec.mjs'
@@ -166,38 +166,6 @@ iniciar_resumos() {
   RESUMO_PID=$!
   # ao sair: para o loop e grava um último resumo (o estado final, do motor)
   trap 'parar_resumos; node "$ENGINE" resumo "$FEATURE" --gravar >/dev/null 2>&1 || true' EXIT
-}
-
-# ── sequencial T-024 (ordem do tasks.md) ──
-executar_seq_T_024() {
-  info 'sequencial T-024 — Unificar configuração e resolução de caminhos'
-  if rodar_tarefa seq 'T-024' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
-Leia primeiro: .spec/features/autonomous-project-runtime/spec.md, .spec/features/autonomous-project-runtime/tasks.md e .spec/constituicao.md.
-
-Sua tarefa (somente ela):
-T-024 — "Unificar configuração e resolução de caminhos"
-  critérios/refs: AC-046 (Layout é absoluto e derivado da identidade correta), AC-050 (Configuração tem origem e precedência observáveis), AC-051 (Porta e diretório de dados são aplicados de verdade), AC-053 (Segredos permanecem apenas em memória ou ambiente)
-  arquivos permitidos (e seus testes): src/config/schema.ts, src/config/load.ts, src/config/project-config.ts, src/runtime/layout.ts, tests/unit/config.test.ts, tests/unit/project-identity.test.ts, .env.example
-  mensagem de commit: "T-024 autonomous-project-runtime: Unificar configuração e resolução de caminhos"
-
-Regras inegociáveis:
-- Todo critério de aceite referenciado vira teste com @spec:AC-xxx no título.
-- NUNCA enfraqueça, pule (skip/todo) ou apague um teste para passar — teste pulado não é prova e o audit acusa.
-- Rode os testes localmente com `npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json` até passarem.
-- NÃO edite tasks.md, NÃO rode onp-spec verify/audit e NÃO toque em outras tarefas — o orquestrador cuida disso.
-- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-sol' high >> "$LOG_DIR/seq.log" 2>&1; then
-    # commit de segurança se o agente esqueceu (rastreabilidade > perfeição)
-    if [ -n "$(git status --porcelain)" ]; then
-      git add -A && git commit -q -m 'T-024 autonomous-project-runtime: Unificar configuração e resolução de caminhos (auto-commit do plano)'
-    fi
-    marcar_concluidas T-024
-    verde "✔ T-024 concluída"
-    return 0
-  fi
-  vermelho "✘ T-024 falhou (log: $LOG_DIR/seq.log)"
-  amarelo "  reexecute só ela: bash .spec/features/autonomous-project-runtime/executar-tarefas.sh --seq T-024"
-  FALHAS="$FALHAS T-024"
-  return 1
 }
 
 # ── sequencial T-025 (ordem do tasks.md) ──
@@ -445,7 +413,6 @@ executar_tudo() {
   iniciar_resumos
   info "logs em: $LOG_DIR"
   info "resumo geral de andamento: a cada 1 min aqui no terminal (e via: onp-spec resumo)"
-  executar_seq_T_024 || true
   executar_seq_T_025 || true
   executar_seq_T_029 || true
   executar_seq_T_026 || true
@@ -457,7 +424,6 @@ executar_tudo() {
 
 listar() {
   echo "execução: $RUN_ID (feature $FEATURE, branch $BASE_BRANCH)"
-  echo "  seq       T-024 (sequencial)"
   echo "  seq       T-025 (sequencial)"
   echo "  seq       T-029 (sequencial)"
   echo "  seq       T-026 (sequencial)"
@@ -498,7 +464,6 @@ case "$MODO" in
     esac ;;
   seq)
     case "$ALVO" in
-      T-024) evento --tipo inicio --escopo "seq:T-024"; iniciar_resumos; executar_seq_T_024 || true; encerrar "seq:T-024" ;;
       T-025) evento --tipo inicio --escopo "seq:T-025"; iniciar_resumos; executar_seq_T_025 || true; encerrar "seq:T-025" ;;
       T-029) evento --tipo inicio --escopo "seq:T-029"; iniciar_resumos; executar_seq_T_029 || true; encerrar "seq:T-029" ;;
       T-026) evento --tipo inicio --escopo "seq:T-026"; iniciar_resumos; executar_seq_T_026 || true; encerrar "seq:T-026" ;;

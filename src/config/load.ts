@@ -76,6 +76,26 @@ const BACKEND_ENV_PATTERNS = {
 
 type BackendName = 'agentMemory' | 'codeReviewGraph';
 
+export type ConfigSource = 'flag' | 'process' | 'dotenv' | 'config' | 'default';
+
+export interface ConfigFlags {
+  dataDir?: string;
+  port?: number;
+  logLevel?: string;
+  allowEgress?: boolean;
+  allowLlm?: boolean;
+  agentMemoryMode?: string;
+  agentMemoryBaseUrl?: string;
+  agentMemorySecretEnvVar?: string;
+  codeReviewGraphCommand?: string;
+  codeReviewGraphDataDir?: string;
+}
+
+export interface LoadedConfigWithSources {
+  config: MegaBrainConfig;
+  sources: Record<string, ConfigSource>;
+}
+
 export class UnsafeEnvironmentVariableError extends Error {
   constructor(readonly variable: string, readonly backend: BackendName) {
     super(`Environment variable ${variable} is not allowed for ${backend}`);
@@ -143,6 +163,28 @@ function parseBoolean(raw: string | undefined, variable: string): boolean | unde
 
 function nonEmpty(raw: string | undefined): string | undefined {
   return raw?.trim() ? raw : undefined;
+}
+
+function parsePort(raw: string | number | undefined, variable: string): number | undefined {
+  if (raw === undefined || raw === '') return undefined;
+  const parsed = typeof raw === 'number' ? raw : Number(raw);
+  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65_535) {
+    throw new Error(`${variable} must be an integer between 1 and 65535`);
+  }
+  return parsed;
+}
+
+function firstDefined<T>(
+  candidates: ReadonlyArray<readonly [T | undefined, ConfigSource]>,
+): { value: T; source: ConfigSource } {
+  for (const [value, source] of candidates) {
+    if (value !== undefined) return { value, source };
+  }
+  throw new Error('Configuration value has no default');
+}
+
+function resolveAgainstRepo(repoPath: string, value: string): string {
+  return path.isAbsolute(value) ? path.normalize(value) : path.resolve(repoPath, value);
 }
 
 function parseDotEnv(raw: string, filePath: string): Record<string, string> {
@@ -226,97 +268,238 @@ export interface LoadConfigOptions {
   envFilePath?: string | false;
   filePath?: string;
   fileConfig?: Partial<MegaBrainConfigInput>;
+  flags?: ConfigFlags;
 }
 
-export async function loadConfig(options: LoadConfigOptions = {}): Promise<MegaBrainConfig> {
+export async function loadConfigWithSources(options: LoadConfigOptions = {}): Promise<LoadedConfigWithSources> {
+  const repoPath = path.resolve(options.repoPath ?? process.cwd());
   const envFilePath = options.envFilePath === false
     ? undefined
-    : options.envFilePath ?? path.join(options.repoPath ?? process.cwd(), '.env');
+    : resolveAgainstRepo(repoPath, options.envFilePath ?? '.env');
   const envFromFile = envFilePath ? await loadDotEnv(envFilePath) : {};
-  const env: NodeJS.ProcessEnv = { ...envFromFile, ...(options.env ?? process.env) };
+  const processEnvironment = options.env ?? process.env;
+  const env: NodeJS.ProcessEnv = { ...envFromFile, ...processEnvironment };
   let fileConfig = options.fileConfig ?? {};
   if (options.filePath) {
-    fileConfig = JSON.parse(await readFile(options.filePath, 'utf8')) as Partial<MegaBrainConfigInput>;
+    const filePath = resolveAgainstRepo(repoPath, options.filePath);
+    fileConfig = JSON.parse(await readFile(filePath, 'utf8')) as Partial<MegaBrainConfigInput>;
   }
 
-  const crgEnvironment = filterBackendEnvironment(
-    'codeReviewGraph',
-    parseJsonRecord(env.MEGA_BRAIN_CRG_ENV_JSON, 'MEGA_BRAIN_CRG_ENV_JSON'),
-  );
+  const flags = options.flags ?? {};
+  const sourceEnv = (key: string): { value: string | undefined; source: ConfigSource | undefined } => {
+    const processValue = nonEmpty(processEnvironment[key]);
+    if (processValue !== undefined) return { value: processValue, source: 'process' };
+    const dotEnvValue = nonEmpty(envFromFile[key]);
+    if (dotEnvValue !== undefined) return { value: dotEnvValue, source: 'dotenv' };
+    return { value: undefined, source: undefined };
+  };
+
+  const processCrgEnvironment = filterBackendEnvironment('codeReviewGraph', parseJsonRecord(
+    processEnvironment.MEGA_BRAIN_CRG_ENV_JSON,
+    'MEGA_BRAIN_CRG_ENV_JSON',
+  ));
+  const dotEnvCrgEnvironment = filterBackendEnvironment('codeReviewGraph', parseJsonRecord(
+    envFromFile.MEGA_BRAIN_CRG_ENV_JSON,
+    'MEGA_BRAIN_CRG_ENV_JSON',
+  ));
 
   const defaults: MegaBrainConfigInput = {
     dataDir: path.join(homedir(), '.mega-brain'),
+    port: 3000,
     logLevel: 'info',
     allowEgress: false,
     allowLlm: false,
-    agentMemory: { mode: 'managed', baseUrl: 'http://127.0.0.1:3111', environment: {} },
+    agentMemory: {
+      mode: 'managed',
+      baseUrl: 'http://127.0.0.1:3111',
+      ports: { rest: 3111, streams: 3112, viewer: 3113, engine: 3114 },
+      environment: {},
+    },
     codeReviewGraph: { command: 'code-review-graph', args: [], environment: {} },
     projects: {},
   };
 
-  const allowEgress = parseBoolean(env.MEGA_BRAIN_ALLOW_EGRESS, 'MEGA_BRAIN_ALLOW_EGRESS')
-    ?? fileConfig.allowEgress
-    ?? defaults.allowEgress
-    ?? false;
-  const allowLlm = parseBoolean(env.MEGA_BRAIN_ALLOW_LLM, 'MEGA_BRAIN_ALLOW_LLM')
-    ?? fileConfig.allowLlm
-    ?? defaults.allowLlm
-    ?? false;
-  const agentMemoryMode = env.MEGA_BRAIN_AGENTMEMORY_MODE
-    ?? fileConfig.agentMemory?.mode
-    ?? defaults.agentMemory.mode;
+  const dataDirEnv = sourceEnv('MEGA_BRAIN_DATA_DIR');
+  const dataDir = firstDefined<string>([
+    [nonEmpty(flags.dataDir), 'flag'],
+    [dataDirEnv.value, dataDirEnv.source ?? 'process'],
+    [nonEmpty(fileConfig.dataDir), 'config'],
+    [defaults.dataDir, 'default'],
+  ]);
+  const portEnv = sourceEnv('MEGA_BRAIN_PORT');
+  const port = firstDefined<number>([
+    [parsePort(flags.port, '--port'), 'flag'],
+    [parsePort(portEnv.value, 'MEGA_BRAIN_PORT'), portEnv.source ?? 'process'],
+    [fileConfig.port, 'config'],
+    [defaults.port, 'default'],
+  ]);
+  const logLevelEnv = sourceEnv('MEGA_BRAIN_LOG_LEVEL');
+  const logLevel = firstDefined<string>([
+    [nonEmpty(flags.logLevel), 'flag'],
+    [logLevelEnv.value, logLevelEnv.source ?? 'process'],
+    [fileConfig.logLevel, 'config'],
+    [defaults.logLevel, 'default'],
+  ]);
+  const allowEgressEnv = sourceEnv('MEGA_BRAIN_ALLOW_EGRESS');
+  const allowEgressResolved = firstDefined<boolean>([
+    [flags.allowEgress, 'flag'],
+    [parseBoolean(allowEgressEnv.value, 'MEGA_BRAIN_ALLOW_EGRESS'), allowEgressEnv.source ?? 'process'],
+    [fileConfig.allowEgress, 'config'],
+    [defaults.allowEgress, 'default'],
+  ]);
+  const allowLlmEnv = sourceEnv('MEGA_BRAIN_ALLOW_LLM');
+  const allowLlmResolved = firstDefined<boolean>([
+    [flags.allowLlm, 'flag'],
+    [parseBoolean(allowLlmEnv.value, 'MEGA_BRAIN_ALLOW_LLM'), allowLlmEnv.source ?? 'process'],
+    [fileConfig.allowLlm, 'config'],
+    [defaults.allowLlm, 'default'],
+  ]);
+  const allowEgress = allowEgressResolved.value;
+  const allowLlm = allowLlmResolved.value;
+
+  const agentMemoryModeEnv = sourceEnv('MEGA_BRAIN_AGENTMEMORY_MODE');
+  const agentMemoryMode = firstDefined<string>([
+    [nonEmpty(flags.agentMemoryMode), 'flag'],
+    [agentMemoryModeEnv.value, agentMemoryModeEnv.source ?? 'process'],
+    [fileConfig.agentMemory?.mode, 'config'],
+    [defaults.agentMemory?.mode, 'default'],
+  ]);
+  const agentMemoryUrlEnv = sourceEnv('MEGA_BRAIN_AGENTMEMORY_URL');
+  const agentMemoryBaseUrl = firstDefined<string>([
+    [nonEmpty(flags.agentMemoryBaseUrl), 'flag'],
+    [agentMemoryUrlEnv.value, agentMemoryUrlEnv.source ?? 'process'],
+    [fileConfig.agentMemory?.baseUrl, 'config'],
+    [defaults.agentMemory?.baseUrl, 'default'],
+  ]);
+  const secretEnvVarEnv = sourceEnv('MEGA_BRAIN_AGENTMEMORY_SECRET_ENV');
+  const secretEnvVar = firstDefined<string | null>([
+    [nonEmpty(flags.agentMemorySecretEnvVar), 'flag'],
+    [secretEnvVarEnv.value, secretEnvVarEnv.source ?? 'process'],
+    [fileConfig.agentMemory?.secretEnvVar, 'config'],
+    [null, 'default'],
+  ]);
 
   let agentEnvironment: Record<string, string> = {};
-  if (agentMemoryMode === 'managed') {
+  if (agentMemoryMode.value === 'managed') {
     agentEnvironment = {
       ...filterBackendEnvironment('agentMemory', fileConfig.agentMemory?.environment ?? {}),
       ...filterBackendEnvironment(
         'agentMemory',
-        parseJsonRecord(env.MEGA_BRAIN_AGENTMEMORY_ENV_JSON, 'MEGA_BRAIN_AGENTMEMORY_ENV_JSON'),
+        parseJsonRecord(envFromFile.MEGA_BRAIN_AGENTMEMORY_ENV_JSON, 'MEGA_BRAIN_AGENTMEMORY_ENV_JSON'),
       ),
-      ...directAgentMemoryEnvironment(env),
+      ...directAgentMemoryEnvironment(envFromFile),
+      ...filterBackendEnvironment(
+        'agentMemory',
+        parseJsonRecord(processEnvironment.MEGA_BRAIN_AGENTMEMORY_ENV_JSON, 'MEGA_BRAIN_AGENTMEMORY_ENV_JSON'),
+      ),
+      ...directAgentMemoryEnvironment(processEnvironment),
     };
     validateAgentMemoryOptIns(agentEnvironment, { allowEgress, allowLlm });
   }
 
-  const explicitAgentMemoryToken = nonEmpty(env.MEGA_BRAIN_AGENTMEMORY_TOKEN)
+  const referencedAgentMemoryToken = secretEnvVar.value === null
+    ? undefined
+    : nonEmpty(processEnvironment[secretEnvVar.value]);
+  const explicitAgentMemoryToken = nonEmpty(processEnvironment.MEGA_BRAIN_AGENTMEMORY_TOKEN)
+    ?? nonEmpty(envFromFile.MEGA_BRAIN_AGENTMEMORY_TOKEN)
     ?? nonEmpty(fileConfig.agentMemory?.authToken);
-  const agentMemoryToken = explicitAgentMemoryToken
-    ?? (agentMemoryMode === 'managed' ? nonEmpty(agentEnvironment.AGENTMEMORY_SECRET) : undefined);
+  const agentMemoryToken = referencedAgentMemoryToken
+    ?? explicitAgentMemoryToken
+    ?? (agentMemoryMode.value === 'managed' ? nonEmpty(agentEnvironment.AGENTMEMORY_SECRET) : undefined);
+
+  const restPortEnv = sourceEnv('MEGA_BRAIN_AGENTMEMORY_REST_PORT');
+  const streamsPortEnv = sourceEnv('MEGA_BRAIN_AGENTMEMORY_STREAMS_PORT');
+  const viewerPortEnv = sourceEnv('MEGA_BRAIN_AGENTMEMORY_VIEWER_PORT');
+  const enginePortEnv = sourceEnv('MEGA_BRAIN_AGENTMEMORY_ENGINE_PORT');
+  const defaultPorts = defaults.agentMemory?.ports ?? { rest: 3111, streams: 3112, viewer: 3113, engine: 3114 };
+  const agentMemoryPorts = {
+    rest: firstDefined<number>([
+      [parsePort(restPortEnv.value, 'MEGA_BRAIN_AGENTMEMORY_REST_PORT'), restPortEnv.source ?? 'process'],
+      [fileConfig.agentMemory?.ports?.rest, 'config'], [defaultPorts.rest, 'default'],
+    ]),
+    streams: firstDefined<number>([
+      [parsePort(streamsPortEnv.value, 'MEGA_BRAIN_AGENTMEMORY_STREAMS_PORT'), streamsPortEnv.source ?? 'process'],
+      [fileConfig.agentMemory?.ports?.streams, 'config'], [defaultPorts.streams, 'default'],
+    ]),
+    viewer: firstDefined<number>([
+      [parsePort(viewerPortEnv.value, 'MEGA_BRAIN_AGENTMEMORY_VIEWER_PORT'), viewerPortEnv.source ?? 'process'],
+      [fileConfig.agentMemory?.ports?.viewer, 'config'], [defaultPorts.viewer, 'default'],
+    ]),
+    engine: firstDefined<number>([
+      [parsePort(enginePortEnv.value, 'MEGA_BRAIN_AGENTMEMORY_ENGINE_PORT'), enginePortEnv.source ?? 'process'],
+      [fileConfig.agentMemory?.ports?.engine, 'config'], [defaultPorts.engine, 'default'],
+    ]),
+  };
+
+  const crgCommandEnv = sourceEnv('MEGA_BRAIN_CRG_COMMAND');
+  const crgCommand = firstDefined<string>([
+    [nonEmpty(flags.codeReviewGraphCommand), 'flag'],
+    [crgCommandEnv.value, crgCommandEnv.source ?? 'process'],
+    [fileConfig.codeReviewGraph?.command, 'config'],
+    [defaults.codeReviewGraph?.command, 'default'],
+  ]);
+  const crgDataDirEnv = sourceEnv('MEGA_BRAIN_CRG_DATA_DIR');
+  const crgDataDir = firstDefined<string | null>([
+    [nonEmpty(flags.codeReviewGraphDataDir), 'flag'],
+    [crgDataDirEnv.value, crgDataDirEnv.source ?? 'process'],
+    [fileConfig.codeReviewGraph?.dataDir, 'config'],
+    [null, 'default'],
+  ]);
 
   const merged = {
     ...defaults,
     ...fileConfig,
-    ...compact({
-      dataDir: env.MEGA_BRAIN_DATA_DIR,
-      logLevel: env.MEGA_BRAIN_LOG_LEVEL,
-      allowEgress,
-      allowLlm,
-    }),
+    dataDir: resolveAgainstRepo(repoPath, dataDir.value),
+    port: port.value,
+    logLevel: logLevel.value,
+    allowEgress,
+    allowLlm,
     agentMemory: {
-      mode: agentMemoryMode,
-      baseUrl: nonEmpty(env.MEGA_BRAIN_AGENTMEMORY_URL)
-        ?? fileConfig.agentMemory?.baseUrl
-        ?? defaults.agentMemory.baseUrl,
+      mode: agentMemoryMode.value,
+      baseUrl: agentMemoryBaseUrl.value,
+      ...(secretEnvVar.value === null ? {} : { secretEnvVar: secretEnvVar.value }),
       ...compact({ authToken: agentMemoryToken }),
+      ports: Object.fromEntries(Object.entries(agentMemoryPorts).map(([key, entry]) => [key, entry.value])),
       environment: agentEnvironment,
     },
     codeReviewGraph: {
       ...defaults.codeReviewGraph,
       ...fileConfig.codeReviewGraph,
       ...compact({
-        command: env.MEGA_BRAIN_CRG_COMMAND,
+        command: crgCommand.value,
         args: parseJsonArray(env.MEGA_BRAIN_CRG_ARGS_JSON, 'MEGA_BRAIN_CRG_ARGS_JSON'),
-        dataDir: env.MEGA_BRAIN_CRG_DATA_DIR,
+        dataDir: crgDataDir.value === null ? undefined : resolveAgainstRepo(repoPath, crgDataDir.value),
       }),
       environment: {
-        ...(fileConfig.codeReviewGraph?.environment ?? {}),
-        ...crgEnvironment,
+        ...filterBackendEnvironment('codeReviewGraph', fileConfig.codeReviewGraph?.environment ?? {}),
+        ...dotEnvCrgEnvironment,
+        ...processCrgEnvironment,
       },
     },
   };
 
-  return megaBrainConfigSchema.parse(merged);
+  const config = megaBrainConfigSchema.parse(merged);
+  const sources: Record<string, ConfigSource> = {
+    dataDir: dataDir.source,
+    port: port.source,
+    logLevel: logLevel.source,
+    allowEgress: allowEgressResolved.source,
+    allowLlm: allowLlmResolved.source,
+    'agentMemory.mode': agentMemoryMode.source,
+    'agentMemory.baseUrl': agentMemoryBaseUrl.source,
+    'agentMemory.secretEnvVar': secretEnvVar.source,
+    'agentMemory.ports.rest': agentMemoryPorts.rest.source,
+    'agentMemory.ports.streams': agentMemoryPorts.streams.source,
+    'agentMemory.ports.viewer': agentMemoryPorts.viewer.source,
+    'agentMemory.ports.engine': agentMemoryPorts.engine.source,
+    'codeReviewGraph.command': crgCommand.source,
+    'codeReviewGraph.dataDir': crgDataDir.source,
+  };
+  return { config, sources };
+}
+
+export async function loadConfig(options: LoadConfigOptions = {}): Promise<MegaBrainConfig> {
+  return (await loadConfigWithSources(options)).config;
 }
 
 export function redactConfig(config: MegaBrainConfig): Record<string, unknown> {
