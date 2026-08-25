@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# executar-tarefas.sh — gerado por `onp-spec plano autonomous-project-runtime` em 2026-08-25 03:12
+# executar-tarefas.sh — gerado por `onp-spec plano autonomous-project-runtime` em 2026-08-25 12:08
 # NÃO edite à mão: mudou tasks.md ou a config, regenere o plano.
 #
 # uso:
@@ -14,10 +14,10 @@
 set -u
 set -o pipefail
 
-RUN_ID='mega-brain-mcp-autonomous-project-runtime-mt83ahx7'
+RUN_ID='mega-brain-mcp-autonomous-project-runtime-mt8mff69'
 FEATURE='autonomous-project-runtime'
 BASE_BRANCH='spec/autonomous-project-runtime'
-ENGINE='C:\Users\Raffa\.agents\skills\onp-spec-driven\scripts\onp-spec.mjs'
+ENGINE='C:\Users\raphael.moreira\.agents\skills\onp-spec-driven\scripts\onp-spec.mjs'
 CODEX_FLAGS=(--sandbox 'workspace-write')
 STREAM_FLAGS=(--json)
 FALHAS=""
@@ -168,15 +168,10 @@ iniciar_resumos() {
   trap 'parar_resumos; node "$ENGINE" resumo "$FEATURE" --gravar >/dev/null 2>&1 || true' EXIT
 }
 
-# ── faixa-1: T-024 T-027 ──
-executar_faixa_1() {
-  local WT="$WT_BASE-faixa-1"
-  preparar_worktree 'faixa-1' 'spec/autonomous-project-runtime-faixa-1' "$WT" || return 1
-  evento --tipo faixa --faixa 'faixa-1' --estado executando --tentativa "$(tentativa 'faixa-1')"
-  : > "$LOG_DIR/faixa-1.log"
-  (
-    cd "$WT" || exit 9
-    rodar_tarefa 'faixa-1' 'T-024' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
+# ── sequencial T-024 (ordem do tasks.md) ──
+executar_seq_T_024() {
+  info 'sequencial T-024 — Unificar configuração e resolução de caminhos'
+  if rodar_tarefa seq 'T-024' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
 Leia primeiro: .spec/features/autonomous-project-runtime/spec.md, .spec/features/autonomous-project-runtime/tasks.md e .spec/constituicao.md.
 
 Sua tarefa (somente ela):
@@ -190,8 +185,121 @@ Regras inegociáveis:
 - NUNCA enfraqueça, pule (skip/todo) ou apague um teste para passar — teste pulado não é prova e o audit acusa.
 - Rode os testes localmente com `npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json` até passarem.
 - NÃO edite tasks.md, NÃO rode onp-spec verify/audit e NÃO toque em outras tarefas — o orquestrador cuida disso.
-- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-sol' high &&
-    rodar_tarefa 'faixa-1' 'T-027' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
+- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-sol' high >> "$LOG_DIR/seq.log" 2>&1; then
+    # commit de segurança se o agente esqueceu (rastreabilidade > perfeição)
+    if [ -n "$(git status --porcelain)" ]; then
+      git add -A && git commit -q -m 'T-024 autonomous-project-runtime: Unificar configuração e resolução de caminhos (auto-commit do plano)'
+    fi
+    marcar_concluidas T-024
+    verde "✔ T-024 concluída"
+    return 0
+  fi
+  vermelho "✘ T-024 falhou (log: $LOG_DIR/seq.log)"
+  amarelo "  reexecute só ela: bash .spec/features/autonomous-project-runtime/executar-tarefas.sh --seq T-024"
+  FALHAS="$FALHAS T-024"
+  return 1
+}
+
+# ── sequencial T-025 (ordem do tasks.md) ──
+executar_seq_T_025() {
+  info 'sequencial T-025 — Implementar supervisor por projeto, IPC e leases'
+  if rodar_tarefa seq 'T-025' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
+Leia primeiro: .spec/features/autonomous-project-runtime/spec.md, .spec/features/autonomous-project-runtime/tasks.md e .spec/constituicao.md.
+
+Sua tarefa (somente ela):
+T-025 — "Implementar supervisor por projeto, IPC e leases"
+  critérios/refs: AC-040 (MCP sobe e aguarda backends privados), AC-041 (Sessões do mesmo projeto compartilham leases), AC-048 (Endpoints e controle de runtime não colidem)
+  arquivos permitidos (e seus testes): src/cli/supervisor.ts, src/runtime/project-supervisor.ts, src/runtime/supervisor-manifest.ts, src/runtime/ipc.ts, src/runtime/leases.ts, src/runtime/supervisor.ts, src/runtime/types.ts, tests/unit/leases.test.ts, tests/integration/project-supervisor.test.ts, tests/security/path-boundary.test.ts
+  mensagem de commit: "T-025 autonomous-project-runtime: Implementar supervisor por projeto, IPC e leases"
+
+Regras inegociáveis:
+- Todo critério de aceite referenciado vira teste com @spec:AC-xxx no título.
+- NUNCA enfraqueça, pule (skip/todo) ou apague um teste para passar — teste pulado não é prova e o audit acusa.
+- Rode os testes localmente com `npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json` até passarem.
+- NÃO edite tasks.md, NÃO rode onp-spec verify/audit e NÃO toque em outras tarefas — o orquestrador cuida disso.
+- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-sol' xhigh >> "$LOG_DIR/seq.log" 2>&1; then
+    # commit de segurança se o agente esqueceu (rastreabilidade > perfeição)
+    if [ -n "$(git status --porcelain)" ]; then
+      git add -A && git commit -q -m 'T-025 autonomous-project-runtime: Implementar supervisor por projeto, IPC e leases (auto-commit do plano)'
+    fi
+    marcar_concluidas T-025
+    verde "✔ T-025 concluída"
+    return 0
+  fi
+  vermelho "✘ T-025 falhou (log: $LOG_DIR/seq.log)"
+  amarelo "  reexecute só ela: bash .spec/features/autonomous-project-runtime/executar-tarefas.sh --seq T-025"
+  FALHAS="$FALHAS T-025"
+  return 1
+}
+
+# ── sequencial T-029 (ordem do tasks.md) ──
+executar_seq_T_029() {
+  info 'sequencial T-029 — Garantir isolamento físico dos backends'
+  if rodar_tarefa seq 'T-029' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
+Leia primeiro: .spec/features/autonomous-project-runtime/spec.md, .spec/features/autonomous-project-runtime/tasks.md e .spec/constituicao.md.
+
+Sua tarefa (somente ela):
+T-029 — "Garantir isolamento físico dos backends"
+  critérios/refs: AC-042 (Setup descobre projeto e valida pré-requisitos), AC-044 (Caminho feliz exige apenas escolhas essenciais), AC-053 (Segredos permanecem apenas em memória ou ambiente), AC-046 (Layout é absoluto e derivado da identidade correta), AC-047 (AgentMemory e Code Review Graph usam armazenamento exclusivo), AC-048 (Endpoints e controle de runtime não colidem), AC-049 (Backend remoto respeita isolamento estrito), AC-052 (Diretório do CRG chega ao processo instalado)
+  arquivos permitidos (e seus testes): src/cli/install.ts, src/cli/start.ts, src/cli/doctor.ts, src/cli/preflight.ts, src/runtime/iii-engine.ts, src/runtime/lock-manifest.ts, src/adapters/agentmemory/client.ts, src/adapters/agentmemory/schemas.ts, src/adapters/agentmemory/capabilities.ts, src/adapters/code-review-graph/client.ts, src/adapters/code-review-graph/capabilities.ts, src/server/application.ts, src/compatibility/manifest.ts, compatibility/agentmemory-0.9.29.json, compatibility/crg-2.3.7.json, tests/contract/agentmemory.test.ts, tests/contract/code-review-graph.test.ts, tests/integration/backend-isolation.test.ts, tests/integration/remote-agentmemory.test.ts
+  mensagem de commit: "T-029 autonomous-project-runtime: Garantir isolamento físico dos backends"
+
+Regras inegociáveis:
+- Todo critério de aceite referenciado vira teste com @spec:AC-xxx no título.
+- NUNCA enfraqueça, pule (skip/todo) ou apague um teste para passar — teste pulado não é prova e o audit acusa.
+- Rode os testes localmente com `npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json` até passarem.
+- NÃO edite tasks.md, NÃO rode onp-spec verify/audit e NÃO toque em outras tarefas — o orquestrador cuida disso.
+- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-sol' xhigh >> "$LOG_DIR/seq.log" 2>&1; then
+    # commit de segurança se o agente esqueceu (rastreabilidade > perfeição)
+    if [ -n "$(git status --porcelain)" ]; then
+      git add -A && git commit -q -m 'T-029 autonomous-project-runtime: Garantir isolamento físico dos backends (auto-commit do plano)'
+    fi
+    marcar_concluidas T-029
+    verde "✔ T-029 concluída"
+    return 0
+  fi
+  vermelho "✘ T-029 falhou (log: $LOG_DIR/seq.log)"
+  amarelo "  reexecute só ela: bash .spec/features/autonomous-project-runtime/executar-tarefas.sh --seq T-029"
+  FALHAS="$FALHAS T-029"
+  return 1
+}
+
+# ── sequencial T-026 (ordem do tasks.md) ──
+executar_seq_T_026() {
+  info 'sequencial T-026 — Expor MCP stdio autônomo e adaptar os hosts'
+  if rodar_tarefa seq 'T-026' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
+Leia primeiro: .spec/features/autonomous-project-runtime/spec.md, .spec/features/autonomous-project-runtime/tasks.md e .spec/constituicao.md.
+
+Sua tarefa (somente ela):
+T-026 — "Expor MCP stdio autônomo e adaptar os hosts"
+  critérios/refs: AC-039 (Host inicia o MCP stdio automaticamente), AC-040 (MCP sobe e aguarda backends privados), AC-041 (Sessões do mesmo projeto compartilham leases)
+  arquivos permitidos (e seus testes): src/cli/mcp.ts, src/server/stdio.ts, src/cli/host-integration.ts, src/hooks/hosts/codex.ts, src/hooks/hosts/claude.ts, tests/integration/stdio-mcp.test.ts, tests/integration/host-integration.test.ts
+  mensagem de commit: "T-026 autonomous-project-runtime: Expor MCP stdio autônomo e adaptar os hosts"
+
+Regras inegociáveis:
+- Todo critério de aceite referenciado vira teste com @spec:AC-xxx no título.
+- NUNCA enfraqueça, pule (skip/todo) ou apague um teste para passar — teste pulado não é prova e o audit acusa.
+- Rode os testes localmente com `npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json` até passarem.
+- NÃO edite tasks.md, NÃO rode onp-spec verify/audit e NÃO toque em outras tarefas — o orquestrador cuida disso.
+- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-sol' xhigh >> "$LOG_DIR/seq.log" 2>&1; then
+    # commit de segurança se o agente esqueceu (rastreabilidade > perfeição)
+    if [ -n "$(git status --porcelain)" ]; then
+      git add -A && git commit -q -m 'T-026 autonomous-project-runtime: Expor MCP stdio autônomo e adaptar os hosts (auto-commit do plano)'
+    fi
+    marcar_concluidas T-026
+    verde "✔ T-026 concluída"
+    return 0
+  fi
+  vermelho "✘ T-026 falhou (log: $LOG_DIR/seq.log)"
+  amarelo "  reexecute só ela: bash .spec/features/autonomous-project-runtime/executar-tarefas.sh --seq T-026"
+  FALHAS="$FALHAS T-026"
+  return 1
+}
+
+# ── sequencial T-027 (ordem do tasks.md) ──
+executar_seq_T_027() {
+  info 'sequencial T-027 — Criar o assistente interativo de setup'
+  if rodar_tarefa seq 'T-027' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
 Leia primeiro: .spec/features/autonomous-project-runtime/spec.md, .spec/features/autonomous-project-runtime/tasks.md e .spec/constituicao.md.
 
 Sua tarefa (somente ela):
@@ -205,68 +313,25 @@ Regras inegociáveis:
 - NUNCA enfraqueça, pule (skip/todo) ou apague um teste para passar — teste pulado não é prova e o audit acusa.
 - Rode os testes localmente com `npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json` até passarem.
 - NÃO edite tasks.md, NÃO rode onp-spec verify/audit e NÃO toque em outras tarefas — o orquestrador cuida disso.
-- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-terra' high
-  ) >> "$LOG_DIR/faixa-1.log" 2>&1
-  local st=$?
-  mesclar_faixa 'faixa-1' 'spec/autonomous-project-runtime-faixa-1' "$WT" "$st" || return 1
-  marcar_concluidas T-024 T-027
-  return 0
+- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-terra' high >> "$LOG_DIR/seq.log" 2>&1; then
+    # commit de segurança se o agente esqueceu (rastreabilidade > perfeição)
+    if [ -n "$(git status --porcelain)" ]; then
+      git add -A && git commit -q -m 'T-027 autonomous-project-runtime: Criar o assistente interativo de setup (auto-commit do plano)'
+    fi
+    marcar_concluidas T-027
+    verde "✔ T-027 concluída"
+    return 0
+  fi
+  vermelho "✘ T-027 falhou (log: $LOG_DIR/seq.log)"
+  amarelo "  reexecute só ela: bash .spec/features/autonomous-project-runtime/executar-tarefas.sh --seq T-027"
+  FALHAS="$FALHAS T-027"
+  return 1
 }
 
-# ── faixa-2: T-025 ──
-executar_faixa_2() {
-  local WT="$WT_BASE-faixa-2"
-  preparar_worktree 'faixa-2' 'spec/autonomous-project-runtime-faixa-2' "$WT" || return 1
-  evento --tipo faixa --faixa 'faixa-2' --estado executando --tentativa "$(tentativa 'faixa-2')"
-  : > "$LOG_DIR/faixa-2.log"
-  (
-    cd "$WT" || exit 9
-    rodar_tarefa 'faixa-2' 'T-025' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
-Leia primeiro: .spec/features/autonomous-project-runtime/spec.md, .spec/features/autonomous-project-runtime/tasks.md e .spec/constituicao.md.
-
-Sua tarefa (somente ela):
-T-025 — "Implementar supervisor por projeto, IPC e leases"
-  critérios/refs: AC-040 (MCP sobe e aguarda backends privados), AC-041 (Sessões do mesmo projeto compartilham leases), AC-048 (Endpoints e controle de runtime não colidem)
-  arquivos permitidos (e seus testes): src/runtime/project-supervisor.ts, src/runtime/ipc.ts, src/runtime/leases.ts, src/runtime/supervisor.ts, src/runtime/types.ts, tests/integration/project-supervisor.test.ts, tests/security/path-boundary.test.ts
-  mensagem de commit: "T-025 autonomous-project-runtime: Implementar supervisor por projeto, IPC e leases"
-
-Regras inegociáveis:
-- Todo critério de aceite referenciado vira teste com @spec:AC-xxx no título.
-- NUNCA enfraqueça, pule (skip/todo) ou apague um teste para passar — teste pulado não é prova e o audit acusa.
-- Rode os testes localmente com `npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json` até passarem.
-- NÃO edite tasks.md, NÃO rode onp-spec verify/audit e NÃO toque em outras tarefas — o orquestrador cuida disso.
-- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-sol' xhigh
-  ) >> "$LOG_DIR/faixa-2.log" 2>&1
-  local st=$?
-  mesclar_faixa 'faixa-2' 'spec/autonomous-project-runtime-faixa-2' "$WT" "$st" || return 1
-  marcar_concluidas T-025
-  return 0
-}
-
-# ── faixa-3: T-026 T-028 T-029 ──
-executar_faixa_3() {
-  local WT="$WT_BASE-faixa-3"
-  preparar_worktree 'faixa-3' 'spec/autonomous-project-runtime-faixa-3' "$WT" || return 1
-  evento --tipo faixa --faixa 'faixa-3' --estado executando --tentativa "$(tentativa 'faixa-3')"
-  : > "$LOG_DIR/faixa-3.log"
-  (
-    cd "$WT" || exit 9
-    rodar_tarefa 'faixa-3' 'T-026' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
-Leia primeiro: .spec/features/autonomous-project-runtime/spec.md, .spec/features/autonomous-project-runtime/tasks.md e .spec/constituicao.md.
-
-Sua tarefa (somente ela):
-T-026 — "Expor MCP stdio autônomo e adaptar os hosts"
-  critérios/refs: AC-039 (Host inicia o MCP stdio automaticamente), AC-040 (MCP sobe e aguarda backends privados), AC-041 (Sessões do mesmo projeto compartilham leases)
-  arquivos permitidos (e seus testes): src/cli/mcp.ts, src/server/stdio.ts, src/server/application.ts, src/cli/host-integration.ts, src/hooks/hosts/codex.ts, src/hooks/hosts/claude.ts, tests/integration/stdio-mcp.test.ts, tests/integration/host-integration.test.ts
-  mensagem de commit: "T-026 autonomous-project-runtime: Expor MCP stdio autônomo e adaptar os hosts"
-
-Regras inegociáveis:
-- Todo critério de aceite referenciado vira teste com @spec:AC-xxx no título.
-- NUNCA enfraqueça, pule (skip/todo) ou apague um teste para passar — teste pulado não é prova e o audit acusa.
-- Rode os testes localmente com `npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json` até passarem.
-- NÃO edite tasks.md, NÃO rode onp-spec verify/audit e NÃO toque em outras tarefas — o orquestrador cuida disso.
-- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-sol' xhigh &&
-    rodar_tarefa 'faixa-3' 'T-028' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
+# ── sequencial T-028 (ordem do tasks.md) ──
+executar_seq_T_028() {
+  info 'sequencial T-028 — Tornar instalação, upgrade e rollback uma transação única'
+  if rodar_tarefa seq 'T-028' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
 Leia primeiro: .spec/features/autonomous-project-runtime/spec.md, .spec/features/autonomous-project-runtime/tasks.md e .spec/constituicao.md.
 
 Sua tarefa (somente ela):
@@ -280,44 +345,31 @@ Regras inegociáveis:
 - NUNCA enfraqueça, pule (skip/todo) ou apague um teste para passar — teste pulado não é prova e o audit acusa.
 - Rode os testes localmente com `npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json` até passarem.
 - NÃO edite tasks.md, NÃO rode onp-spec verify/audit e NÃO toque em outras tarefas — o orquestrador cuida disso.
-- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-sol' xhigh &&
-    rodar_tarefa 'faixa-3' 'T-029' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
-Leia primeiro: .spec/features/autonomous-project-runtime/spec.md, .spec/features/autonomous-project-runtime/tasks.md e .spec/constituicao.md.
-
-Sua tarefa (somente ela):
-T-029 — "Garantir isolamento físico dos backends"
-  critérios/refs: AC-046 (Layout é absoluto e derivado da identidade correta), AC-047 (AgentMemory e Code Review Graph usam armazenamento exclusivo), AC-048 (Endpoints e controle de runtime não colidem), AC-049 (Backend remoto respeita isolamento estrito), AC-052 (Diretório do CRG chega ao processo instalado)
-  arquivos permitidos (e seus testes): src/cli/install.ts, src/cli/start.ts, src/cli/doctor.ts, src/adapters/agentmemory/client.ts, src/adapters/agentmemory/capabilities.ts, src/adapters/code-review-graph/client.ts, src/adapters/code-review-graph/capabilities.ts, src/compatibility/manifest.ts, tests/contract/agentmemory.test.ts, tests/contract/code-review-graph.test.ts, tests/integration/backend-isolation.test.ts
-  mensagem de commit: "T-029 autonomous-project-runtime: Garantir isolamento físico dos backends"
-
-Regras inegociáveis:
-- Todo critério de aceite referenciado vira teste com @spec:AC-xxx no título.
-- NUNCA enfraqueça, pule (skip/todo) ou apague um teste para passar — teste pulado não é prova e o audit acusa.
-- Rode os testes localmente com `npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json` até passarem.
-- NÃO edite tasks.md, NÃO rode onp-spec verify/audit e NÃO toque em outras tarefas — o orquestrador cuida disso.
-- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-sol' xhigh
-  ) >> "$LOG_DIR/faixa-3.log" 2>&1
-  local st=$?
-  mesclar_faixa 'faixa-3' 'spec/autonomous-project-runtime-faixa-3' "$WT" "$st" || return 1
-  marcar_concluidas T-026 T-028 T-029
-  return 0
+- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-sol' xhigh >> "$LOG_DIR/seq.log" 2>&1; then
+    # commit de segurança se o agente esqueceu (rastreabilidade > perfeição)
+    if [ -n "$(git status --porcelain)" ]; then
+      git add -A && git commit -q -m 'T-028 autonomous-project-runtime: Tornar instalação, upgrade e rollback uma transação única (auto-commit do plano)'
+    fi
+    marcar_concluidas T-028
+    verde "✔ T-028 concluída"
+    return 0
+  fi
+  vermelho "✘ T-028 falhou (log: $LOG_DIR/seq.log)"
+  amarelo "  reexecute só ela: bash .spec/features/autonomous-project-runtime/executar-tarefas.sh --seq T-028"
+  FALHAS="$FALHAS T-028"
+  return 1
 }
 
-# ── faixa-4: T-030 ──
-executar_faixa_4() {
-  local WT="$WT_BASE-faixa-4"
-  preparar_worktree 'faixa-4' 'spec/autonomous-project-runtime-faixa-4' "$WT" || return 1
-  evento --tipo faixa --faixa 'faixa-4' --estado executando --tentativa "$(tentativa 'faixa-4')"
-  : > "$LOG_DIR/faixa-4.log"
-  (
-    cd "$WT" || exit 9
-    rodar_tarefa 'faixa-4' 'T-030' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
+# ── sequencial T-030 (ordem do tasks.md) ──
+executar_seq_T_030() {
+  info 'sequencial T-030 — Provar lifecycle autônomo, concorrência e matriz completa'
+  if rodar_tarefa seq 'T-030' 'Você executa UMA tarefa da feature "autonomous-project-runtime" (fluxo onp-spec, spec-anchored).
 Leia primeiro: .spec/features/autonomous-project-runtime/spec.md, .spec/features/autonomous-project-runtime/tasks.md e .spec/constituicao.md.
 
 Sua tarefa (somente ela):
 T-030 — "Provar lifecycle autônomo, concorrência e matriz completa"
-  critérios/refs: AC-039 (Host inicia o MCP stdio automaticamente), AC-041 (Sessões do mesmo projeto compartilham leases), AC-044 (Caminho feliz exige apenas escolhas essenciais), AC-045 (Instalação não interativa continua determinística), AC-047 (AgentMemory e Code Review Graph usam armazenamento exclusivo), AC-048 (Endpoints e controle de runtime não colidem), AC-050 (Configuração tem origem e precedência observáveis), AC-051 (Porta e diretório de dados são aplicados de verdade), AC-052 (Diretório do CRG chega ao processo instalado), AC-054 (Falha restaura runtime e integrações juntos), AC-055 (Matriz executa as duas versões Node suportadas), AC-056 (Matriz concorrente prova isolamento e encerramento)
-  arquivos permitidos (e seus testes): tests/e2e/autonomous-lifecycle.test.ts, tests/e2e/concurrent-projects.test.ts, tests/e2e/package-lifecycle.test.ts, scripts/test-isolated-lifecycle.mjs, tests/contract/package-boundary.test.ts, .github/workflows/ci.yml, README.md, docs/configuration.md, docs/troubleshooting.md, package.json
+  critérios/refs: AC-039 (Host inicia o MCP stdio automaticamente), AC-041 (Sessões do mesmo projeto compartilham leases), AC-044 (Caminho feliz exige apenas escolhas essenciais), AC-045 (Instalação não interativa continua determinística), AC-047 (AgentMemory e Code Review Graph usam armazenamento exclusivo), AC-048 (Endpoints e controle de runtime não colidem), AC-049 (Backend remoto respeita isolamento estrito), AC-050 (Configuração tem origem e precedência observáveis), AC-051 (Porta e diretório de dados são aplicados de verdade), AC-052 (Diretório do CRG chega ao processo instalado), AC-054 (Falha restaura runtime e integrações juntos), AC-055 (Matriz executa as duas versões Node suportadas), AC-056 (Matriz concorrente prova isolamento e encerramento)
+  arquivos permitidos (e seus testes): tests/spec/autonomous-project-runtime.spec.test.ts, tests/e2e/autonomous-lifecycle.test.ts, tests/e2e/concurrent-projects.test.ts, tests/e2e/package-lifecycle.test.ts, scripts/test-isolated-lifecycle.mjs, tests/contract/package-boundary.test.ts, .github/workflows/ci.yml, README.md, docs/configuration.md, docs/troubleshooting.md, package.json
   mensagem de commit: "T-030 autonomous-project-runtime: Provar lifecycle autônomo, concorrência e matriz completa"
 
 Regras inegociáveis:
@@ -325,12 +377,19 @@ Regras inegociáveis:
 - NUNCA enfraqueça, pule (skip/todo) ou apague um teste para passar — teste pulado não é prova e o audit acusa.
 - Rode os testes localmente com `npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json` até passarem.
 - NÃO edite tasks.md, NÃO rode onp-spec verify/audit e NÃO toque em outras tarefas — o orquestrador cuida disso.
-- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-sol' xhigh
-  ) >> "$LOG_DIR/faixa-4.log" 2>&1
-  local st=$?
-  mesclar_faixa 'faixa-4' 'spec/autonomous-project-runtime-faixa-4' "$WT" "$st" || return 1
-  marcar_concluidas T-030
-  return 0
+- Ao final de CADA tarefa: `git add` só no que você tocou e um commit próprio.' 'gpt-5.6-sol' xhigh >> "$LOG_DIR/seq.log" 2>&1; then
+    # commit de segurança se o agente esqueceu (rastreabilidade > perfeição)
+    if [ -n "$(git status --porcelain)" ]; then
+      git add -A && git commit -q -m 'T-030 autonomous-project-runtime: Provar lifecycle autônomo, concorrência e matriz completa (auto-commit do plano)'
+    fi
+    marcar_concluidas T-030
+    verde "✔ T-030 concluída"
+    return 0
+  fi
+  vermelho "✘ T-030 falhou (log: $LOG_DIR/seq.log)"
+  amarelo "  reexecute só ela: bash .spec/features/autonomous-project-runtime/executar-tarefas.sh --seq T-030"
+  FALHAS="$FALHAS T-030"
+  return 1
 }
 
 # ── gate: quem decide é a máquina ────────────────────────────────────
@@ -386,27 +445,25 @@ executar_tudo() {
   iniciar_resumos
   info "logs em: $LOG_DIR"
   info "resumo geral de andamento: a cada 1 min aqui no terminal (e via: onp-spec resumo)"
-  # onda 1: faixa-1 ∥ faixa-2 ∥ faixa-3
-  info "onda 1: faixa-1 ∥ faixa-2 ∥ faixa-3 — janelas limpas em paralelo"
-  executar_faixa_1 & PID_FAIXA_1=$!
-  executar_faixa_2 & PID_FAIXA_2=$!
-  executar_faixa_3 & PID_FAIXA_3=$!
-  wait "$PID_FAIXA_1" || true
-  wait "$PID_FAIXA_2" || true
-  wait "$PID_FAIXA_3" || true
-  # onda 2: faixa-4
-  info "onda 2: faixa-4 — janelas limpas em paralelo"
-  executar_faixa_4 & PID_FAIXA_4=$!
-  wait "$PID_FAIXA_4" || true
+  executar_seq_T_024 || true
+  executar_seq_T_025 || true
+  executar_seq_T_029 || true
+  executar_seq_T_026 || true
+  executar_seq_T_027 || true
+  executar_seq_T_028 || true
+  executar_seq_T_030 || true
   encerrar tudo
 }
 
 listar() {
   echo "execução: $RUN_ID (feature $FEATURE, branch $BASE_BRANCH)"
-  echo "  faixa-1  onda 1  T-024, T-027"
-  echo "  faixa-2  onda 1  T-025"
-  echo "  faixa-3  onda 1  T-026, T-028, T-029"
-  echo "  faixa-4  onda 2  T-030"
+  echo "  seq       T-024 (sequencial)"
+  echo "  seq       T-025 (sequencial)"
+  echo "  seq       T-029 (sequencial)"
+  echo "  seq       T-026 (sequencial)"
+  echo "  seq       T-027 (sequencial)"
+  echo "  seq       T-028 (sequencial)"
+  echo "  seq       T-030 (sequencial)"
   echo
   echo "reexecutar uma faixa:    --faixa <id>"
   echo "reexecutar sequencial:   --seq <T-xxx>"
@@ -437,14 +494,17 @@ case "$MODO" in
   gate) COM_GATE=1; iniciar_resumos; encerrar gate ;;
   faixa)
     case "$ALVO" in
-      faixa-1) evento --tipo inicio --escopo "faixa:faixa-1"; iniciar_resumos; executar_faixa_1 || true; encerrar "faixa:faixa-1" ;;
-      faixa-2) evento --tipo inicio --escopo "faixa:faixa-2"; iniciar_resumos; executar_faixa_2 || true; encerrar "faixa:faixa-2" ;;
-      faixa-3) evento --tipo inicio --escopo "faixa:faixa-3"; iniciar_resumos; executar_faixa_3 || true; encerrar "faixa:faixa-3" ;;
-      faixa-4) evento --tipo inicio --escopo "faixa:faixa-4"; iniciar_resumos; executar_faixa_4 || true; encerrar "faixa:faixa-4" ;;
       *) falhar "faixa desconhecida: '$ALVO' — veja as disponíveis com --listar" ;;
     esac ;;
   seq)
     case "$ALVO" in
+      T-024) evento --tipo inicio --escopo "seq:T-024"; iniciar_resumos; executar_seq_T_024 || true; encerrar "seq:T-024" ;;
+      T-025) evento --tipo inicio --escopo "seq:T-025"; iniciar_resumos; executar_seq_T_025 || true; encerrar "seq:T-025" ;;
+      T-029) evento --tipo inicio --escopo "seq:T-029"; iniciar_resumos; executar_seq_T_029 || true; encerrar "seq:T-029" ;;
+      T-026) evento --tipo inicio --escopo "seq:T-026"; iniciar_resumos; executar_seq_T_026 || true; encerrar "seq:T-026" ;;
+      T-027) evento --tipo inicio --escopo "seq:T-027"; iniciar_resumos; executar_seq_T_027 || true; encerrar "seq:T-027" ;;
+      T-028) evento --tipo inicio --escopo "seq:T-028"; iniciar_resumos; executar_seq_T_028 || true; encerrar "seq:T-028" ;;
+      T-030) evento --tipo inicio --escopo "seq:T-030"; iniciar_resumos; executar_seq_T_030 || true; encerrar "seq:T-030" ;;
       *) falhar "tarefa sequencial desconhecida: '$ALVO' — veja as disponíveis com --listar" ;;
     esac ;;
 esac

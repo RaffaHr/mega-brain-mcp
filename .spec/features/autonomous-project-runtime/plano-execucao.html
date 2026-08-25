@@ -38,31 +38,28 @@
 </style>
 <main>
   <h1>Plano de execução — autonomous-project-runtime</h1>
-  <p class="sub">gerado por <code>onp-spec plano</code> em 2026-08-25 03:12 · regenere após mudar tasks.md</p>
+  <p class="sub">gerado por <code>onp-spec plano</code> em 2026-08-25 12:08 · regenere após mudar tasks.md</p>
   <div class="resumo">
-    <div><b>7</b> tarefa(s) em paralelo</div>
-    <div><b>4</b> faixa(s) · <b>2</b> onda(s)</div>
-    <div><b>0</b> sequencial(is)</div>
+    <div><b>7</b> tarefa(s), uma após a outra</div>
+    <div>modo <b>sequencial</b> (escolha do usuário)</div>
     <div>branch <code>spec/autonomous-project-runtime</code></div>
   </div>
-
+  
   <div class="executor">
     <h2>Como executar — via agente</h2>
     <p>Peça ao agente (Codex) para executar o plano. Ele roda:</p>
     <div><code id="cmd">bash .spec/features/autonomous-project-runtime/executar-tarefas.sh</code></div>
-    <p class="nota">Este arquivo é só visualização. Cada faixa roda <code>codex exec</code> num worktree próprio, com contexto limpo, modelo e esforço já definidos.
+    <p class="nota">Este arquivo é só visualização. Cada tarefa roda <code>codex exec</code> na árvore principal, uma após a outra, com contexto limpo e modelo/esforço já definidos.
     O gate final (verify + audit) roda sozinho; a execução fica em background e, a cada
     1 minuto, o agente posta no chat a <b>tabela de andamento</b>
     (<code>onp-spec resumo autonomous-project-runtime --tabela</code>) e o
     <b>resumo geral de andamento</b> (<code>onp-spec resumo autonomous-project-runtime</code>).</p>
   </div>
-
+  
+  
     <section class="onda">
-      <h3>Onda 1 <small>faixa-1 ∥ faixa-2 ∥ faixa-3 — em paralelo, janelas limpas</small></h3>
-      <div class="grade">
-      <div class="faixa">
-        <h4>faixa-1 <small>branch <code>spec/autonomous-project-runtime-faixa-1</code> · worktree <code>../onp-worktrees/mega-brain-mcp-autonomous-project-runtime-faixa-1</code></small></h4>
-
+      <h3>Ordem de execução <small>uma tarefa após a outra, na árvore principal</small></h3>
+      <div class="grade"><div class="faixa">
         <div class="tarefa">
           <span class="tid">T-024</span>
           <span class="ttitulo">Unificar configuração e resolução de caminhos</span>
@@ -70,30 +67,28 @@
           <span class="arquivos"><code>src/config/schema.ts</code> <code>src/config/load.ts</code> <code>src/config/project-config.ts</code> <code>src/runtime/layout.ts</code> <code>tests/unit/config.test.ts</code> <code>tests/unit/project-identity.test.ts</code> <code>.env.example</code></span>
         </div>
         <div class="tarefa">
-          <span class="tid">T-027</span>
-          <span class="ttitulo">Criar o assistente interativo de setup</span>
-          <span class="meta"><code>gpt-5.6-terra</code> · esforço <b>high</b></span>
-          <span class="arquivos"><code>src/cli/setup.ts</code> <code>src/cli/prompts.ts</code> <code>src/cli/index.ts</code> <code>src/config/project-config.ts</code> <code>tests/integration/setup.test.ts</code> <code>tests/fixtures/setup-answers.ts</code></span>
-        </div>
-      </div>
-      <div class="faixa">
-        <h4>faixa-2 <small>branch <code>spec/autonomous-project-runtime-faixa-2</code> · worktree <code>../onp-worktrees/mega-brain-mcp-autonomous-project-runtime-faixa-2</code></small></h4>
-
-        <div class="tarefa">
           <span class="tid">T-025</span>
           <span class="ttitulo">Implementar supervisor por projeto, IPC e leases</span>
           <span class="meta"><code>gpt-5.6-sol</code> · esforço <b>xhigh</b></span>
-          <span class="arquivos"><code>src/runtime/project-supervisor.ts</code> <code>src/runtime/ipc.ts</code> <code>src/runtime/leases.ts</code> <code>src/runtime/supervisor.ts</code> <code>src/runtime/types.ts</code> <code>tests/integration/project-supervisor.test.ts</code> <code>tests/security/path-boundary.test.ts</code></span>
+          <span class="arquivos"><code>src/cli/supervisor.ts</code> <code>src/runtime/project-supervisor.ts</code> <code>src/runtime/supervisor-manifest.ts</code> <code>src/runtime/ipc.ts</code> <code>src/runtime/leases.ts</code> <code>src/runtime/supervisor.ts</code> <code>src/runtime/types.ts</code> <code>tests/unit/leases.test.ts</code> <code>tests/integration/project-supervisor.test.ts</code> <code>tests/security/path-boundary.test.ts</code></span>
         </div>
-      </div>
-      <div class="faixa">
-        <h4>faixa-3 <small>branch <code>spec/autonomous-project-runtime-faixa-3</code> · worktree <code>../onp-worktrees/mega-brain-mcp-autonomous-project-runtime-faixa-3</code></small></h4>
-
+        <div class="tarefa">
+          <span class="tid">T-029</span>
+          <span class="ttitulo">Garantir isolamento físico dos backends</span>
+          <span class="meta"><code>gpt-5.6-sol</code> · esforço <b>xhigh</b></span>
+          <span class="arquivos"><code>src/cli/install.ts</code> <code>src/cli/start.ts</code> <code>src/cli/doctor.ts</code> <code>src/cli/preflight.ts</code> <code>src/runtime/iii-engine.ts</code> <code>src/runtime/lock-manifest.ts</code> <code>src/adapters/agentmemory/client.ts</code> <code>src/adapters/agentmemory/schemas.ts</code> <code>src/adapters/agentmemory/capabilities.ts</code> <code>src/adapters/code-review-graph/client.ts</code> <code>src/adapters/code-review-graph/capabilities.ts</code> <code>src/server/application.ts</code> <code>src/compatibility/manifest.ts</code> <code>compatibility/agentmemory-0.9.29.json</code> <code>compatibility/crg-2.3.7.json</code> <code>tests/contract/agentmemory.test.ts</code> <code>tests/contract/code-review-graph.test.ts</code> <code>tests/integration/backend-isolation.test.ts</code> <code>tests/integration/remote-agentmemory.test.ts</code></span>
+        </div>
         <div class="tarefa">
           <span class="tid">T-026</span>
           <span class="ttitulo">Expor MCP stdio autônomo e adaptar os hosts</span>
           <span class="meta"><code>gpt-5.6-sol</code> · esforço <b>xhigh</b></span>
-          <span class="arquivos"><code>src/cli/mcp.ts</code> <code>src/server/stdio.ts</code> <code>src/server/application.ts</code> <code>src/cli/host-integration.ts</code> <code>src/hooks/hosts/codex.ts</code> <code>src/hooks/hosts/claude.ts</code> <code>tests/integration/stdio-mcp.test.ts</code> <code>tests/integration/host-integration.test.ts</code></span>
+          <span class="arquivos"><code>src/cli/mcp.ts</code> <code>src/server/stdio.ts</code> <code>src/cli/host-integration.ts</code> <code>src/hooks/hosts/codex.ts</code> <code>src/hooks/hosts/claude.ts</code> <code>tests/integration/stdio-mcp.test.ts</code> <code>tests/integration/host-integration.test.ts</code></span>
+        </div>
+        <div class="tarefa">
+          <span class="tid">T-027</span>
+          <span class="ttitulo">Criar o assistente interativo de setup</span>
+          <span class="meta"><code>gpt-5.6-terra</code> · esforço <b>high</b></span>
+          <span class="arquivos"><code>src/cli/setup.ts</code> <code>src/cli/prompts.ts</code> <code>src/cli/index.ts</code> <code>src/config/project-config.ts</code> <code>tests/integration/setup.test.ts</code> <code>tests/fixtures/setup-answers.ts</code></span>
         </div>
         <div class="tarefa">
           <span class="tid">T-028</span>
@@ -102,34 +97,17 @@
           <span class="arquivos"><code>src/runtime/transaction.ts</code> <code>src/cli/install.ts</code> <code>src/cli/upgrade.ts</code> <code>src/cli/uninstall.ts</code> <code>src/cli/host-hooks.ts</code> <code>src/cli/host-integration.ts</code> <code>tests/integration/install-transaction.test.ts</code> <code>tests/integration/runtime-manager.test.ts</code></span>
         </div>
         <div class="tarefa">
-          <span class="tid">T-029</span>
-          <span class="ttitulo">Garantir isolamento físico dos backends</span>
-          <span class="meta"><code>gpt-5.6-sol</code> · esforço <b>xhigh</b></span>
-          <span class="arquivos"><code>src/cli/install.ts</code> <code>src/cli/start.ts</code> <code>src/cli/doctor.ts</code> <code>src/adapters/agentmemory/client.ts</code> <code>src/adapters/agentmemory/capabilities.ts</code> <code>src/adapters/code-review-graph/client.ts</code> <code>src/adapters/code-review-graph/capabilities.ts</code> <code>src/compatibility/manifest.ts</code> <code>tests/contract/agentmemory.test.ts</code> <code>tests/contract/code-review-graph.test.ts</code> <code>tests/integration/backend-isolation.test.ts</code></span>
-        </div>
-      </div></div>
-    </section>
-    <section class="onda">
-      <h3>Onda 2 <small>faixa-4 — em paralelo, janelas limpas</small></h3>
-      <div class="grade">
-      <div class="faixa">
-        <h4>faixa-4 <small>branch <code>spec/autonomous-project-runtime-faixa-4</code> · worktree <code>../onp-worktrees/mega-brain-mcp-autonomous-project-runtime-faixa-4</code></small></h4>
-
-        <div class="tarefa">
           <span class="tid">T-030</span>
           <span class="ttitulo">Provar lifecycle autônomo, concorrência e matriz completa</span>
           <span class="meta"><code>gpt-5.6-sol</code> · esforço <b>xhigh</b></span>
-          <span class="arquivos"><code>tests/e2e/autonomous-lifecycle.test.ts</code> <code>tests/e2e/concurrent-projects.test.ts</code> <code>tests/e2e/package-lifecycle.test.ts</code> <code>scripts/test-isolated-lifecycle.mjs</code> <code>tests/contract/package-boundary.test.ts</code> <code>.github/workflows/ci.yml</code> <code>README.md</code> <code>docs/configuration.md</code> <code>docs/troubleshooting.md</code> <code>package.json</code></span>
-        </div>
-      </div></div>
+          <span class="arquivos"><code>tests/spec/autonomous-project-runtime.spec.test.ts</code> <code>tests/e2e/autonomous-lifecycle.test.ts</code> <code>tests/e2e/concurrent-projects.test.ts</code> <code>tests/e2e/package-lifecycle.test.ts</code> <code>scripts/test-isolated-lifecycle.mjs</code> <code>tests/contract/package-boundary.test.ts</code> <code>.github/workflows/ci.yml</code> <code>README.md</code> <code>docs/configuration.md</code> <code>docs/troubleshooting.md</code> <code>package.json</code></span>
+        </div></div></div>
     </section>
-
   <section class="onda">
     <h3>Branches e commits</h3>
     <ol>
       <li>tudo parte da branch de trabalho <code>spec/autonomous-project-runtime</code></li>
-      <li>1 faixa = 1 branch + 1 worktree; 1 tarefa = 1 commit <code>T-xxx autonomous-project-runtime: título</code></li>
-      <li>merge <code>--no-ff</code> por faixa, na ordem; conflito interrompe e pede você</li>
+      <li>as tarefas rodam nela mesma, na ordem; 1 tarefa = 1 commit <code>T-xxx autonomous-project-runtime: título</code></li>
       <li>gate final: <code>onp-spec verify autonomous-project-runtime</code> + <code>onp-spec audit --ci</code> — exit 0 ou não está pronto</li>
     </ol>
   </section>
