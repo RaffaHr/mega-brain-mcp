@@ -25,13 +25,13 @@ Como usuário de Codex ou Claude Code, quero que o Mega Brain seja iniciado ao a
 
 - **Dado** nenhum processo Mega Brain, AgentMemory ou Code Review Graph ativo para o projeto
 - **Quando** o primeiro cliente MCP conecta por `stdio`
-- **Então** o supervisor exclusivo do projeto inicia os dois backends, espera readiness antes de aceitar chamadas e mantém os MCPs internos invisíveis ao host
+- **Então** inicia o supervisor exclusivo já definido para o projeto como processo independente, publica somente PID, protocolo, IPC e `worktreeId` em manifest protegido, espera readiness dos backends exigidos pelo modo antes de aceitar chamadas e mantém os MCPs internos invisíveis ao host
 
 #### AC-041 — Sessões do mesmo projeto compartilham leases
 
 - **Dado** duas ou mais sessões Codex ou Claude Code abertas no mesmo worktree
 - **Quando** elas conectam e desconectam em ordens diferentes
-- **Então** reutilizam um único supervisor do projeto, nenhuma sessão encerra backends ainda utilizados e o runtime para após a última lease expirar ou desconectar
+- **Então** reutilizam um único supervisor do projeto, renovam leases a cada 10 segundos com expiração em 30 segundos, nenhuma sessão encerra backends ainda utilizados e o runtime inicia shutdown 5 segundos após a última lease expirar ou desconectar
 
 ### US-018 — Configurar o produto por um assistente completo
 
@@ -41,25 +41,25 @@ Como usuário instalando o Mega Brain, quero responder a um setup interativo, pa
 
 - **Dado** um terminal interativo dentro ou fora de um repositório Git
 - **Quando** `mega-brain setup` é executado e o usuário aceita o diretório atual ou informa outro caminho
-- **Então** resolve a raiz real, apresenta Node, Python e Git encontrados e não cria arquivos nem baixa pacotes se o preflight falhar ou o usuário cancelar
+- **Então** resolve a raiz real, apresenta Node, Python, Git e compatibilidade da plataforma encontrados, não cria arquivos nem baixa pacotes se o preflight falhar ou o usuário cancelar e mantém o wizard no passo inválido para nova tentativa ou troca de modo
 
 #### AC-043 — Setup oferece configuração completa com defaults seguros
 
 - **Dado** um ambiente compatível
 - **Quando** o usuário percorre o assistente
-- **Então** pode escolher Codex, Claude Code ou ambos, AgentMemory gerenciado ou remoto, defaults ou opções avançadas do AgentMemory e Code Review Graph, localização dos dados e opt-ins de egress/LLM, recebendo ao final um resumo redigido antes de confirmar
+- **Então** pode escolher Codex, Claude Code ou ambos, AgentMemory gerenciado ou remoto, informar URL remota e referência da variável de secret quando aplicável, escolher defaults ou opções avançadas do AgentMemory e Code Review Graph, localização dos dados e opt-ins de egress/LLM, recebendo ao final um resumo redigido antes de confirmar
 
 #### AC-044 — Caminho feliz exige apenas escolhas essenciais
 
 - **Dado** um usuário que aceita todos os defaults
 - **Quando** conclui `mega-brain setup`
-- **Então** obtém runtime gerenciado local, isolamento estrito, ambos os backends configurados, host escolhido pronto para iniciar por `stdio` e instrução final para reabrir a sessão
+- **Então** obtém runtime gerenciado local, incluindo iii-engine fixado e validado no runtime isolado quando a plataforma exigir, isolamento estrito, ambos os backends configurados, host escolhido pronto para iniciar por `stdio` e instrução final para reabrir a sessão
 
 #### AC-045 — Instalação não interativa continua determinística
 
 - **Dado** CI, script ou terminal sem TTY com todas as opções obrigatórias
 - **Quando** `mega-brain install` é executado
-- **Então** não solicita entrada, produz o mesmo estado validado pelo setup e retorna erro acionável para qualquer opção ausente ou incompatível
+- **Então** não solicita entrada, produz o mesmo estado validado pelo setup e, para qualquer opção ausente ou incompatível, retorna erro acionável com código diferente de zero sem alterar arquivos, baixar pacotes ou manter processos
 
 ### US-019 — Isolar completamente runtimes e dados por projeto
 
@@ -75,19 +75,19 @@ Como usuário com vários projetos ou worktrees, quero isolamento físico e lóg
 
 - **Dado** dois projetos gerenciados executados simultaneamente com observações e grafos sentinela diferentes
 - **Quando** cada projeto aprende, consulta, indexa e reinicia seus backends
-- **Então** AgentMemory, Code Review Graph e provenance usam diretórios exclusivos e nenhuma resposta ou arquivo contém o sentinela do outro projeto
+- **Então** AgentMemory, iii-engine, Code Review Graph e provenance usam diretórios exclusivos, o AgentMemory recebe seu conjunto próprio de portas REST, streams, viewer e engine e nenhuma resposta ou arquivo contém o sentinela do outro projeto
 
 #### AC-048 — Endpoints e controle de runtime não colidem
 
 - **Dado** dois projetos ativos ao mesmo tempo e múltiplos clientes em cada um
 - **Quando** os supervisores alocam IPC, portas loopback, locks e credenciais efêmeras
-- **Então** cada recurso pertence a um único `worktreeId`, a conexão valida essa identidade e readiness de um projeto nunca pode satisfazer outro
+- **Então** cada recurso pertence a um único `worktreeId`, named pipe com ACL do usuário no Windows ou socket `0600` no Unix restringe o IPC, a conexão valida protocolo, PID e identidade e readiness de um projeto nunca pode satisfazer outro
 
 #### AC-049 — Backend remoto respeita isolamento estrito
 
 - **Dado** AgentMemory remoto selecionado com isolamento estrito habilitado por padrão
 - **Quando** o setup ou install negocia capabilities
-- **Então** exige namespace de projeto verificável e recusa configuração remota sem essa garantia, explicando como optar conscientemente por modo compartilhado
+- **Então** usa o secret apenas em memória para gravar um sentinela descartável no namespace A, prova presença em A e ausência em B, confirma o cleanup e recusa configuração remota sem essa garantia; no setup a etapa pode ser repetida ou trocada para gerenciado, enquanto install encerra sem mutações
 
 ### US-020 — Fazer configuração persistida corresponder ao comportamento
 
@@ -109,7 +109,7 @@ Como mantenedor, quero uma única resolução de configuração por projeto, par
 
 - **Dado** um Code Review Graph gerenciado ou customizado
 - **Quando** ele é instalado, indexado, iniciado e diagnosticado
-- **Então** o adaptador encaminha um diretório exclusivo suportado pela versão negociada e a instalação falha antes do commit se não puder provar onde o grafo será persistido
+- **Então** o adaptador encaminha `CRG_DATA_DIR` e `CRG_REPO_ROOT` absolutos durante build e serve, prova onde o grafo foi persistido e a instalação falha antes do commit se essa prova não for possível
 
 #### AC-053 — Segredos permanecem apenas em memória ou ambiente
 
@@ -125,7 +125,7 @@ Como mantenedor, quero provas isoladas dos casos que falharam na revisão, para 
 
 - **Dado** runtime anterior válido e configurações de host ou hooks existentes
 - **Quando** qualquer etapa após o staging falha, incluindo escrita de host, hook, lock ou readiness
-- **Então** uma única transação restaura bytes, caminhos, runtime ativo e manifest anteriores, remove staging e deixa o projeto utilizável
+- **Então** uma única transação restaura bytes, caminhos, runtime ativo, iii-engine, backends, manifest e integrações anteriores, remove staging e filhos novos e deixa o projeto utilizável
 
 #### AC-055 — Matriz executa as duas versões Node suportadas
 
@@ -157,6 +157,10 @@ Como mantenedor, quero provas isoladas dos casos que falharam na revisão, para 
 | ASM-012 | O assistente interativo será `mega-brain setup`, mantendo `mega-brain install` não interativo. | confirmada | O usuário escolheu separar a UX humana da automação determinística. |
 | ASM-013 | Sessões simultâneas do mesmo projeto devem compartilhar um supervisor com leases. | confirmada | O usuário escolheu um supervisor por projeto que encerra após a última sessão. |
 | ASM-014 | Isolamento estrito será default e modos remotos compartilhados exigirão opt-out explícito. | confirmada | Derivado do requisito de isolamento total e dos princípios locais de privilégio mínimo e egress opt-in. |
+| ASM-015 | O supervisor já planejado será descoberto por manifest sem segredo e protegido pelo controle de acesso do IPC do sistema operacional. | confirmada | O usuário confirmou manter o supervisor existente, remover o nonce efêmero e usar ACL do usuário no Windows ou socket `0600` no Unix. |
+| ASM-016 | Leases usarão heartbeat de 10 segundos, expiração de 30 segundos e grace period de 5 segundos. | confirmada | O usuário aprovou tempos determinísticos e configuráveis, com relógio injetado nos testes. |
+| ASM-017 | Isolamento remoto estrito será provado por sentinela reversível entre dois namespaces. | confirmada | O usuário confirmou retry ou troca de modo no setup; install não interativo falha sem mutações. |
+| ASM-018 | No Windows gerenciado, o iii-engine fixado será instalado no runtime isolado; modo remoto não instala nem inicia AgentMemory ou iii-engine local. | confirmada | O usuário escolheu runtime gerenciado com checksum e confirmou a bifurcação remoto versus local. |
 
 ## Perguntas em aberto
 
