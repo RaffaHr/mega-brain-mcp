@@ -1,11 +1,11 @@
 {
   "feature": "mega-brain-mcp-v1",
-  "timestamp": "2026-08-25T02:19:38.670Z",
-  "gitRev": "d41d3b3",
-  "command": "npx vitest run --reporter=json --outputFile=.spec/verification/vitest-results.json",
+  "timestamp": "2026-08-25T19:40:01.453Z",
+  "gitRev": "2eae7ff",
+  "command": "npx vitest run --pool=threads --maxWorkers=1 --reporter=json --outputFile=.spec/verification/vitest-results.json",
   "reporter": "vitest-json",
   "exitCode": 0,
-  "testsParsed": 70,
+  "testsParsed": 128,
   "results": {
     "AC-001": {
       "status": "pass",
