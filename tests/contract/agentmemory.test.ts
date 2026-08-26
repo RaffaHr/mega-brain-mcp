@@ -73,6 +73,17 @@ describe('AgentMemory REST adapter', () => {
         return jsonResponse({ id: record.id }, 201);
       }
       if (url.pathname.endsWith('/smart-search')) {
+        if (Array.isArray(body.expandIds)) {
+          return jsonResponse({
+            mode: 'expanded',
+            results: ((body.expandIds ?? []) as string[]).flatMap((id) => {
+              const record = [...records.values()].flat().find((item) => item.id === id);
+              return record
+                ? [{ obsId: record.id, observation: { id: record.id, narrative: record.content } }]
+                : [];
+            }),
+          });
+        }
         const project = String(body.project);
         const query = String(body.query);
         return jsonResponse({ results: (records.get(project) ?? []).filter(({ content }) => content.includes(query)) });

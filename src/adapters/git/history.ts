@@ -1,4 +1,5 @@
 import type { GitRepository } from './repository.js';
+import { isGitHeadUnavailable } from './repository.js';
 
 export interface GitCommit {
   hash: string;
@@ -14,7 +15,10 @@ export async function gitHistory(repository: GitRepository, limit = 50, paths: s
     `--max-count=${limit}`,
     '--format=%H%x00%P%x00%aI%x00%s',
     ...(paths.length ? ['--', ...paths] : []),
-  ]);
+  ]).catch((error) => {
+    if (isGitHeadUnavailable(error)) return '';
+    throw error;
+  });
   return output.split(/\r?\n/).filter(Boolean).map((line) => {
     const [hash = '', parents = '', authoredAt = '', subject = ''] = line.split('\0');
     return { hash, parentHashes: parents ? parents.split(' ') : [], authoredAt, subject };

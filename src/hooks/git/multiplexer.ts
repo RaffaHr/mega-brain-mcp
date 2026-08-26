@@ -18,7 +18,7 @@ if [ -x ${previous} ]; then
   ${previous} "$@"
   previous_status=$?
 fi
-${command} hook git ${shellQuote(input.event)} "$@" >/dev/null 2>&1 || true
+( ${command} hook git ${shellQuote(input.event)} "$@" >/dev/null 2>&1 || true ) &
 exit "$previous_status"
 `;
 }

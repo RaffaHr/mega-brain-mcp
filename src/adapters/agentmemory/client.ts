@@ -76,15 +76,21 @@ export class AgentMemoryClient {
     return this.#request('GET', '/agentmemory/health', agentMemoryHealthSchema);
   }
 
-  async smartSearch(input: { query: string; limit?: number; project?: string }) {
-    const compact = await this.#request('POST', '/agentmemory/smart-search', smartSearchResponseSchema, input);
-    const expandIds = compact.results.flatMap(({ content, obsId }) => !content && obsId ? [obsId] : []);
+  async smartSearch(input: { query: string; limit?: number; project?: string; requireHydratedResults?: boolean }) {
+    const { requireHydratedResults, ...searchInput } = input;
+    const compact = await this.#request('POST', '/agentmemory/smart-search', smartSearchResponseSchema, searchInput);
+    const expandIds = compact.results.flatMap(({ id, obsId, content }) => {
+      const candidateId = obsId ?? id;
+      return candidateId && (requireHydratedResults || !content) ? [candidateId] : [];
+    });
     if (expandIds.length === 0) return compact;
     const expanded = await this.#request('POST', '/agentmemory/smart-search', expandedSmartSearchResponseSchema, { expandIds });
     const expandedById = new Map(expanded.results.flatMap((record) => record.id ? [[record.id, record] as const] : []));
     const missingIds = expandIds.filter((id) => !expandedById.has(id));
     const memoryResults = await Promise.allSettled(missingIds.map((id) => this.#request(
       'GET', `/agentmemory/memories/${encodeURIComponent(id)}`, memoryByIdResponseSchema,
+      undefined,
+      searchInput.project ? { project: searchInput.project } : undefined,
     )));
     const memoriesById = new Map(memoryResults.flatMap((result) => result.status === 'fulfilled' && result.value.id
       ? [[result.value.id, result.value] as const]
@@ -94,11 +100,13 @@ export class AgentMemoryClient {
       return key && score !== undefined ? [[key, score] as const] : [];
     }));
     return {
-      results: compact.results.map((record) => {
+      results: compact.results.flatMap((record) => {
         const id = record.id ?? record.obsId;
         const hydrated = id ? expandedById.get(id) ?? memoriesById.get(id) : undefined;
+        if (requireHydratedResults && !hydrated) return [];
+        if (requireHydratedResults && searchInput.project && hydrated?.project && hydrated.project !== searchInput.project) return [];
         const normalized = hydrated ?? { ...record, id, content: record.content ?? record.title };
-        return { ...normalized, ...(id && scores.has(id) ? { score: scores.get(id) } : {}) };
+        return [{ ...normalized, ...(id && scores.has(id) ? { score: scores.get(id) } : {}) }];
       }),
     };
   }

@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
@@ -46,6 +46,7 @@ test('multiplexer preserva o hook anterior e ignora falha do Mega Brain', () => 
   });
   expect(script).toContain('previous_status=$?');
   expect(script).toContain('|| true');
+  expect(script).toContain(') &');
   expect(script).toContain('exit "$previous_status"');
   expect(script).toContain("'\"'\"'");
 });
@@ -60,7 +61,7 @@ test('instalação Git é idempotente e restaura core.hooksPath', async () => {
     }
     if (args[0] === 'config' && args[2] === 'core.hooksPath' && args[3]) { hooksPath = args[3]; return '' ; }
     if (args.join(' ') === 'config --local --unset core.hooksPath') { hooksPath = null; return ''; }
-    if (args.join(' ') === 'rev-parse --git-path hooks') return '.git/hooks\n';
+    if (args.join(' ') === 'rev-parse --absolute-git-dir') return `${join(root, '.git')}\n`;
     throw new Error(`Unexpected Git args: ${args.join(' ')}`);
   });
   const repository = { root, run } as unknown as GitRepository;
@@ -70,4 +71,62 @@ test('instalação Git é idempotente e restaura core.hooksPath', async () => {
   expect(await readFile(join(managedHooksPath, 'post-commit'), 'utf8')).toContain('.third-party-hooks');
   await restoreGitHooks(repository, managedHooksPath);
   expect(hooksPath).toBe('.third-party-hooks');
+});
+
+test('instalação Git corrige backup que aponta para o próprio hooksPath gerenciado', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'mega-brain-git-hooks-self-'));
+  const managedHooksPath = join(root, '.mega-brain-hooks');
+  let hooksPath: string | null = managedHooksPath;
+  const run = vi.fn(async (args: string[]) => {
+    if (args.join(' ') === 'config --local --get core.hooksPath') {
+      if (hooksPath === null) throw new Error('unset');
+      return `${hooksPath}\n`;
+    }
+    if (args[0] === 'config' && args[2] === 'core.hooksPath' && args[3]) { hooksPath = args[3]; return ''; }
+    if (args.join(' ') === 'rev-parse --absolute-git-dir') return `${join(root, '.git')}\n`;
+    throw new Error(`Unexpected Git args: ${args.join(' ')}`);
+  });
+  const repository = { root, run } as unknown as GitRepository;
+  await mkdir(managedHooksPath, { recursive: true });
+  await writeFile(join(managedHooksPath, 'installation.json'), JSON.stringify({
+    previousHooksPath: managedHooksPath,
+    previousResolvedHooksPath: managedHooksPath,
+  }), 'utf8');
+
+  await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: ['mega-brain'] });
+
+  const script = await readFile(join(managedHooksPath, 'post-commit'), 'utf8');
+  const backup = JSON.parse(await readFile(join(managedHooksPath, 'installation.json'), 'utf8')) as { previousHooksPath: string | null; previousResolvedHooksPath: string };
+  expect(backup.previousHooksPath).toBeNull();
+  expect(backup.previousResolvedHooksPath).toBe(join(root, '.git/hooks'));
+  expect(script).not.toContain(`${managedHooksPath}\\post-commit`);
+  expect(script).toContain(join(root, '.git/hooks', 'post-commit'));
+});
+
+test('instalação Git não encadeia hooks gerenciados por instalação anterior do Mega Brain', async () => {
+  const root = await mkdtemp(join(tmpdir(), 'mega-brain-git-hooks-previous-managed-'));
+  const previousManagedHooksPath = join(root, '.mega-brain-old-hooks');
+  const managedHooksPath = join(root, '.mega-brain-new-hooks');
+  let hooksPath: string | null = previousManagedHooksPath;
+  const run = vi.fn(async (args: string[]) => {
+    if (args.join(' ') === 'config --local --get core.hooksPath') {
+      if (hooksPath === null) throw new Error('unset');
+      return `${hooksPath}\n`;
+    }
+    if (args[0] === 'config' && args[2] === 'core.hooksPath' && args[3]) { hooksPath = args[3]; return ''; }
+    if (args.join(' ') === 'rev-parse --absolute-git-dir') return `${join(root, '.git')}\n`;
+    throw new Error(`Unexpected Git args: ${args.join(' ')}`);
+  });
+  await mkdir(previousManagedHooksPath, { recursive: true });
+  await writeFile(join(previousManagedHooksPath, 'installation.json'), JSON.stringify({
+    previousHooksPath: null,
+    previousResolvedHooksPath: join(root, '.git/hooks'),
+  }), 'utf8');
+  const repository = { root, run } as unknown as GitRepository;
+
+  await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: ['mega-brain'] });
+
+  const script = await readFile(join(managedHooksPath, 'post-commit'), 'utf8');
+  expect(script).not.toContain(previousManagedHooksPath);
+  expect(script).toContain(join(root, '.git/hooks', 'post-commit'));
 });

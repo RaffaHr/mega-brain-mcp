@@ -8,7 +8,7 @@ import { afterEach, expect, test } from 'vitest';
 
 import { committedBlobHash } from '../../src/adapters/git/blobs.js';
 import { gitHistory } from '../../src/adapters/git/history.js';
-import { GitRepository } from '../../src/adapters/git/repository.js';
+import { GitRepository, NO_GIT_HEAD } from '../../src/adapters/git/repository.js';
 
 const run = promisify(execFile);
 const directories: string[] = [];
@@ -32,4 +32,18 @@ test('reads HEAD, tracked blobs, status and immutable history from Git', async (
   expect(await committedBlobHash(repository, 'app.ts')).toMatch(/^[a-f0-9]{40}$/);
   expect(history[0]).toMatchObject({ hash: head, subject: 'initial' });
   expect(await repository.status()).toEqual([]);
+}, 20_000);
+
+test('treats an initialized repository without commits as degraded Git state', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-unborn-repository-'));
+  directories.push(root);
+  await run('git', ['init', root]);
+  await writeFile(path.join(root, 'draft.ts'), 'export const draft = true;\n', 'utf8');
+
+  const repository = await GitRepository.discover(root);
+
+  expect(await repository.head()).toBe(NO_GIT_HEAD);
+  expect(await gitHistory(repository, 5)).toEqual([]);
+  expect(await committedBlobHash(repository, 'draft.ts')).toBeNull();
+  expect(await repository.changedFiles()).toEqual(['draft.ts']);
 }, 20_000);

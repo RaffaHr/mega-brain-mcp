@@ -78,6 +78,87 @@ test('AC-042/AC-044: defaults geram plano managed estrito e só instalam após c
   expect(JSON.stringify(plan.summary)).not.toMatch(/secret|token/i);
 });
 
+test('setup oferece git init quando o diretorio ainda nao e repositorio Git', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-setup-git-init-'));
+  directories.push(root);
+  const directoryIdentity = deriveProjectIdentity({
+    root,
+    gitDir: '.mega-brain/non-git-project',
+    commonGitDir: '.mega-brain/non-git-project',
+    gitBacked: false,
+  });
+  const gitIdentity = deriveProjectIdentity({ root, gitDir: '.git', commonGitDir: '.git' });
+  const discoverIdentity = vi.fn()
+    .mockResolvedValueOnce(directoryIdentity)
+    .mockResolvedValueOnce(gitIdentity);
+  const initializeGit = vi.fn(async () => undefined);
+  const install = vi.fn(async () => undefined);
+  const prompts = new ScriptedPrompts({
+    repository: [root],
+    nonGitRepositoryAction: ['init'],
+    hosts: ['codex'],
+    agentMemoryMode: ['managed'],
+    advanced: [false],
+    confirm: [true],
+  });
+
+  await runSetupWizard({
+    prompts,
+    currentDirectory: root,
+    environment: {},
+    defaultDataDir: path.join(root, '.data-root'),
+    preflight: async () => preflight(),
+    discoverIdentity,
+    initializeGit,
+    probeRemote: async () => undefined,
+    install,
+  });
+
+  expect(initializeGit).toHaveBeenCalledWith(root);
+  expect(discoverIdentity).toHaveBeenCalledTimes(2);
+  expect(install.mock.calls[0]![0].identity).toBe(gitIdentity);
+  expect(prompts.messages.join('\n')).toContain('Git repository initialized. Rechecking project identity.');
+});
+
+test('setup permite tentar novamente quando o usuario inicializa Git manualmente', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-setup-git-retry-'));
+  directories.push(root);
+  const directoryIdentity = deriveProjectIdentity({
+    root,
+    gitDir: '.mega-brain/non-git-project',
+    commonGitDir: '.mega-brain/non-git-project',
+    gitBacked: false,
+  });
+  const gitIdentity = deriveProjectIdentity({ root, gitDir: '.git', commonGitDir: '.git' });
+  const initializeGit = vi.fn(async () => undefined);
+  const install = vi.fn(async () => undefined);
+  const prompts = new ScriptedPrompts({
+    repository: [root],
+    nonGitRepositoryAction: ['retry'],
+    hosts: ['codex'],
+    agentMemoryMode: ['managed'],
+    advanced: [false],
+    confirm: [true],
+  });
+
+  await runSetupWizard({
+    prompts,
+    currentDirectory: root,
+    environment: {},
+    defaultDataDir: path.join(root, '.data-root'),
+    preflight: async () => preflight(),
+    discoverIdentity: vi.fn()
+      .mockResolvedValueOnce(directoryIdentity)
+      .mockResolvedValueOnce(gitIdentity),
+    initializeGit,
+    probeRemote: async () => undefined,
+    install,
+  });
+
+  expect(initializeGit).not.toHaveBeenCalled();
+  expect(install.mock.calls[0]![0].identity).toBe(gitIdentity);
+});
+
 test('AC-049: remoto inválido permanece na etapa e pode trocar para managed sem mutação @spec:AC-049', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-setup-retry-'));
   directories.push(root);

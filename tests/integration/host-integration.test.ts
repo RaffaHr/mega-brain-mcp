@@ -4,9 +4,25 @@ import path from 'node:path';
 import { afterEach, expect, test } from 'vitest';
 import { installHostMcpFiles, restoreHostMcpFiles } from '../../src/cli/host-integration.js';
 import { installHostHookFiles, restoreHostHookFiles } from '../../src/cli/host-hooks.js';
+import { currentCliShellCommand, currentCliStdioConnection } from '../../src/cli/index.js';
 
 const temporaryDirectories: string[] = [];
 afterEach(async () => { await Promise.all(temporaryDirectories.splice(0).map((directory) => rm(directory, { recursive: true, force: true }))); });
+
+test('AC-032: CLI gera entrada MCP e hook sem depender do shim global no PATH @spec:AC-032', () => {
+  const connection = currentCliStdioConnection(['mcp', '--repo', 'C:/repo']);
+  expect(connection.command).toBe(process.execPath);
+  expect(connection.args[0]).toBe('--no-warnings');
+  expect(connection.args[1]).toMatch(/[\\/]src[\\/]cli[\\/]index\.ts$/u);
+  expect(connection.args.slice(2)).toEqual(['mcp', '--repo', 'C:/repo']);
+
+  const hookCommand = currentCliShellCommand(['hook', 'host', 'codex']);
+  expect(hookCommand).toContain(process.execPath);
+  expect(hookCommand).toContain('--no-warnings');
+  expect(hookCommand).toContain('hook');
+  expect(hookCommand).toContain('codex');
+  expect(hookCommand).not.toContain('mega-brain hook');
+});
 
 test('AC-032: install merges one public MCP in Codex and Claude without exposing private backends @spec:AC-032', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-host-mcp-'));

@@ -4,7 +4,7 @@ import path from 'node:path';
 import { promisify } from 'node:util';
 
 import { AgentMemoryClient } from '../adapters/agentmemory/client.js';
-import { GitRepository } from '../adapters/git/repository.js';
+import { GitRepository, NO_GIT_HEAD } from '../adapters/git/repository.js';
 import type { MegaBrainConfig } from '../config/schema.js';
 import { dispatchHook } from '../hooks/dispatcher.js';
 import type { HookHost, NormalizedHookEvent } from '../hooks/events.js';
@@ -81,6 +81,7 @@ export async function handleGitHook(input: {
     return await handleGitEvent({ key: `${input.event}:${fingerprint}`, event: input.event, commitHash: head }, {
       ledger: new HookEventLedger(database),
       changedPaths: async () => {
+        if (head === NO_GIT_HEAD) return [];
         if (input.event === 'post-checkout' && input.hookArgs?.[0] && input.hookArgs[1]) {
           return (await repository.run(['diff', '--name-only', input.hookArgs[0], input.hookArgs[1]])).split(/\r?\n/).filter(Boolean);
         }
