@@ -27,7 +27,7 @@ Upgrade to a tarball containing the global-symlink fix, then reinstall:
 
 ```powershell
 npm uninstall --global @raffahr/mega-brain-mcp
-npm install --global .\raffahr-mega-brain-mcp-0.1.2.tgz
+npm install --global .\raffahr-mega-brain-mcp-0.1.3.tgz
 mega-brain --help
 ```
 

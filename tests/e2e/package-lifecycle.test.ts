@@ -35,7 +35,7 @@ test('AC-034: supervisor confirms spawn, enforces readiness and rolls back failu
   const manifest: RuntimeLockManifest = {
     schemaVersion: 1, installedAt: new Date().toISOString(), agentMemoryMode: 'managed',
     project: { repositoryId: identity.repositoryId, checkoutId: identity.checkoutId, worktreeId: identity.worktreeId },
-    versions: { megaBrain: '0.1.2', agentMemory: '0.9.29', codeReviewGraph: '2.3.7' },
+    versions: { megaBrain: '0.1.3', agentMemory: '0.9.29', codeReviewGraph: '2.3.7' },
     backends: { agentMemory: command, codeReviewGraph: { ...command, lifecycle: 'on-demand' } },
   };
   await expect(startRuntime(layout, manifest, systemProcessController, { ready: async () => { throw new Error('not ready'); } })).rejects.toThrow('not ready');
