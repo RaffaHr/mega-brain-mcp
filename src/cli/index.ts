@@ -28,7 +28,8 @@ import { createMegaBrainServer, listenMegaBrainServer } from '../server/index.js
 import { managedDoctorDependencies, runDoctor } from './doctor.js';
 import { handleGitHook, handleHostHook } from './hook.js';
 import { installHostMcpFiles, restoreHostMcpFiles } from './host-integration.js';
-import { installHostHookFiles, parseHosts, restoreHostHookFiles } from './host-hooks.js';
+import { installHostHookFiles, restoreHostHookFiles } from './host-hooks.js';
+import { promptForHosts } from './host-selection.js';
 import { installProjectTransaction, inspectManagedRuntime } from './install.js';
 import { runMcpCommand } from './mcp.js';
 import { runInstallPreflight } from './preflight.js';
@@ -44,20 +45,6 @@ import { snapshotFile, type RuntimeTransaction } from '../runtime/transaction.js
 function option(args: string[], name: string): string | undefined {
   const index = args.indexOf(name);
   return index === -1 ? undefined : args[index + 1];
-}
-
-function optionValues(args: string[], name: string): string[] | undefined {
-  const values: string[] = [];
-  for (let index = 0; index < args.length; index += 1) {
-    if (args[index] !== name) continue;
-    for (let valueIndex = index + 1; valueIndex < args.length; valueIndex += 1) {
-      const value = args[valueIndex];
-      if (!value || value.startsWith('--')) break;
-      values.push(value);
-      index = valueIndex;
-    }
-  }
-  return values.length > 0 ? values : undefined;
 }
 
 function flag(args: string[], name: string): boolean {
@@ -230,7 +217,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     return;
   }
   if (command === 'help' || flag(args, '--help')) {
-    output('Usage: mega-brain <setup|mcp|serve|install|start|stop|doctor|upgrade|uninstall> [--repo PATH] [--config FILE] [--hosts codex,claude] [--transport stdio|http] [--python COMMAND] [--port PORT] [--accept-iii-engine] [--purge]');
+    output('Usage: mega-brain <setup|mcp|serve|install|start|stop|doctor|upgrade|uninstall> [--repo PATH] [--config FILE] [--transport stdio|http] [--python COMMAND] [--port PORT] [--accept-iii-engine] [--purge]');
     return;
   }
   if (command === 'setup') {
@@ -256,8 +243,6 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       ),
       async install(plan) {
         const iiiArtifact = plan.iiiEngineConfirmed ? await downloadOfficialIiiEngine() : undefined;
-        const remoteSecretEnv = plan.config.agentMemory.secretEnvVar;
-        const remoteSecret = remoteSecretEnv ? process.env[remoteSecretEnv] : undefined;
         const repository = await optionalGitRepository(plan.identity, logger);
         const layout = runtimeLayout(plan.config.dataDir, plan.identity);
         const backupDir = path.join(layout.projectRoot, 'integration-backups');
@@ -283,11 +268,10 @@ export async function main(args = process.argv.slice(2), output: (value: string)
           ...(plan.config.agentMemory.mode === 'remote' ? {
             remoteAgentMemory: {
               baseUrl: plan.config.agentMemory.baseUrl,
-              secretEnvVar: remoteSecretEnv!,
             },
             remoteIsolationProbe: () => probeRemoteAgentMemoryIsolation(new AgentMemoryClient({
               baseUrl: plan.config.agentMemory.baseUrl,
-              ...(remoteSecret ? { authToken: remoteSecret } : {}),
+              ...(plan.config.agentMemory.authToken ? { authToken: plan.config.agentMemory.authToken } : {}),
             }), {
               projectA: plan.identity.worktreeId,
               projectB: `${plan.identity.worktreeId}-isolation-control`,
@@ -374,7 +358,9 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     throw new Error('Usage: mega-brain hook <host codex|host claude|git EVENT>');
   }
   if (command === 'install') {
-    const hosts = parseHosts(optionValues(args, '--hosts'));
+    const prompts = createTerminalPrompts();
+    const hosts = await promptForHosts(prompts);
+    if (hosts === null) { prompts.notify('Install cancelled; no changes were applied.'); return; }
     const repository = await optionalGitRepository(identity, logger);
     const transport = option(args, '--transport') ?? 'stdio';
     if (transport !== 'stdio' && transport !== 'http') throw new Error('Invalid --transport; expected stdio or http');
@@ -415,7 +401,6 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       ...(config.agentMemory.mode === 'remote' ? {
         remoteAgentMemory: {
           baseUrl: config.agentMemory.baseUrl,
-          secretEnvVar: config.agentMemory.secretEnvVar ?? '',
         },
         remoteIsolationProbe: () => probeRemoteAgentMemoryIsolation(createAgentMemoryClient(config), {
           projectA: identity.worktreeId,
@@ -481,7 +466,6 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       ...(config.agentMemory.mode === 'remote' ? {
         remoteAgentMemory: {
           baseUrl: config.agentMemory.baseUrl,
-          secretEnvVar: config.agentMemory.secretEnvVar ?? '',
         },
         remoteIsolationProbe: () => probeRemoteAgentMemoryIsolation(createAgentMemoryClient(config), {
           projectA: identity.worktreeId,
@@ -495,7 +479,9 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     return;
   }
   if (command === 'uninstall') {
-    const hosts = parseHosts(optionValues(args, '--hosts'));
+    const prompts = createTerminalPrompts();
+    const hosts = await promptForHosts(prompts, 'Remove Mega Brain from which hosts?');
+    if (hosts === null) { prompts.notify('Uninstall cancelled; no changes were applied.'); return; }
     const transport = option(args, '--transport') ?? 'stdio';
     if (transport !== 'stdio' && transport !== 'http') throw new Error('Invalid --transport; expected stdio or http');
     const configPath = option(args, '--config');

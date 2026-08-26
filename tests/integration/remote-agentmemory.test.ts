@@ -24,7 +24,7 @@ test('AC-049: install remoto recusa isolamento inválido antes de arquivos ou do
     dataDir,
     identity,
     agentMemoryMode: 'remote',
-    remoteAgentMemory: { baseUrl: 'https://memory.example.test', secretEnvVar: 'REMOTE_MEMORY_SECRET' },
+    remoteAgentMemory: { baseUrl: 'https://memory.example.test' },
     remoteIsolationProbe: async () => { throw new Error('namespace B leaked the sentinel'); },
     runner,
     preflight: false,

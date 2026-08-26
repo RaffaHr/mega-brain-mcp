@@ -180,7 +180,7 @@ test('AC-050: resolver canônico aplica precedência e expõe somente a origem r
     'MEGA_BRAIN_PORT=4100',
     'MEGA_BRAIN_AGENTMEMORY_MODE=remote',
     'MEGA_BRAIN_AGENTMEMORY_URL=https://dotenv.invalid',
-    'MEGA_BRAIN_AGENTMEMORY_SECRET_ENV=DOTENV_SECRET',
+    'MEGA_BRAIN_AGENTMEMORY_TOKEN=dotenv-token',
   ].join('\n'));
 
   const resolved = await resolveProjectConfig({
@@ -191,7 +191,7 @@ test('AC-050: resolver canônico aplica precedência e expõe somente a origem r
       agentMemory: {
         mode: 'remote',
         baseUrl: 'https://config.invalid',
-        secretEnvVar: 'CONFIG_SECRET',
+        authToken: 'config-token',
         environment: {},
       },
     },
@@ -199,8 +199,7 @@ test('AC-050: resolver canônico aplica precedência e expõe somente a origem r
       MEGA_BRAIN_DATA_DIR: 'from-process',
       MEGA_BRAIN_PORT: '4200',
       MEGA_BRAIN_AGENTMEMORY_URL: 'https://process.invalid',
-      MEGA_BRAIN_AGENTMEMORY_SECRET_ENV: 'PROCESS_SECRET',
-      PROCESS_SECRET: 'must-never-appear-in-diagnostics',
+      MEGA_BRAIN_AGENTMEMORY_TOKEN: 'must-never-appear-in-diagnostics',
     },
     flags: {
       dataDir: 'from-flags',
@@ -212,18 +211,17 @@ test('AC-050: resolver canônico aplica precedência e expõe somente a origem r
   expect(resolved.config).toMatchObject({
     dataDir: path.resolve(repoPath, 'from-flags'),
     port: 4300,
-    agentMemory: {
-      mode: 'remote',
-      baseUrl: 'https://flags.example.test',
-      secretEnvVar: 'PROCESS_SECRET',
-      authToken: 'must-never-appear-in-diagnostics',
-    },
+      agentMemory: {
+        mode: 'remote',
+        baseUrl: 'https://flags.example.test',
+        authToken: 'must-never-appear-in-diagnostics',
+      },
   });
   expect(resolved.sources).toMatchObject({
     dataDir: 'flag',
     port: 'flag',
     'agentMemory.baseUrl': 'flag',
-    'agentMemory.secretEnvVar': 'process',
+    'agentMemory.authToken': 'process',
   });
   expect(Object.isFrozen(resolved.config)).toBe(true);
   expect(Object.isFrozen(resolved.config.agentMemory)).toBe(true);
@@ -254,7 +252,7 @@ test('AC-051: porta e diretórios relativos do .env são resolvidos contra o rep
   });
 });
 
-test('AC-053: segredo remoto é lido pela referência e omitido do diagnóstico @spec:AC-053', async () => {
+test('AC-053: segredo remoto vem do config local e é omitido do diagnóstico @spec:AC-053', async () => {
   const resolved = await resolveProjectConfig({
     envFilePath: false,
     fileConfig: {
@@ -262,14 +260,13 @@ test('AC-053: segredo remoto é lido pela referência e omitido do diagnóstico 
       agentMemory: {
         mode: 'remote',
         baseUrl: 'https://memory.example.test',
-        secretEnvVar: 'MEGA_BRAIN_REMOTE_SECRET',
+        authToken: 'runtime-only-secret',
         environment: {},
       },
     },
-    env: { MEGA_BRAIN_REMOTE_SECRET: 'runtime-only-secret' },
+    env: {},
   });
 
-  expect(resolved.config.agentMemory.secretEnvVar).toBe('MEGA_BRAIN_REMOTE_SECRET');
   expect(resolved.config.agentMemory.authToken).toBe('runtime-only-secret');
   expect(JSON.stringify(resolved.diagnostic)).not.toContain('runtime-only-secret');
   expect(JSON.stringify(resolved.diagnostic)).not.toContain('authToken":"runtime-only-secret');

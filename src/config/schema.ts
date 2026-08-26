@@ -19,10 +19,13 @@ export const megaBrainConfigSchema = z.object({
   agentMemory: z.object({
     mode: z.enum(['managed', 'remote']).default('managed'),
     baseUrl: z.url(),
-    secretEnvVar: z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/u).optional(),
     authToken: z.string().min(1).optional(),
     ports: agentMemoryPortsSchema.default({ rest: 3111, streams: 3112, viewer: 3113, engine: 3114 }),
     environment: z.record(z.string(), z.string()).default({}),
+  }).superRefine((agentMemory, context) => {
+    if (agentMemory.mode === 'remote' && !agentMemory.authToken) {
+      context.addIssue({ code: 'custom', path: ['authToken'], message: 'Remote AgentMemory mode requires MEGA_BRAIN_AGENTMEMORY_TOKEN or repository-local authToken' });
+    }
   }),
   codeReviewGraph: z.object({
     command: z.string().min(1),

@@ -82,7 +82,7 @@ test('AC-039/041/044: cliente stdio real inicia, usa seis tools e encerra o supe
       dataDir,
       identity,
       agentMemoryMode: 'remote',
-      remoteAgentMemory: { baseUrl, secretEnvVar: 'REMOTE_MEMORY_SECRET' },
+      remoteAgentMemory: { baseUrl },
       remoteIsolationProbe: async () => undefined,
       codeReviewGraph: { mode: 'custom', command: process.execPath, args: [crgFixture] },
       runner: { run: async () => undefined },
@@ -95,7 +95,7 @@ test('AC-039/041/044: cliente stdio real inicia, usa seis tools e encerra o supe
       logLevel: 'info',
       allowEgress: false,
       allowLlm: false,
-      agentMemory: { mode: 'remote', baseUrl, secretEnvVar: 'REMOTE_MEMORY_SECRET', ports: manifest.isolation!.ports, environment: {} },
+      agentMemory: { mode: 'remote', baseUrl, authToken: 'runtime-only-secret', ports: manifest.isolation!.ports, environment: {} },
       codeReviewGraph: { command: process.execPath, args: [crgFixture], dataDir: manifest.isolation!.paths.codeReviewGraph, environment: {} },
       projects: {},
     });
@@ -103,7 +103,7 @@ test('AC-039/041/044: cliente stdio real inicia, usa seis tools e encerra o supe
     const transport = new StdioClientTransport({
       command: process.execPath,
       args: [path.join(root, 'dist', 'cli', 'index.js'), 'mcp', '--repo', repository],
-      env: { ...environment, REMOTE_MEMORY_SECRET: 'runtime-only-secret' },
+      env: environment,
       stderr: 'pipe',
     });
     client = new Client({ name: 'autonomous-e2e', version: '1.0.0' });

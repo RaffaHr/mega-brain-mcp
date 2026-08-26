@@ -41,7 +41,7 @@ export async function resolveProjectConfig(options: LoadConfigOptions = {}): Pro
 const safeEnvironmentSchema = z.record(z.string(), z.string()).superRefine((environment, context) => {
   for (const key of Object.keys(environment)) {
     if (/(?:secret|token|password|api_key|private_key)/iu.test(key)) {
-      context.addIssue({ code: 'custom', path: [key], message: 'Secrets must be referenced by environment variable name, never persisted' });
+      context.addIssue({ code: 'custom', path: [key], message: 'Secrets must not be persisted in backend environment maps' });
     }
   }
 });
@@ -55,15 +55,15 @@ export const projectConfigSchema = z.object({
   agentMemory: z.object({
     mode: z.enum(['managed', 'remote']),
     baseUrl: z.url(),
-    secretEnvVar: z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/u).optional(),
+    authToken: z.string().min(1).optional(),
     ports: agentMemoryPortsSchema,
     environment: safeEnvironmentSchema.default({}),
   }).superRefine((agentMemory, context) => {
-    if (agentMemory.mode === 'remote' && !agentMemory.secretEnvVar) {
-      context.addIssue({ code: 'custom', path: ['secretEnvVar'], message: 'Remote mode requires a secret environment variable reference' });
+    if (agentMemory.mode === 'remote' && !agentMemory.authToken) {
+      context.addIssue({ code: 'custom', path: ['authToken'], message: 'Remote mode requires a repository-local AgentMemory token' });
     }
-    if (agentMemory.mode === 'managed' && agentMemory.secretEnvVar) {
-      context.addIssue({ code: 'custom', path: ['secretEnvVar'], message: 'Managed mode must not retain remote secret configuration' });
+    if (agentMemory.mode === 'managed' && agentMemory.authToken) {
+      context.addIssue({ code: 'custom', path: ['authToken'], message: 'Managed mode must not retain remote secret configuration' });
     }
   }),
   codeReviewGraph: z.object({

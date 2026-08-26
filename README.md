@@ -67,24 +67,19 @@ mega-brain mcp --repo .
 No manual `mega-brain start` or `mega-brain serve` is needed for normal Codex or
 Claude Code use. The `mcp` command writes lifecycle logs to `stderr`; `stdout` remains reserved for MCP JSON-RPC messages.
 
-For CI, scripts and non-interactive terminals, use `install`. It never prompts:
+To install into an already configured project without rerunning the full setup,
+use `install`. It opens the same host picker used by setup; choose Codex, Claude
+Code, or both:
 
 ```powershell
-# Codex
-mega-brain install --repo . --hosts codex
-
-# Claude Code
-mega-brain install --repo . --hosts claude
-
-# Both
-mega-brain install --repo . --hosts codex,claude
+mega-brain install --repo .
 ```
 
 On Windows, managed AgentMemory also requires explicit acceptance of the pinned,
 checksummed iii-engine artifact in the project runtime:
 
 ```powershell
-mega-brain install --repo . --hosts codex,claude --accept-iii-engine
+mega-brain install --repo . --accept-iii-engine
 ```
 
 The interactive setup asks for this confirmation directly.
@@ -165,21 +160,21 @@ Expensive or external features stay off unless explicitly enabled. See
 ## Use an existing remote AgentMemory
 
 Remote mode does not install or start AgentMemory locally. Supply the service URL,
-the name of the environment variable containing its secret, and the secret value
-only through the current process environment or an uncommitted `.env`:
+and the secret token. Interactive setup stores the token in this repository's
+uncommitted `.mega-brain/config.json`; install can read the same token from
+`MEGA_BRAIN_AGENTMEMORY_TOKEN` or that local config file:
 
 ```powershell
 $env:MEGA_BRAIN_AGENTMEMORY_MODE = 'remote'
 $env:MEGA_BRAIN_AGENTMEMORY_URL = 'https://memory.example.com'
-$env:MEGA_BRAIN_AGENTMEMORY_SECRET_ENV = 'REMOTE_MEMORY_SECRET'
-$env:REMOTE_MEMORY_SECRET = '<secret>'
-mega-brain install --repo . --hosts codex,claude
+$env:MEGA_BRAIN_AGENTMEMORY_TOKEN = '<secret>'
+mega-brain install --repo .
 ```
 
-In remote mode Mega Brain persists only the remote URL and the secret environment
-variable name. It does not install AgentMemory, start AgentMemory or install
-iii-engine locally. Code Review Graph and provenance still remain isolated per
-project.
+In remote mode Mega Brain persists the remote URL and token only in the selected
+repository's local `.mega-brain/config.json`. It does not install AgentMemory,
+start AgentMemory or install iii-engine locally. Code Review Graph and
+provenance still remain isolated per project.
 
 Before any file or download is created, install performs a reversible namespace
 A/B probe and confirms cleanup. If validation fails, fix URL/secret and rerun;
@@ -191,13 +186,13 @@ No provider key, external egress, or paid LLM is enabled by default.
 
 ```powershell
 mega-brain upgrade --repo .
-mega-brain uninstall --repo . --hosts codex,claude
+mega-brain uninstall --repo .
 ```
 
 Normal uninstall removes the managed runtime and restores MCP/hooks while preserving project knowledge. Purge is explicit:
 
 ```powershell
-mega-brain uninstall --repo . --hosts codex,claude --purge
+mega-brain uninstall --repo . --purge
 ```
 
 Upgrade, stop, and uninstall are safe to repeat.

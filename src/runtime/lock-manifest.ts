@@ -71,7 +71,6 @@ export const runtimeLockManifestSchema = z.object({
   isolation: runtimeIsolationSchema.optional(),
   remoteAgentMemory: z.object({
     baseUrl: z.url(),
-    secretEnvVar: z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/u),
   }).optional(),
 }).superRefine((manifest, context) => {
   if (manifest.agentMemoryMode === 'managed' && !manifest.backends.agentMemory) {
@@ -92,7 +91,7 @@ export const runtimeLockManifestSchema = z.object({
     context.addIssue({
       code: 'custom',
       path: ['remoteAgentMemory'],
-      message: 'Remote AgentMemory mode requires only its URL and secret environment variable name',
+      message: 'Remote AgentMemory mode requires only its URL in the runtime manifest',
     });
   }
   if (manifest.agentMemoryMode === 'managed' && manifest.remoteAgentMemory) {

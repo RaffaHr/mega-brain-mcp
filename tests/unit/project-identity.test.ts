@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdtemp, realpath, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -48,9 +48,10 @@ test('AC-057: diretório sem .git recebe identidade estável sem bloquear comand
 
   const identity = await discoverProjectIdentity(root);
   const repeated = await discoverProjectIdentity(root);
+  const expectedRoot = await realpath(root).catch(() => path.resolve(root));
 
   expect(identity.gitBacked).toBe(false);
-  expect(identity.root).toBe(path.resolve(root).replaceAll('\\', '/').toLowerCase());
+  expect(identity.root).toBe(expectedRoot.replaceAll('\\', '/').toLowerCase());
   expect(identity.worktreeId).toBe(repeated.worktreeId);
   expect(identity.gitDir).toContain('.mega-brain/non-git-project');
 });

@@ -124,7 +124,7 @@ test('AC-026: modo remoto instala somente Code Review Graph e nunca inicia Agent
     dataDir,
     identity,
     agentMemoryMode: 'remote',
-    remoteAgentMemory: { baseUrl: 'https://memory.example.test', secretEnvVar: 'REMOTE_MEMORY_SECRET' },
+    remoteAgentMemory: { baseUrl: 'https://memory.example.test' },
     remoteIsolationProbe: async () => undefined,
     runner,
     preflight: false,
@@ -152,7 +152,6 @@ test('AC-026: modo remoto instala somente Code Review Graph e nunca inicia Agent
   expect(inspection.checks).toEqual({ project: true, isolation: true, codeReviewGraph: true });
   expect(manifest.remoteAgentMemory).toEqual({
     baseUrl: 'https://memory.example.test',
-    secretEnvVar: 'REMOTE_MEMORY_SECRET',
   });
   expect(starts).toEqual([]);
   expect(state.processes).toEqual({});

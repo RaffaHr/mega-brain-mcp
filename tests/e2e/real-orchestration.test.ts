@@ -85,6 +85,7 @@ test('AC-035: real MCP orchestration routes through AgentMemory HTTP, CRG stdio 
     MEGA_BRAIN_DATA_DIR: dataDir,
     MEGA_BRAIN_AGENTMEMORY_MODE: 'remote',
     MEGA_BRAIN_AGENTMEMORY_URL: agentMemoryUrl,
+    MEGA_BRAIN_AGENTMEMORY_TOKEN: 'runtime-only-secret',
   } });
   const crgFixture = fileURLToPath(new URL('../fixtures/crg-mcp.mjs', import.meta.url));
   const codeReviewGraph = new CodeReviewGraphClient({
@@ -99,7 +100,7 @@ test('AC-035: real MCP orchestration routes through AgentMemory HTTP, CRG stdio 
     config,
     identity,
     git,
-    agentMemory: new AgentMemoryClient({ baseUrl: agentMemoryUrl }),
+    agentMemory: new AgentMemoryClient({ baseUrl: agentMemoryUrl, authToken: config.agentMemory.authToken }),
     codeReviewGraph,
     provenance: new ProvenanceRepository(database),
   }));

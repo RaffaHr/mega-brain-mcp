@@ -9,15 +9,14 @@ import { normalizeHookEvent } from '../../src/hooks/events.js';
 import { installClaudeHooks, uninstallClaudeHooks } from '../../src/hooks/hosts/claude.js';
 import { installCodexHooks, uninstallCodexHooks } from '../../src/hooks/hosts/codex.js';
 import { DurableHookQueue } from '../../src/hooks/queue.js';
-import { installHostHookFiles, parseHosts, restoreHostHookFiles } from '../../src/cli/host-hooks.js';
+import { installHostHookFiles, restoreHostHookFiles } from '../../src/cli/host-hooks.js';
+import { expandHostSelection } from '../../src/cli/host-selection.js';
 
 describe('host hook dispatcher', () => {
-  test('AC-061: parser aceita hosts por virgula, espaco, repeticao e alias both @spec:AC-061', () => {
-    expect(parseHosts('codex,claude')).toEqual(['codex', 'claude']);
-    expect(parseHosts(['codex', 'claude'])).toEqual(['codex', 'claude']);
-    expect(parseHosts(['codex,', 'claude', 'codex'])).toEqual(['codex', 'claude']);
-    expect(parseHosts('both')).toEqual(['codex', 'claude']);
-    expect(() => parseHosts('cursor')).toThrow('Supported hosts are codex and claude');
+  test('AC-061: seleção de host cobre Codex, Claude e ambos @spec:AC-061', () => {
+    expect(expandHostSelection('codex')).toEqual(['codex']);
+    expect(expandHostSelection('claude')).toEqual(['claude']);
+    expect(expandHostSelection('both')).toEqual(['codex', 'claude']);
   });
 
   test('normaliza o subconjunto Codex e os 12 eventos Claude com chave idempotente', () => {

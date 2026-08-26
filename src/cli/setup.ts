@@ -4,6 +4,7 @@ import type { ProjectConfig } from '../config/project-config.js';
 import type { ProjectIdentity } from '../projects/identity.js';
 import { createRuntimeIsolation } from '../runtime/lock-manifest.js';
 import { runtimeLayout } from '../runtime/layout.js';
+import { promptForHosts } from './host-selection.js';
 import type { InstallPreflightResult } from './preflight.js';
 import type { PromptAdapter } from './prompts.js';
 
@@ -28,25 +29,14 @@ export interface SetupDependencies {
   environment: NodeJS.ProcessEnv;
   preflight(repository: string): Promise<InstallPreflightResult>;
   discoverIdentity(repository: string): Promise<ProjectIdentity>;
-  probeRemote(input: { baseUrl: string; secretEnvVar: string; secret: string; identity: ProjectIdentity }): Promise<unknown>;
+  probeRemote(input: { baseUrl: string; secret: string; identity: ProjectIdentity }): Promise<unknown>;
   install(plan: SetupPlan): Promise<void>;
 }
 
 export type SetupResult = { status: 'cancelled' } | { status: 'installed'; plan: SetupPlan };
 
-function hosts(value: 'codex' | 'claude' | 'both'): SetupHost[] {
-  return value === 'both' ? ['codex', 'claude'] : [value];
-}
-
-const SECRET_ENV_VAR_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/u;
-
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
-}
-
-function validateSecretEnvironmentName(value: string): void {
-  if (SECRET_ENV_VAR_PATTERN.test(value)) return;
-  throw new Error('Enter the environment variable name that contains the remote secret, not the secret value. Example: set MEGA_BRAIN_REMOTE_SECRET in your shell, then enter MEGA_BRAIN_REMOTE_SECRET here');
 }
 
 export async function runSetupWizard(dependencies: SetupDependencies): Promise<SetupResult> {
@@ -74,14 +64,10 @@ export async function runSetupWizard(dependencies: SetupDependencies): Promise<S
     }
   }
 
-  const selectedHosts = await prompts.select('hosts', 'Configure which hosts?', [
-    { value: 'both', label: 'Codex and Claude Code' },
-    { value: 'codex', label: 'Codex' },
-    { value: 'claude', label: 'Claude Code' },
-  ] as const, 'both');
+  const selectedHosts = await promptForHosts(prompts);
   if (selectedHosts === null) return { status: 'cancelled' };
 
-  let agentMemory: { mode: 'managed' } | { mode: 'remote'; baseUrl: string; secretEnvVar: string };
+  let agentMemory: { mode: 'managed' } | { mode: 'remote'; baseUrl: string; authToken: string };
   while (true) {
     const mode = await prompts.select('agentMemoryMode', 'AgentMemory mode?', [
       { value: 'managed', label: 'Managed locally' },
@@ -94,15 +80,13 @@ export async function runSetupWizard(dependencies: SetupDependencies): Promise<S
     }
     const baseUrl = await prompts.input('remoteUrl', 'Remote AgentMemory URL');
     if (baseUrl === null) return { status: 'cancelled' };
-    const secretEnvVar = await prompts.input('remoteSecretEnv', 'Remote secret environment variable name (example: MEGA_BRAIN_REMOTE_SECRET)');
-    if (secretEnvVar === null) return { status: 'cancelled' };
+    const authToken = await prompts.input('remoteAuthToken', 'Remote AgentMemory secret token');
+    if (authToken === null) return { status: 'cancelled' };
     try {
       new URL(baseUrl);
-      validateSecretEnvironmentName(secretEnvVar);
-      const secret = dependencies.environment[secretEnvVar];
-      if (!secret) throw new Error(`Environment variable ${secretEnvVar} is not set`);
-      await dependencies.probeRemote({ baseUrl, secretEnvVar, secret, identity });
-      agentMemory = { mode: 'remote', baseUrl, secretEnvVar };
+      if (!authToken.trim()) throw new Error('Remote AgentMemory secret token cannot be empty');
+      await dependencies.probeRemote({ baseUrl, secret: authToken, identity });
+      agentMemory = { mode: 'remote', baseUrl, authToken };
       break;
     } catch (error) {
       prompts.notify(`Remote validation failed: ${errorMessage(error)}. Try again or choose managed.`);
@@ -146,7 +130,7 @@ export async function runSetupWizard(dependencies: SetupDependencies): Promise<S
     agentMemory: {
       mode: agentMemory.mode,
       baseUrl: agentMemory.mode === 'managed' ? `http://127.0.0.1:${isolation.ports.rest}` : agentMemory.baseUrl,
-      ...(agentMemory.mode === 'remote' ? { secretEnvVar: agentMemory.secretEnvVar } : {}),
+      ...(agentMemory.mode === 'remote' ? { authToken: agentMemory.authToken } : {}),
       ports: isolation.ports,
       environment: {},
     },
@@ -163,7 +147,7 @@ export async function runSetupWizard(dependencies: SetupDependencies): Promise<S
   }
   const summary = {
     repository: identity.root,
-    hosts: hosts(selectedHosts),
+    hosts: selectedHosts,
     codeReviewGraphMode,
     agentMemory: agentMemory.mode,
     codeReviewGraph: crgCommand === 'code-review-graph' ? 'managed' : 'custom',
@@ -179,7 +163,7 @@ export async function runSetupWizard(dependencies: SetupDependencies): Promise<S
   const plan: SetupPlan = {
     identity,
     preflight,
-    hosts: hosts(selectedHosts),
+    hosts: selectedHosts,
     codeReviewGraphMode,
     strictIsolation: true,
     config,

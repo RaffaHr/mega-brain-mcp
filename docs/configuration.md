@@ -12,8 +12,9 @@ only safe defaults and empty credential placeholders.
 - `managed` (default): Mega Brain installs and starts the pinned local runtime.
   Recognized AgentMemory variables are passed to that child process in memory.
 - `remote`: Mega Brain connects with `MEGA_BRAIN_AGENTMEMORY_URL` and the secret
-  referenced by `MEGA_BRAIN_AGENTMEMORY_SECRET_ENV`. It does not install or
-  start AgentMemory locally, does not forward local settings or provider
+  token stored in this repository's local `.mega-brain/config.json` or supplied
+  as `MEGA_BRAIN_AGENTMEMORY_TOKEN`. It does not install or start AgentMemory
+  locally, does not forward local settings or provider
   credentials, and lifecycle commands never manage the remote service.
 
 In managed mode, `AGENTMEMORY_SECRET` is also used as the local REST bearer token
@@ -28,7 +29,6 @@ wins. Neither value belongs in a committed file or a runtime lock manifest.
 | `MEGA_BRAIN_PORT` | HTTP MCP port | `3000` |
 | `MEGA_BRAIN_AGENTMEMORY_MODE` | `managed` or `remote` ownership profile | `managed` |
 | `MEGA_BRAIN_AGENTMEMORY_URL` | AgentMemory REST base URL | `http://127.0.0.1:3111` |
-| `MEGA_BRAIN_AGENTMEMORY_SECRET_ENV` | Name of the environment variable containing the remote secret | unset |
 | `MEGA_BRAIN_AGENTMEMORY_TOKEN` | Bearer token for AgentMemory | unset |
 | `MEGA_BRAIN_AGENTMEMORY_ENV_JSON` | Advanced allowlisted environment map for managed mode | `{}` |
 | `MEGA_BRAIN_CRG_COMMAND` | Code Review Graph executable override | managed executable |
@@ -85,6 +85,10 @@ global opt-ins are present:
 - A non-local `EMBEDDING_PROVIDER` requires egress.
 
 Diagnostics redact bearer tokens, `AGENTMEMORY_SECRET`, and provider API keys.
+The remote AgentMemory token is allowed only in the repository-local
+`.mega-brain/config.json` written by setup or in the process environment for
+command automation; it is never written to runtime locks, host files, logs, or
+setup summaries.
 
 Each Git checkout/worktree, or plain directory when Git is not initialized yet, receives separate AgentMemory data, iii-engine, CRG
 data, provenance, IPC and four backend ports in managed mode. Git-backed hooks, history, and commit evidence remain unavailable for plain directories. Remote AgentMemory
@@ -93,12 +97,12 @@ read another and confirms sentinel cleanup.
 
 ## Host integration files
 
-`mega-brain setup` guides interactive configuration. `mega-brain install` is the
-non-interactive equivalent and never prompts. `mega-brain install --hosts codex` merges the public server into
-`.codex/config.toml` and native lifecycle hooks into `.codex/hooks.json`.
-`mega-brain install --hosts claude` merges the same public server into
-`.mcp.json` and hooks into `.claude/settings.local.json`. Passing
-`--hosts codex,claude` configures both.
+`mega-brain setup` guides full interactive configuration. `mega-brain install`
+opens a host picker for an already configured project; choose Codex, Claude Code,
+or both. Choosing Codex merges the public server into `.codex/config.toml` and
+native lifecycle hooks into `.codex/hooks.json`. Choosing Claude Code merges the
+same public server into `.mcp.json` and hooks into
+`.claude/settings.local.json`.
 
 The default host entry is the `mega-brain mcp --repo <root>` command over stdio. Host config writes an absolute root; manually, `mega-brain mcp --repo .` works from inside the project directory.
 HTTP remains opt-in through `--transport http`; only then does

@@ -115,7 +115,7 @@ export interface InstallRuntimeOptions {
   now?: Date;
   preflight?: false | InstallPreflightOptions;
   validateArtifacts?: boolean;
-  remoteAgentMemory?: { baseUrl: string; secretEnvVar: string };
+  remoteAgentMemory?: { baseUrl: string };
   remoteIsolationProbe?: () => Promise<unknown>;
   platform?: NodeJS.Platform;
   iiiEngine?: {
@@ -159,13 +159,10 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
   const agentMemoryMode = options.agentMemoryMode ?? 'managed';
   if (agentMemoryMode === 'remote') {
     if (!options.remoteAgentMemory) {
-      throw new Error('Remote AgentMemory requires a URL and the name of the environment variable containing its secret. No files were changed.');
+      throw new Error('Remote AgentMemory requires a URL. No files were changed.');
     }
     try { new URL(options.remoteAgentMemory.baseUrl); }
     catch { throw new Error('Remote AgentMemory URL is invalid. No files were changed.'); }
-    if (!/^[A-Za-z_][A-Za-z0-9_]*$/u.test(options.remoteAgentMemory.secretEnvVar)) {
-      throw new Error('Remote AgentMemory secret environment variable name is invalid. No files were changed.');
-    }
     if (!options.remoteIsolationProbe) {
       throw new Error('Remote AgentMemory requires a reversible namespace isolation probe. No files were changed.');
     }

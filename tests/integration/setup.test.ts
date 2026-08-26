@@ -86,14 +86,14 @@ test('AC-049: remoto inválido permanece na etapa e pode trocar para managed sem
   const probeRemote = vi.fn(async () => { throw new Error('namespace isolation unavailable'); });
   const prompts = new ScriptedPrompts({
     repository: [root], hosts: ['codex'], agentMemoryMode: ['remote', 'managed'],
-    remoteUrl: ['https://memory.example.test'], remoteSecretEnv: ['REMOTE_MEMORY_SECRET'],
+    remoteUrl: ['https://memory.example.test'], remoteAuthToken: ['runtime-only-secret'],
     advanced: [false], confirm: [true],
   });
 
   await runSetupWizard({
     prompts,
     currentDirectory: root,
-    environment: { REMOTE_MEMORY_SECRET: 'runtime-only-secret' },
+    environment: {},
     defaultDataDir: path.join(root, '.data-root'),
     preflight: async () => preflight(),
     discoverIdentity: async () => identity,
@@ -107,7 +107,7 @@ test('AC-049: remoto inválido permanece na etapa e pode trocar para managed sem
   expect(JSON.stringify(install.mock.calls[0]![0])).not.toContain('runtime-only-secret');
 });
 
-test('AC-049: secret colado no campo de env var recebe erro acionavel @spec:AC-049', async () => {
+test('AC-049: token remoto vazio recebe erro acionavel @spec:AC-049', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-setup-secret-value-'));
   directories.push(root);
   const identity = deriveProjectIdentity({ root, gitDir: '.git', commonGitDir: '.git' });
@@ -116,7 +116,7 @@ test('AC-049: secret colado no campo de env var recebe erro acionavel @spec:AC-0
   const prompts = new ScriptedPrompts({
     repository: [root], hosts: ['codex'], agentMemoryMode: ['remote', 'managed'],
     remoteUrl: ['https://memory.example.test'],
-    remoteSecretEnv: ['958dcb9c8d649f268ffe5d54e90c23eb82e91017025e12ca25f5e4c0ef8c0ac5'],
+    remoteAuthToken: ['   '],
     advanced: [false], confirm: [true],
   });
 
@@ -132,7 +132,7 @@ test('AC-049: secret colado no campo de env var recebe erro acionavel @spec:AC-0
   });
 
   expect(probeRemote).not.toHaveBeenCalled();
-  expect(prompts.messages.join('\n')).toContain('not the secret value');
+  expect(prompts.messages.join('\n')).toContain('secret token cannot be empty');
   expect(install.mock.calls[0]![0].config.agentMemory.mode).toBe('managed');
 });
 
@@ -187,7 +187,7 @@ test('AC-042: falha de preflight seguida de cancelamento não cria arquivos nem 
   expect(await access(path.join(root, '.mega-brain')).then(() => true).catch(() => false)).toBe(false);
 });
 
-test('AC-043: configuração local persiste referência do secret, nunca o valor @spec:AC-043 @principle:P-002', async () => {
+test('AC-043: configuração local persiste token remoto somente no repo @spec:AC-043', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-setup-config-'));
   directories.push(root);
   const target = await writeProjectConfig(root, {
@@ -195,19 +195,17 @@ test('AC-043: configuração local persiste referência do secret, nunca o valor
     allowEgress: false,
     allowLlm: false,
     agentMemory: {
-      mode: 'remote', baseUrl: 'https://memory.example.test', secretEnvVar: 'REMOTE_MEMORY_SECRET',
+      mode: 'remote', baseUrl: 'https://memory.example.test', authToken: 'runtime-only-secret',
       ports: { rest: 3111, streams: 3112, viewer: 3113, engine: 49134 }, environment: {},
     },
     codeReviewGraph: { command: 'code-review-graph', args: [], environment: {} },
   });
   const serialized = await readFile(target, 'utf8');
-  expect(serialized).toContain('REMOTE_MEMORY_SECRET');
-  expect(serialized).not.toContain('runtime-only-secret');
-  const loaded = await loadConfig({ repoPath: root, env: { REMOTE_MEMORY_SECRET: 'runtime-only-secret' } });
+  expect(serialized).toContain('runtime-only-secret');
+  const loaded = await loadConfig({ repoPath: root, env: {} });
   expect(loaded.agentMemory).toMatchObject({
     mode: 'remote',
     baseUrl: 'https://memory.example.test',
-    secretEnvVar: 'REMOTE_MEMORY_SECRET',
     authToken: 'runtime-only-secret',
   });
 });

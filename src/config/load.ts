@@ -86,7 +86,7 @@ export interface ConfigFlags {
   allowLlm?: boolean;
   agentMemoryMode?: string;
   agentMemoryBaseUrl?: string;
-  agentMemorySecretEnvVar?: string;
+  agentMemoryAuthToken?: string;
   codeReviewGraphCommand?: string;
   codeReviewGraphDataDir?: string;
 }
@@ -377,14 +377,6 @@ export async function loadConfigWithSources(options: LoadConfigOptions = {}): Pr
     [fileConfig.agentMemory?.baseUrl, 'config'],
     [defaults.agentMemory?.baseUrl, 'default'],
   ]);
-  const secretEnvVarEnv = sourceEnv('MEGA_BRAIN_AGENTMEMORY_SECRET_ENV');
-  const secretEnvVar = firstDefined<string | null>([
-    [nonEmpty(flags.agentMemorySecretEnvVar), 'flag'],
-    [secretEnvVarEnv.value, secretEnvVarEnv.source ?? 'process'],
-    [fileConfig.agentMemory?.secretEnvVar, 'config'],
-    [null, 'default'],
-  ]);
-
   let agentEnvironment: Record<string, string> = {};
   if (agentMemoryMode.value === 'managed') {
     agentEnvironment = {
@@ -403,15 +395,21 @@ export async function loadConfigWithSources(options: LoadConfigOptions = {}): Pr
     validateAgentMemoryOptIns(agentEnvironment, { allowEgress, allowLlm });
   }
 
-  const referencedAgentMemoryToken = secretEnvVar.value === null
-    ? undefined
-    : nonEmpty(processEnvironment[secretEnvVar.value]);
-  const explicitAgentMemoryToken = nonEmpty(processEnvironment.MEGA_BRAIN_AGENTMEMORY_TOKEN)
-    ?? nonEmpty(envFromFile.MEGA_BRAIN_AGENTMEMORY_TOKEN)
-    ?? nonEmpty(fileConfig.agentMemory?.authToken);
-  const agentMemoryToken = referencedAgentMemoryToken
-    ?? explicitAgentMemoryToken
-    ?? (agentMemoryMode.value === 'managed' ? nonEmpty(agentEnvironment.AGENTMEMORY_SECRET) : undefined);
+  const agentMemoryTokenEnv = sourceEnv('MEGA_BRAIN_AGENTMEMORY_TOKEN');
+  const managedAgentMemorySecretEnv = sourceEnv('AGENTMEMORY_SECRET');
+  const managedAgentMemorySecret = agentMemoryMode.value === 'managed'
+    ? managedAgentMemorySecretEnv.value
+    : undefined;
+  const agentMemoryToken = nonEmpty(flags.agentMemoryAuthToken)
+    ?? agentMemoryTokenEnv.value
+    ?? nonEmpty(fileConfig.agentMemory?.authToken)
+    ?? managedAgentMemorySecret;
+  const agentMemoryTokenSource: ConfigSource = flags.agentMemoryAuthToken
+    ? 'flag'
+    : agentMemoryTokenEnv.source
+      ?? (fileConfig.agentMemory?.authToken ? 'config' : undefined)
+      ?? (managedAgentMemorySecret ? managedAgentMemorySecretEnv.source : undefined)
+      ?? 'default';
 
   const restPortEnv = sourceEnv('MEGA_BRAIN_AGENTMEMORY_REST_PORT');
   const streamsPortEnv = sourceEnv('MEGA_BRAIN_AGENTMEMORY_STREAMS_PORT');
@@ -463,7 +461,6 @@ export async function loadConfigWithSources(options: LoadConfigOptions = {}): Pr
     agentMemory: {
       mode: agentMemoryMode.value,
       baseUrl: agentMemoryBaseUrl.value,
-      ...(secretEnvVar.value === null ? {} : { secretEnvVar: secretEnvVar.value }),
       ...compact({ authToken: agentMemoryToken }),
       ports: Object.fromEntries(Object.entries(agentMemoryPorts).map(([key, entry]) => [key, entry.value])),
       environment: agentEnvironment,
@@ -493,7 +490,7 @@ export async function loadConfigWithSources(options: LoadConfigOptions = {}): Pr
     allowLlm: allowLlmResolved.source,
     'agentMemory.mode': agentMemoryMode.source,
     'agentMemory.baseUrl': agentMemoryBaseUrl.source,
-    'agentMemory.secretEnvVar': secretEnvVar.source,
+    'agentMemory.authToken': agentMemoryTokenSource,
     'agentMemory.ports.rest': agentMemoryPorts.rest.source,
     'agentMemory.ports.streams': agentMemoryPorts.streams.source,
     'agentMemory.ports.viewer': agentMemoryPorts.viewer.source,

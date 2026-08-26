@@ -82,16 +82,3 @@ export async function restoreHostHookFiles(backupDir: string, hosts: SupportedHo
     else await rm(backup.target, { force: true });
   }
 }
-
-export function parseHosts(value: string | string[] | undefined): SupportedHost[] {
-  const rawValues = value === undefined ? ['codex', 'claude'] : Array.isArray(value) ? value : [value];
-  const hosts = rawValues
-    .flatMap((entry) => entry.split(/[,s]+/u))
-    .map((host) => host.trim().toLowerCase())
-    .filter(Boolean)
-    .flatMap((host) => host === 'both' ? ['codex', 'claude'] : [host]);
-  if (hosts.length === 0 || hosts.some((host) => host !== 'codex' && host !== 'claude')) {
-    throw new Error('Supported hosts are codex and claude');
-  }
-  return [...new Set(hosts)] as SupportedHost[];
-}
