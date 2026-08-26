@@ -125,7 +125,7 @@ export function createMegaBrainServer(handlers: MegaBrainToolHandlers = {}) {
   process.env.NODE_ENV = 'production';
   const server = new MCPServer({
     name: 'mega-brain-mcp',
-    version: '0.1.1',
+    version: '0.1.2',
     description: 'Evidence-aware orchestration for AgentMemory, Code Review Graph, and Git.',
     instructions: 'Use only the six public brain_* tools. Backend tools are private implementation details.',
     stateless: true,

@@ -1,7 +1,7 @@
 # Configuration
 
-Mega Brain reads `.env` from the repository selected by `--repo`. Configuration
-precedence is CLI flags, process environment, repository `.env`, JSON
+Mega Brain reads `.env` from the project directory selected by `--repo`. Configuration
+precedence is CLI flags, process environment, project `.env`, JSON
 configuration file, then built-in defaults. Keep the real `.env` uncommitted; `.env.example` contains
 only safe defaults and empty credential placeholders.
 
@@ -86,8 +86,8 @@ global opt-ins are present:
 
 Diagnostics redact bearer tokens, `AGENTMEMORY_SECRET`, and provider API keys.
 
-Each Git checkout/worktree receives separate AgentMemory data, iii-engine, CRG
-data, provenance, IPC and four backend ports in managed mode. Remote AgentMemory
+Each Git checkout/worktree, or plain directory when Git is not initialized yet, receives separate AgentMemory data, iii-engine, CRG
+data, provenance, IPC and four backend ports in managed mode. Git-backed hooks, history, and commit evidence remain unavailable for plain directories. Remote AgentMemory
 is accepted only after its namespace A/B probe proves that one worktree cannot
 read another and confirms sentinel cleanup.
 
@@ -100,7 +100,7 @@ non-interactive equivalent and never prompts. `mega-brain install --hosts codex`
 `.mcp.json` and hooks into `.claude/settings.local.json`. Passing
 `--hosts codex,claude` configures both.
 
-The default host entry is the `mega-brain mcp --repo <root>` command over stdio.
+The default host entry is the `mega-brain mcp --repo <root>` command over stdio. Host config writes an absolute root; manually, `mega-brain mcp --repo .` works from inside the project directory.
 HTTP remains opt-in through `--transport http`; only then does
 `MEGA_BRAIN_PORT` select the public endpoint. AgentMemory and Code Review Graph
 are private adapters and must not be added to either host.

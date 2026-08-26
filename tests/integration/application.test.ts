@@ -14,15 +14,29 @@ import { ProvenanceRepository } from '../../src/provenance/repository.js';
 import { createApplicationHandlers } from '../../src/server/application.js';
 import { PUBLIC_TOOL_NAMES } from '../../src/server/index.js';
 
+function testConfig(dataDir: string): MegaBrainConfig {
+  return {
+    dataDir,
+    port: 3000,
+    logLevel: 'info',
+    allowEgress: false,
+    allowLlm: false,
+    agentMemory: {
+      mode: 'managed',
+      baseUrl: 'http://127.0.0.1:3111',
+      ports: { rest: 3111, streams: 3112, viewer: 3113, engine: 3114 },
+      environment: {},
+    },
+    codeReviewGraph: { command: 'crg', args: [], environment: {} },
+    projects: {},
+  };
+}
+
 test('composition root conecta as seis tools a handlers operacionais', async () => {
   const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-app-'));
   const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
   const database = openProvenanceDatabase(':memory:');
-  const config = {
-    dataDir, logLevel: 'info', allowEgress: false, allowLlm: false,
-    agentMemory: { baseUrl: 'http://127.0.0.1:3111', environment: {} },
-    codeReviewGraph: { command: 'crg', args: [], environment: {} }, projects: {},
-  } satisfies MegaBrainConfig;
+  const config = testConfig(dataDir);
   const agentMemory = {
     health: async () => ({ healthy: true, version: '0.9.29' }),
     smartSearch: async () => ({ results: [] }),
@@ -50,5 +64,35 @@ test('composition root conecta as seis tools a handlers operacionais', async () 
     { name: 'get_affected_flows_tool', input: { changed_files: ['src/example.ts'] } },
     { name: 'query_graph_tool', input: { pattern: 'file_summary', target: 'src/example.ts' } },
   ]));
+  database.close();
+});
+
+test('AC-057: handlers operam status sem exigir Git ate uma tool precisar dele @spec:AC-057', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-app-non-git-'));
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.mega-brain/non-git-project', commonGitDir: '.mega-brain/non-git-project', gitBacked: false });
+  const database = openProvenanceDatabase(':memory:');
+  const agentMemory = {
+    health: async () => ({ healthy: true, version: '0.9.29' }),
+    smartSearch: async () => ({ results: [] }),
+  } as unknown as AgentMemoryClient;
+  const codeReviewGraph = {
+    start: async () => undefined,
+    call: async () => ({ content: [], structuredContent: {} }),
+    serverVersion: () => '2.3.7',
+  } as unknown as CodeReviewGraphClient;
+
+  const handlers = createApplicationHandlers({
+    config: testConfig(dataDir),
+    identity,
+    git: null,
+    agentMemory,
+    codeReviewGraph,
+    provenance: new ProvenanceRepository(database),
+  });
+  const status = await handlers.brain_status!({});
+
+  expect(status.head).toBe('NO_GIT');
+  expect(status.status).toBe('degraded');
+  expect(status.warnings).toEqual(expect.arrayContaining(['git repository unavailable', 'hook installation is unhealthy']));
   database.close();
 });

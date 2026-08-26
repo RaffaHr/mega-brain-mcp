@@ -55,8 +55,11 @@ export async function runSetupWizard(dependencies: SetupDependencies): Promise<S
     if (repository === null) return { status: 'cancelled' };
     const resolved = path.resolve(repository);
     try {
+      prompts.notify(`Checking prerequisites for ${resolved}`);
       preflight = await dependencies.preflight(resolved);
+      prompts.notify('Detecting project identity');
       identity = await dependencies.discoverIdentity(resolved);
+      if (!identity.gitBacked) prompts.notify('No Git repository found; Git hooks and Git-backed evidence will be skipped until this directory is initialized as a repository.');
       prompts.notify(`Preflight: Node ${preflight.nodeVersion}; Python ${preflight.pythonVersion}; Git ${preflight.gitVersion}; ${preflight.platform}`);
       break;
     } catch (error) {
@@ -177,6 +180,7 @@ export async function runSetupWizard(dependencies: SetupDependencies): Promise<S
     summary,
     reopenHost: true,
   };
+  prompts.notify('Installing Mega Brain runtime, MCP files, and hooks');
   await dependencies.install(plan);
   return { status: 'installed', plan };
 }

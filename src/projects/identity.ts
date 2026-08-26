@@ -11,6 +11,7 @@ export interface ProjectIdentityInput {
   gitDir: string;
   commonGitDir: string;
   remote?: string;
+  gitBacked?: boolean;
 }
 
 export interface ProjectIdentity {
@@ -21,6 +22,7 @@ export interface ProjectIdentity {
   gitDir: string;
   commonGitDir: string;
   remote: string | null;
+  gitBacked: boolean;
 }
 
 function digest(value: string): string {
@@ -56,7 +58,7 @@ export function deriveProjectIdentity(input: ProjectIdentityInput): ProjectIdent
   const repositoryId = digest(remote ?? commonGitDir);
   const checkoutId = digest(`${repositoryId}\0${root}`);
   const worktreeId = digest(`${checkoutId}\0${gitDir}`);
-  return { repositoryId, checkoutId, worktreeId, root, gitDir, commonGitDir, remote };
+  return { repositoryId, checkoutId, worktreeId, root, gitDir, commonGitDir, remote, gitBacked: input.gitBacked ?? true };
 }
 
 async function git(cwd: string, ...args: string[]): Promise<string> {
@@ -65,11 +67,27 @@ async function git(cwd: string, ...args: string[]): Promise<string> {
 }
 
 export async function discoverProjectIdentity(cwd: string): Promise<ProjectIdentity> {
-  const root = await realpath(await git(cwd, 'rev-parse', '--show-toplevel'));
-  const [gitDir, commonGitDir, remote] = await Promise.all([
-    git(root, 'rev-parse', '--git-dir'),
-    git(root, 'rev-parse', '--git-common-dir'),
-    git(root, 'remote', 'get-url', 'origin').catch(() => ''),
-  ]);
-  return deriveProjectIdentity({ root, gitDir, commonGitDir, remote });
+  let requestedRoot: string;
+  try {
+    requestedRoot = await realpath(cwd);
+  } catch {
+    requestedRoot = path.resolve(cwd);
+  }
+  try {
+    const root = await realpath(await git(cwd, 'rev-parse', '--show-toplevel'));
+    const [gitDir, commonGitDir, remote] = await Promise.all([
+      git(root, 'rev-parse', '--git-dir'),
+      git(root, 'rev-parse', '--git-common-dir'),
+      git(root, 'remote', 'get-url', 'origin').catch(() => ''),
+    ]);
+    return deriveProjectIdentity({ root, gitDir, commonGitDir, remote, gitBacked: true });
+  } catch {
+    const marker = path.join('.mega-brain', 'non-git-project');
+    return deriveProjectIdentity({
+      root: requestedRoot,
+      gitDir: marker,
+      commonGitDir: marker,
+      gitBacked: false,
+    });
+  }
 }

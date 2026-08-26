@@ -2,7 +2,9 @@ import { PassThrough } from 'node:stream';
 
 import { afterEach, expect, test, vi } from 'vitest';
 
-import { withProjectLease } from '../../src/cli/mcp.js';
+import { runMcpCommand, withProjectLease } from '../../src/cli/mcp.js';
+import type { MegaBrainConfig } from '../../src/config/schema.js';
+import { deriveProjectIdentity } from '../../src/projects/identity.js';
 import { PUBLIC_TOOL_NAMES, createMegaBrainServer } from '../../src/server/index.js';
 import { listenMegaBrainStdio } from '../../src/server/stdio.js';
 
@@ -43,6 +45,34 @@ test('AC-039: MCP stdio responde initialize e expõe somente as seis brain tools
 
   input.end();
   await session.closed;
+});
+
+test('AC-058: MCP falha rapido com log quando runtime ainda nao foi instalado @spec:AC-058', async () => {
+  const dataDir = 'C:/tmp/mega-brain-missing-runtime';
+  const identity = deriveProjectIdentity({ root: 'C:/tmp/project', gitDir: '.git', commonGitDir: '.git' });
+  const config = {
+    dataDir,
+    port: 3000,
+    logLevel: 'info',
+    allowEgress: false,
+    allowLlm: false,
+    agentMemory: { mode: 'managed', baseUrl: 'http://127.0.0.1:3111', ports: { rest: 3111, streams: 3112, viewer: 3113, engine: 3114 }, environment: {} },
+    codeReviewGraph: { command: 'crg', args: [], environment: {} },
+    projects: {},
+  } satisfies MegaBrainConfig;
+  const logs: string[] = [];
+  const ensureSupervisor = vi.fn(async () => { throw new Error('must not start supervisor'); });
+
+  await expect(runMcpCommand({
+    config,
+    identity,
+    logger: { log: (_level, message) => { logs.push(message); } },
+    inspectRuntime: async () => { throw Object.assign(new Error('missing runtime-lock.json'), { code: 'ENOENT' }); },
+    ensureSupervisor,
+  })).rejects.toThrow('missing runtime-lock.json');
+
+  expect(logs).toContain('mcp: checking installed runtime');
+  expect(ensureSupervisor).not.toHaveBeenCalled();
 });
 
 test('AC-041: gateway renova e libera sua lease mesmo quando a sessão falha @spec:AC-041', async () => {

@@ -1,3 +1,22 @@
+import { randomUUID } from 'node:crypto';
+import path from 'node:path';
+import type { Readable, Writable } from 'node:stream';
+
+import { AgentMemoryClient } from '../adapters/agentmemory/client.js';
+import { CodeReviewGraphClient } from '../adapters/code-review-graph/client.js';
+import { GitRepository } from '../adapters/git/repository.js';
+import type { MegaBrainConfig } from '../config/schema.js';
+import type { LocalLogger } from '../observability/logger.js';
+import type { ProjectIdentity } from '../projects/identity.js';
+import { openProvenanceDatabase } from '../provenance/database.js';
+import { ProvenanceRepository } from '../provenance/repository.js';
+import { ensureProjectSupervisor, type ProjectSupervisorHandle } from '../runtime/project-supervisor.js';
+import { runtimeLayout } from '../runtime/layout.js';
+import { createApplicationHandlers } from '../server/application.js';
+import { createMegaBrainServer } from '../server/index.js';
+import { listenMegaBrainStdio } from '../server/stdio.js';
+import { inspectManagedRuntime, type RuntimeInspection } from './install.js';
+
 export interface ProjectLeaseClient {
   acquire(leaseId: string): Promise<void>;
   heartbeat(leaseId: string): Promise<void>;
@@ -25,17 +44,42 @@ export async function withProjectLease<T>(
   }
 }
 
+export interface RunMcpCommandDependencies {
+  logger?: LocalLogger;
+  inspectRuntime?: typeof inspectManagedRuntime;
+  ensureSupervisor?: typeof ensureProjectSupervisor;
+}
+
 export async function runMcpCommand(input: {
   config: MegaBrainConfig;
   identity: ProjectIdentity;
   streams?: { input?: Readable; output?: Writable };
-}): Promise<void> {
+} & RunMcpCommandDependencies): Promise<void> {
   const layout = runtimeLayout(input.config.dataDir, input.identity);
-  const supervisor = await ensureProjectSupervisor({ layout, identity: input.identity, timeoutMs: 60_000 });
+  input.logger?.log('info', 'mcp: checking installed runtime', {
+    project: input.identity.worktreeId,
+    runtime: layout.current,
+  });
+  const inspectRuntime = input.inspectRuntime ?? inspectManagedRuntime;
+  const inspection = await inspectRuntime(input.config.dataDir, input.identity);
+
+  input.logger?.log('info', 'mcp: ensuring project supervisor', {
+    project: input.identity.worktreeId,
+  });
+  const ensureSupervisor = input.ensureSupervisor ?? ensureProjectSupervisor;
+  const supervisor: ProjectSupervisorHandle = await ensureSupervisor({ layout, identity: input.identity, timeoutMs: 60_000 });
+  input.logger?.log('info', supervisor.reused ? 'mcp: reused project supervisor' : 'mcp: started project supervisor', {
+    project: input.identity.worktreeId,
+    pid: supervisor.manifest.pid,
+  });
+
   await withProjectLease(supervisor.client, randomUUID(), async () => {
-    const inspection = await inspectManagedRuntime(input.config.dataDir, input.identity);
     const command = inspection.manifest.backends.codeReviewGraph;
     const dataDir = command.environment?.CRG_DATA_DIR ?? input.config.codeReviewGraph.dataDir;
+    input.logger?.log('info', 'mcp: opening backend clients', {
+      project: input.identity.worktreeId,
+      codeReviewGraph: command.command,
+    });
     const git = await GitRepository.discover(input.identity.root);
     const agentMemory = new AgentMemoryClient({
       baseUrl: input.config.agentMemory.mode === 'managed' && inspection.manifest.isolation
@@ -63,6 +107,9 @@ export async function runMcpCommand(input: {
       provenance: new ProvenanceRepository(database),
     }));
     const session = await listenMegaBrainStdio(server, input.streams);
+    input.logger?.log('info', 'mcp: stdio server ready; waiting for JSON-RPC messages from the host', {
+      project: input.identity.worktreeId,
+    });
     const close = () => { void session.close(); };
     process.once('SIGINT', close);
     process.once('SIGTERM', close);
@@ -74,23 +121,7 @@ export async function runMcpCommand(input: {
       await session.close();
       await codeReviewGraph.stop().catch(() => undefined);
       database.close();
+      input.logger?.log('info', 'mcp: stdio server closed', { project: input.identity.worktreeId });
     }
   });
 }
-import { randomUUID } from 'node:crypto';
-import path from 'node:path';
-import type { Readable, Writable } from 'node:stream';
-
-import { AgentMemoryClient } from '../adapters/agentmemory/client.js';
-import { CodeReviewGraphClient } from '../adapters/code-review-graph/client.js';
-import { GitRepository } from '../adapters/git/repository.js';
-import type { MegaBrainConfig } from '../config/schema.js';
-import type { ProjectIdentity } from '../projects/identity.js';
-import { openProvenanceDatabase } from '../provenance/database.js';
-import { ProvenanceRepository } from '../provenance/repository.js';
-import { ensureProjectSupervisor } from '../runtime/project-supervisor.js';
-import { runtimeLayout } from '../runtime/layout.js';
-import { createApplicationHandlers } from '../server/application.js';
-import { createMegaBrainServer } from '../server/index.js';
-import { listenMegaBrainStdio } from '../server/stdio.js';
-import { inspectManagedRuntime } from './install.js';

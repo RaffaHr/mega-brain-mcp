@@ -41,6 +41,36 @@ async function exists(target: string): Promise<boolean> {
   return access(target).then(() => true).catch(() => false);
 }
 
+function retryableFilesystemError(error: unknown, platform: NodeJS.Platform = process.platform): boolean {
+  const code = (error as NodeJS.ErrnoException).code;
+  return platform === 'win32' && ['EBUSY', 'EACCES', 'EPERM', 'ENOTEMPTY'].includes(code ?? '');
+}
+
+export async function retryFilesystemOperation<T>(
+  operation: () => Promise<T>,
+  label: string,
+  options: { timeoutMs?: number; intervalMs?: number; platform?: NodeJS.Platform } = {},
+): Promise<T> {
+  const timeoutMs = options.timeoutMs ?? 30_000;
+  const intervalMs = options.intervalMs ?? 100;
+  const deadline = Date.now() + timeoutMs;
+  let lastError: unknown;
+  do {
+    try {
+      return await operation();
+    } catch (error) {
+      if (!retryableFilesystemError(error, options.platform)) throw error;
+      lastError = error;
+      await new Promise((resolve) => setTimeout(resolve, intervalMs));
+    }
+  } while (Date.now() < deadline);
+  throw new Error(`${label} failed because Windows still has a handle open on the runtime path: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
+}
+
+export async function retryRename(from: string, to: string, label: string): Promise<void> {
+  await retryFilesystemOperation(() => rename(from, to), label);
+}
+
 export async function snapshotFile(transaction: RuntimeTransaction, target: string): Promise<void> {
   const resolved = path.resolve(target);
   let original: { content: Buffer; mode: number } | null = null;
@@ -60,7 +90,7 @@ export async function snapshotFile(transaction: RuntimeTransaction, target: stri
     const temporary = `${resolved}.${randomUUID()}.rollback`;
     await writeFile(temporary, original.content, { flag: 'wx', mode: original.mode });
     await rm(resolved, { force: true });
-    await rename(temporary, resolved);
+    await retryRename(temporary, resolved, 'Restoring transaction snapshot');
     if (process.platform !== 'win32') await chmod(resolved, original.mode);
   });
 }
@@ -75,7 +105,7 @@ export async function snapshotPath(transaction: RuntimeTransaction, targetPath: 
   await cp(target, backup, { recursive: true, force: false, errorOnExist: true });
   transaction.addRollback(async () => {
     await rm(target, { recursive: true, force: true });
-    await rename(backup, target);
+    await retryRename(backup, target, 'Restoring transaction path snapshot');
   });
   transaction.addCommit(() => rm(backup, { recursive: true, force: true }));
 }
@@ -91,16 +121,16 @@ export async function swapStagedPath(
   await mkdir(path.dirname(target), { recursive: true });
   const backup = `${target}.transaction-backup-${randomUUID()}`;
   const hadTarget = await exists(target);
-  if (hadTarget) await rename(target, backup);
+  if (hadTarget) await retryRename(target, backup, 'Backing up current runtime');
   try {
-    await rename(staged, target);
+    await retryRename(staged, target, 'Activating staged runtime');
   } catch (error) {
-    if (hadTarget && await exists(backup)) await rename(backup, target);
+    if (hadTarget && await exists(backup)) await retryRename(backup, target, 'Restoring current runtime after activation failure');
     throw error;
   }
   transaction.addRollback(async () => {
     await rm(target, { recursive: true, force: true });
-    if (hadTarget && await exists(backup)) await rename(backup, target);
+    if (hadTarget && await exists(backup)) await retryRename(backup, target, 'Rolling back current runtime');
   });
   transaction.addCommit(async () => {
     if (hadTarget) await rm(backup, { recursive: true, force: true });

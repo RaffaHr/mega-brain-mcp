@@ -34,6 +34,7 @@ export async function runDoctor(options: DoctorOptions, dependencies: DoctorDepe
   if (!codeReviewGraph.healthy) warnings.push('code_review_graph unavailable');
   if (agentMemory.version && agentMemory.version !== runtime.manifest.versions.agentMemory) warnings.push('agentmemory version mismatch');
   if (codeReviewGraph.graphHead && codeReviewGraph.graphHead !== head) warnings.push('code_review_graph index is behind Git HEAD');
+  if (head === 'NO_GIT') warnings.push('git repository unavailable');
   if (!options.hooksHealthy) warnings.push('hook installation is unhealthy');
   if (options.queueDepth > 0) warnings.push('hook queue has pending events');
   const healthy = warnings.length === 0;

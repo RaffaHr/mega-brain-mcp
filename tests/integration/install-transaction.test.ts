@@ -10,12 +10,15 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { installHostMcpFiles } from '../../src/cli/host-integration.js';
 import { installHostHookFiles } from '../../src/cli/host-hooks.js';
 import { installProjectTransaction } from '../../src/cli/install.js';
+import { runtimeSwapLifecycle } from '../../src/cli/index.js';
 import { drainProjectSupervisor, uninstallMegaBrain } from '../../src/cli/uninstall.js';
 import { GitRepository } from '../../src/adapters/git/repository.js';
 import { installGitHookMultiplexer } from '../../src/hooks/git/install.js';
+import type { MegaBrainConfig } from '../../src/config/schema.js';
 import { deriveProjectIdentity } from '../../src/projects/identity.js';
 import { runtimeLayout } from '../../src/runtime/layout.js';
 import { startProjectSupervisor } from '../../src/runtime/project-supervisor.js';
+import { retryFilesystemOperation, RuntimeTransaction } from '../../src/runtime/transaction.js';
 
 const temporaryDirectories: string[] = [];
 const execFileAsync = promisify(execFile);
@@ -166,6 +169,56 @@ test('AC-054: drain coordenado encerra supervisor e backends antes do uninstall 
   });
 
   expect(stopped).toEqual(['supervisor:4545', 'backends']);
+});
+
+test('AC-061: retry de filesystem tolera EPERM transitorio no Windows @spec:AC-061', async () => {
+  let attempts = 0;
+  await retryFilesystemOperation(async () => {
+    attempts += 1;
+    if (attempts < 3) throw Object.assign(new Error('locked'), { code: 'EPERM' });
+  }, 'Retrying locked runtime rename', { platform: 'win32', timeoutMs: 1_000, intervalMs: 1 });
+
+  expect(attempts).toBe(3);
+});
+
+test('AC-060: install drena runtime existente sem state e nao reinicia se nao estava ativo @spec:AC-060', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-installed-runtime-swap-'));
+  temporaryDirectories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const config: MegaBrainConfig = {
+    dataDir,
+    port: 3000,
+    logLevel: 'info',
+    allowEgress: false,
+    allowLlm: false,
+    agentMemory: {
+      mode: 'managed',
+      baseUrl: 'http://127.0.0.1:3111',
+      ports: { rest: 3111, streams: 3112, viewer: 3113, engine: 3114 },
+      environment: {},
+    },
+    codeReviewGraph: {
+      command: 'code-review-graph',
+      args: [],
+      environment: {},
+    },
+    projects: {},
+  };
+  const transaction = new RuntimeTransaction();
+  const lifecycle: string[] = [];
+
+  const swap = runtimeSwapLifecycle(config, identity, {
+    runtimeWasActive: false,
+    drain: async () => { lifecycle.push('drain-existing-runtime'); },
+    stop: async () => { lifecycle.push('stop'); },
+    start: async () => { lifecycle.push('start'); },
+  });
+
+  await swap.beforeSwap?.(transaction);
+  await swap.afterSwap?.(transaction, {} as never);
+  await transaction.commit();
+
+  expect(lifecycle).toEqual(['drain-existing-runtime']);
 });
 
 test('AC-045: uninstall preserva dados por default e só remove o namespace com purge explícito @spec:AC-045', async () => {

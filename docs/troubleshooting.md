@@ -2,8 +2,8 @@
 
 ## Install stops during preflight
 
-The installer requires Node.js `>=22.22.0`, Git, and Python `>=3.10` with both
-`venv` and `ensurepip`. It reports the detected version or missing command and
+The installer requires Node.js `>=22.22.0` and Python `>=3.10` with both
+`venv` and `ensurepip`. A Git executable is required only for Git-backed hooks, history, and commit evidence; when it is absent, preflight reports Git as unavailable instead of blocking startup. It reports the detected version or missing command and
 ends with `No files were changed` before runtime, downloads, MCP configuration,
 or hooks are created.
 
@@ -27,7 +27,7 @@ Upgrade to a tarball containing the global-symlink fix, then reinstall:
 
 ```powershell
 npm uninstall --global @raffahr/mega-brain-mcp
-npm install --global .\raffahr-mega-brain-mcp-0.1.1.tgz
+npm install --global .\raffahr-mega-brain-mcp-0.1.2.tgz
 mega-brain --help
 ```
 
@@ -48,7 +48,7 @@ global `PATH` is not changed.
 ## MCP is configured but the host shows it offline
 
 Confirm that the host entry runs `mega-brain mcp --repo <project>` over stdio,
-then reopen the host. In Codex, inspect `/mcp` and `/hooks` and approve project
+then reopen the host. Absolute paths are safest in host config, but `mega-brain mcp --repo .` is valid when the terminal is already in the project directory. The command logs startup progress to `stderr`; if runtime inspection fails, it now exits before starting the supervisor instead of waiting silently. In Codex, inspect `/mcp` and `/hooks` and approve project
 trust. In Claude Code, inspect `/mcp` and approve the project server. A manually
 running HTTP server is not required unless `--transport http` was selected.
 
@@ -69,6 +69,10 @@ Non-interactive install exits with `No files were changed` and must be rerun.
 Run the project hook/update path again, then rerun `mega-brain doctor`. A
 divergent graph SHA is reported as `POSSIBLY_STALE`; Mega Brain does not silently
 mark graph-derived knowledge fresh.
+
+## Git is unavailable
+
+Mega Brain can start in a plain directory, but Git-dependent behavior is degraded until the directory is initialized as a repository. Initialize Git or pass `--repo` to an existing repository when you need Git hooks, `brain_history`, commit-backed validation, or Code Review Graph freshness against HEAD.
 
 ## Hooks do not run
 

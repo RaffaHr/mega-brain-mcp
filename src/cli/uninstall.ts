@@ -1,12 +1,13 @@
-import { access, rename, rm } from 'node:fs/promises';
+import { access, rm } from 'node:fs/promises';
 import path from 'node:path';
 
 import { projectConfigPath } from '../config/project-config.js';
+import type { LocalLogger } from '../observability/logger.js';
 import type { ProjectIdentity } from '../projects/identity.js';
 import { SupervisorIpcClient } from '../runtime/ipc.js';
 import { runtimeLayout } from '../runtime/layout.js';
 import { readSupervisorManifest, removeSupervisorManifest } from '../runtime/supervisor-manifest.js';
-import { snapshotFile, withRuntimeTransaction } from '../runtime/transaction.js';
+import { retryRename, snapshotFile, withRuntimeTransaction } from '../runtime/transaction.js';
 import { stopManagedRuntime } from './stop.js';
 
 export interface ReversibleUninstallParticipant {
@@ -16,6 +17,10 @@ export interface ReversibleUninstallParticipant {
 
 async function exists(filePath: string): Promise<boolean> {
   return access(filePath).then(() => true).catch(() => false);
+}
+
+function logUninstallStep(input: { identity: ProjectIdentity; logger?: LocalLogger }, message: string, fields: Record<string, unknown> = {}): void {
+  input.logger?.log('info', `uninstall: ${message}`, { project: input.identity.worktreeId, ...fields });
 }
 
 export async function drainProjectSupervisor(input: {
@@ -38,10 +43,15 @@ export async function drainProjectSupervisor(input: {
   }
   if (manifest.worktreeId !== input.identity.worktreeId) throw new Error('Cannot drain a supervisor owned by another worktree');
   const client = new SupervisorIpcClient(manifest);
-  await client.drain();
-  const deadline = Date.now() + (input.timeoutMs ?? 5_000);
-  while ((await client.status()).leases.length > 0 && Date.now() < deadline) {
-    await new Promise((resolve) => setTimeout(resolve, input.pollIntervalMs ?? 50));
+  try {
+    await client.drain();
+    const deadline = Date.now() + (input.timeoutMs ?? 5_000);
+    while ((await client.status()).leases.length > 0 && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, input.pollIntervalMs ?? 50));
+    }
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    if (!['ECONNREFUSED', 'ENOENT', 'EPIPE'].includes(code ?? '')) throw error;
   }
   await (input.stopProcess ?? (async (pid) => {
     try { process.kill(pid, 'SIGTERM'); }
@@ -60,6 +70,7 @@ export async function uninstallMegaBrain(input: {
   purge?: boolean;
   drain?: () => Promise<void>;
   resume?: () => Promise<void>;
+  logger?: LocalLogger;
 }): Promise<{ dataPreserved: boolean }> {
   const layout = runtimeLayout(input.dataDir, input.identity);
   const quarantinedRuntime = path.join(layout.runtimeRoot, `.uninstall-${Date.now()}-${process.pid}`);
@@ -67,23 +78,28 @@ export async function uninstallMegaBrain(input: {
   let drainAttempted = false;
   try {
     drainAttempted = true;
+    logUninstallStep(input, 'draining project runtime');
     await drain();
     await withRuntimeTransaction(async (transaction) => {
+      logUninstallStep(input, 'restoring host integrations');
       for (const participant of input.participants ?? []) {
         transaction.addRollback(() => participant.rollback());
         await participant.apply();
       }
       if (await exists(layout.current)) {
-        await rename(layout.current, quarantinedRuntime);
-        transaction.addRollback(() => rename(quarantinedRuntime, layout.current));
+        logUninstallStep(input, 'quarantining runtime', { runtime: layout.current });
+        await retryRename(layout.current, quarantinedRuntime, 'Quarantining current runtime for uninstall');
+        transaction.addRollback(() => retryRename(quarantinedRuntime, layout.current, 'Restoring current runtime after uninstall rollback'));
         transaction.addCommit(() => rm(quarantinedRuntime, { recursive: true, force: true }));
       }
+      logUninstallStep(input, 'removing runtime state and project config');
       await snapshotFile(transaction, layout.stateFile);
       await rm(layout.stateFile, { force: true });
       const configPath = projectConfigPath(input.identity.root);
       await snapshotFile(transaction, configPath);
       await rm(configPath, { force: true });
     });
+    logUninstallStep(input, 'integration cleanup complete', { dataPreserved: !input.purge });
   } catch (error) {
     if (drainAttempted && input.resume) {
       try { await input.resume(); }
@@ -93,6 +109,9 @@ export async function uninstallMegaBrain(input: {
     }
     throw error;
   }
-  if (input.purge) await rm(layout.projectRoot, { recursive: true, force: true });
+  if (input.purge) {
+    logUninstallStep(input, 'purging project data', { projectRoot: layout.projectRoot });
+    await rm(layout.projectRoot, { recursive: true, force: true });
+  }
   return { dataPreserved: !input.purge };
 }

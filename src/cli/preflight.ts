@@ -83,7 +83,12 @@ export async function runInstallPreflight(options: InstallPreflightOptions = {})
 
   const npm = npmInvocation(platform);
   const npmVersion = detectedVersion('npm', await requiredCommand(probe, npm.command, [...npm.args, '--version'], 'npm'));
-  const gitVersion = detectedVersion('Git', await requiredCommand(probe, 'git', ['--version'], 'Git'));
+  let gitVersion = 'unavailable';
+  try {
+    gitVersion = detectedVersion('Git', await probe.run('git', ['--version']));
+  } catch {
+    gitVersion = 'unavailable';
+  }
   const candidates = options.pythonCommand ? [options.pythonCommand] : platform === 'win32' ? ['python.exe', 'python3.exe'] : ['python3', 'python'];
   const failures: string[] = [];
   for (const pythonCommand of candidates) {

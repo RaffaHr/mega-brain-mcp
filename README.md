@@ -8,10 +8,12 @@ The public MCP surface is exactly `brain_recall`, `brain_learn`, `brain_change_c
 
 - Node.js `>=22.22.0` (certified on 22.22.0 and 24.19.0)
 - Python `>=3.10` with `venv` and `ensurepip`
-- Git
+- Git executable for Git-backed evidence, history, and hook installation
 - Windows, Ubuntu, or WSL
 
-`mega-brain install` checks every requirement before it creates runtime files, downloads backends, or changes host configuration. Managed mode then installs AgentMemory `0.9.29` and Code Review Graph `2.3.7` into a project-isolated runtime; global backend installations are not required.
+A directory does not need to be initialized as a Git repository just to start the CLI. When `.git` is absent, Mega Brain derives a stable directory identity, configures MCP/runtime pieces that do not require Git, and reports Git-backed hooks, history, and commit evidence as unavailable until the project is initialized.
+
+`mega-brain install` checks required runtime prerequisites before it creates runtime files, downloads backends, or changes host configuration. Missing Git is reported as unavailable rather than blocking startup. Managed mode then installs AgentMemory `0.9.29` and Code Review Graph `2.3.7` into a project-isolated runtime; global backend installations are not required.
 
 ## Install the package
 
@@ -32,7 +34,7 @@ tarball shape that npm publishes:
 ```powershell
 npm ci
 npm pack
-npm install --global .\raffahr-mega-brain-mcp-0.1.1.tgz
+npm install --global .\raffahr-mega-brain-mcp-0.1.2.tgz
 mega-brain --help
 ```
 
@@ -50,14 +52,20 @@ mega-brain setup --repo .
 ```
 
 The default setup creates a managed local runtime for that project only. It
-configures the selected host to start Mega Brain through MCP `stdio` with:
+configures the selected host to start Mega Brain through MCP `stdio` with an absolute project path so the host can launch from any working directory:
 
 ```text
 mega-brain mcp --repo <absolute-project-root>
 ```
 
+When you are already in the project directory, the relative form is valid too:
+
+```powershell
+mega-brain mcp --repo .
+```
+
 No manual `mega-brain start` or `mega-brain serve` is needed for normal Codex or
-Claude Code use.
+Claude Code use. The `mcp` command writes lifecycle logs to `stderr`; `stdout` remains reserved for MCP JSON-RPC messages.
 
 For CI, scripts and non-interactive terminals, use `install`. It never prompts:
 
@@ -97,7 +105,7 @@ Host integration files are merged, not replaced:
 - Codex lifecycle hooks: `.codex/hooks.json`
 - Claude Code MCP entry: `.mcp.json`
 - Claude Code lifecycle hooks: `.claude/settings.local.json`
-- Git hook multiplexer: isolated `core.hooksPath`
+- Git hook multiplexer: isolated `core.hooksPath` when the project is a Git repository
 
 Existing MCP servers and hooks remain in place. The installer snapshots the
 original bytes under the project's isolated Mega Brain data directory, so
@@ -130,8 +138,7 @@ the private project supervisor and backends automatically; the last client to
 disconnect releases its lease and the runtime shuts down after the grace period.
 No manual `start` or `serve` is needed.
 
-Use `doctor` to inspect the effective worktree identity, paths, ports and backend
-health:
+Use `doctor` to inspect the effective project identity, paths, ports, backend health, logs, and Git availability:
 
 ```powershell
 mega-brain doctor --repo .

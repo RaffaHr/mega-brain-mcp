@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import { realpathSync } from 'node:fs';
+import { access } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
 import path from 'node:path';
@@ -9,6 +10,7 @@ import { AgentMemoryClient } from '../adapters/agentmemory/client.js';
 import { probeRemoteAgentMemoryIsolation } from '../adapters/agentmemory/capabilities.js';
 import { CodeReviewGraphClient } from '../adapters/code-review-graph/client.js';
 import { GitRepository } from '../adapters/git/repository.js';
+import { createLocalLogger, type LocalLogger } from '../observability/logger.js';
 import { loadConfig } from '../config/load.js';
 import type { MegaBrainConfig } from '../config/schema.js';
 import { discoverProjectIdentity } from '../projects/identity.js';
@@ -44,6 +46,20 @@ function option(args: string[], name: string): string | undefined {
   return index === -1 ? undefined : args[index + 1];
 }
 
+function optionValues(args: string[], name: string): string[] | undefined {
+  const values: string[] = [];
+  for (let index = 0; index < args.length; index += 1) {
+    if (args[index] !== name) continue;
+    for (let valueIndex = index + 1; valueIndex < args.length; valueIndex += 1) {
+      const value = args[valueIndex];
+      if (!value || value.startsWith('--')) break;
+      values.push(value);
+      index = valueIndex;
+    }
+  }
+  return values.length > 0 ? values : undefined;
+}
+
 function flag(args: string[], name: string): boolean {
   return args.includes(name);
 }
@@ -58,25 +74,62 @@ async function isRuntimeActive(dataDir: string, identity: Awaited<ReturnType<typ
   }
 }
 
-function activeRuntimeSwap(
+export function runtimeSwapLifecycle(
   config: MegaBrainConfig,
   identity: Awaited<ReturnType<typeof discoverProjectIdentity>>,
+  options: {
+    runtimeWasActive: boolean;
+    logger?: LocalLogger;
+    drain?: () => Promise<void>;
+    stop?: () => Promise<void>;
+    start?: () => Promise<void>;
+  },
 ): Pick<Parameters<typeof installProjectTransaction>[0], 'beforeSwap' | 'afterSwap'> {
-  const start = () => startManagedRuntime(config.dataDir, identity, {
+  const start = options.start ?? (() => startManagedRuntime(config.dataDir, identity, {
     agentMemoryMode: config.agentMemory.mode,
     agentMemoryEnvironment: config.agentMemory.environment,
-  }).then(() => undefined);
-  const stop = () => stopManagedRuntime(config.dataDir, identity);
+  }).then(() => undefined));
+  const stop = options.stop ?? (() => stopManagedRuntime(config.dataDir, identity));
+  const drain = options.drain ?? (() => drainProjectSupervisor({ dataDir: config.dataDir, identity, stopRuntime: stop }));
   return {
     async beforeSwap(transaction: RuntimeTransaction) {
-      await stop();
-      transaction.addRollback(start);
+      options.logger?.log('info', 'install: draining existing runtime before swap', {
+        project: identity.worktreeId,
+        runtimeWasActive: options.runtimeWasActive,
+      });
+      await drain();
+      if (options.runtimeWasActive) transaction.addRollback(start);
     },
     async afterSwap(transaction: RuntimeTransaction) {
+      if (!options.runtimeWasActive) return;
+      options.logger?.log('info', 'install: restarting previously active runtime after swap', { project: identity.worktreeId });
       transaction.addRollback(stop);
       await start();
     },
   };
+}
+
+async function isRuntimeInstalled(dataDir: string, identity: Awaited<ReturnType<typeof discoverProjectIdentity>>): Promise<boolean> {
+  try {
+    await access(runtimeLayout(dataDir, identity).current);
+    return true;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
+    throw error;
+  }
+}
+
+async function runtimeSwapForExistingInstall(
+  config: MegaBrainConfig,
+  identity: Awaited<ReturnType<typeof discoverProjectIdentity>>,
+  logger: LocalLogger,
+): Promise<Pick<Parameters<typeof installProjectTransaction>[0], 'beforeSwap' | 'afterSwap'>> {
+  const [runtimeWasActive, runtimeInstalled] = await Promise.all([
+    isRuntimeActive(config.dataDir, identity),
+    isRuntimeInstalled(config.dataDir, identity),
+  ]);
+  if (!runtimeWasActive && !runtimeInstalled) return {};
+  return runtimeSwapLifecycle(config, identity, { runtimeWasActive, logger });
 }
 
 function mcpEndpoint(args: string[]): string {
@@ -96,11 +149,25 @@ async function readStdin(): Promise<Record<string, unknown>> {
   return raw ? JSON.parse(raw) as Record<string, unknown> : {};
 }
 
-async function projectContext(args: string[]) {
+async function optionalGitRepository(identity: Awaited<ReturnType<typeof discoverProjectIdentity>>, logger: LocalLogger): Promise<GitRepository | null> {
+  if (!identity.gitBacked) {
+    logger.log('warn', 'cli: Git repository not found; Git hook integration and Git evidence will be skipped', { repo: identity.root });
+    return null;
+  }
+  return GitRepository.discover(identity.root);
+}
+
+async function projectContext(args: string[], logger?: LocalLogger) {
   const repo = path.resolve(option(args, '--repo') ?? process.cwd());
   const configPath = option(args, '--config');
+  logger?.log('info', 'cli: resolving project context', { repo, ...(configPath ? { configPath: path.resolve(configPath) } : {}) });
   const config = await loadConfig({ repoPath: repo, ...(configPath ? { filePath: configPath } : {}) });
   const identity = await discoverProjectIdentity(repo);
+  logger?.log('info', identity.gitBacked ? 'cli: Git project identity discovered' : 'cli: directory project identity discovered', {
+    repo: identity.root,
+    project: identity.worktreeId,
+    gitBacked: identity.gitBacked,
+  });
   return { repo, config, identity };
 }
 
@@ -121,11 +188,15 @@ export function createAgentMemoryClient(
 
 export async function main(args = process.argv.slice(2), output: (value: string) => void = console.log): Promise<void> {
   const [command = 'help'] = args;
+  const logger = createLocalLogger();
+  if (command !== 'help' && !flag(args, '--help')) {
+    logger.log('info', 'cli: command started', { command, repo: path.resolve(option(args, '--repo') ?? process.cwd()) });
+  }
   if (command === 'serve') {
     const port = Number(option(args, '--port') ?? process.env.MEGA_BRAIN_PORT ?? 3000);
     if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid --port');
-    const { config, identity } = await projectContext(args);
-    const git = await GitRepository.discover(identity.root);
+    const { config, identity } = await projectContext(args, logger);
+    const git = await optionalGitRepository(identity, logger);
     const installed = await inspectManagedRuntime(config.dataDir, identity).catch(() => null);
     const agentMemory = createAgentMemoryClient(config, undefined, installed?.manifest);
     const crgRuntime = installed?.manifest.backends.codeReviewGraph;
@@ -187,11 +258,11 @@ export async function main(args = process.argv.slice(2), output: (value: string)
         const iiiArtifact = plan.iiiEngineConfirmed ? await downloadOfficialIiiEngine() : undefined;
         const remoteSecretEnv = plan.config.agentMemory.secretEnvVar;
         const remoteSecret = remoteSecretEnv ? process.env[remoteSecretEnv] : undefined;
-        const repository = await GitRepository.discover(plan.identity.root);
+        const repository = await optionalGitRepository(plan.identity, logger);
         const layout = runtimeLayout(plan.config.dataDir, plan.identity);
         const backupDir = path.join(layout.projectRoot, 'integration-backups');
         const managedHooksPath = path.join(layout.projectRoot, 'hooks', 'git');
-        const runtimeWasActive = await isRuntimeActive(plan.config.dataDir, plan.identity);
+        const runtimeSwap = await runtimeSwapForExistingInstall(plan.config, plan.identity, logger);
         const manifest = await installProjectTransaction({
           dataDir: plan.config.dataDir,
           identity: plan.identity,
@@ -223,7 +294,8 @@ export async function main(args = process.argv.slice(2), output: (value: string)
               sentinel: `mega-brain-install-probe-${randomUUID()}`,
             }),
           } : {}),
-          ...(runtimeWasActive ? activeRuntimeSwap(plan.config, plan.identity) : {}),
+          ...runtimeSwap,
+          logger,
           async configure(transaction) {
             await snapshotFile(transaction, projectConfigPath(plan.identity.root));
             await writeProjectConfig(plan.identity.root, plan.config);
@@ -235,7 +307,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
               transaction,
             });
             await installHostHookFiles({ root: plan.identity.root, backupDir, hosts: plan.hosts, transaction });
-            await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: ['mega-brain'], transaction });
+            if (repository) await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: ['mega-brain'], transaction });
           },
         });
         prompts.notify(`Setup complete for ${manifest.project.worktreeId}. Reopen ${plan.hosts.join(' and ')} to start Mega Brain automatically.`);
@@ -248,10 +320,10 @@ export async function main(args = process.argv.slice(2), output: (value: string)
   const installPreflight = command === 'install' || command === 'upgrade'
     ? await runInstallPreflight({ ...(pythonOption ? { pythonCommand: pythonOption } : {}) })
     : null;
-  const { config, identity } = await projectContext(args);
+  const { config, identity } = await projectContext(args, logger);
   const layout = runtimeLayout(config.dataDir, identity);
   if (command === 'mcp') {
-    await runMcpCommand({ config, identity });
+    await runMcpCommand({ config, identity, logger });
     return;
   }
   if (command === 'supervisor') {
@@ -302,8 +374,8 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     throw new Error('Usage: mega-brain hook <host codex|host claude|git EVENT>');
   }
   if (command === 'install') {
-    const hosts = parseHosts(option(args, '--hosts'));
-    const repository = await GitRepository.discover(identity.root);
+    const hosts = parseHosts(optionValues(args, '--hosts'));
+    const repository = await optionalGitRepository(identity, logger);
     const transport = option(args, '--transport') ?? 'stdio';
     if (transport !== 'stdio' && transport !== 'http') throw new Error('Invalid --transport; expected stdio or http');
     const configPath = option(args, '--config');
@@ -322,7 +394,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     const iiiArtifact = config.agentMemory.mode === 'managed' && installPreflight!.managedIiiEngineRequired
       ? await downloadOfficialIiiEngine()
       : undefined;
-    const runtimeWasActive = await isRuntimeActive(config.dataDir, identity);
+    const runtimeSwap = await runtimeSwapForExistingInstall(config, identity, logger);
     const manifest = await installProjectTransaction({
       dataDir: config.dataDir,
       identity,
@@ -351,14 +423,15 @@ export async function main(args = process.argv.slice(2), output: (value: string)
           sentinel: `mega-brain-install-probe-${randomUUID()}`,
         }),
       } : {}),
-      ...(runtimeWasActive ? activeRuntimeSwap(config, identity) : {}),
+      ...runtimeSwap,
+      logger,
       async configure(transaction) {
         await installHostMcpFiles({ root: identity.root, backupDir: hostBackupDir, hosts, connection, transaction });
         await installHostHookFiles({ root: identity.root, backupDir: hostBackupDir, hosts, transaction });
-        await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: ['mega-brain'], transaction });
+        if (repository) await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: ['mega-brain'], transaction });
       },
     });
-    output(JSON.stringify({ manifest, hosts, connection, hooksInstalled: true, mcpConfigured: true }));
+    output(JSON.stringify({ manifest, hosts, connection, hooksInstalled: Boolean(repository), mcpConfigured: true }));
     return;
   }
   if (command === 'start') {
@@ -387,7 +460,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     const iiiArtifact = config.agentMemory.mode === 'managed' && installPreflight!.managedIiiEngineRequired
       ? await downloadOfficialIiiEngine()
       : undefined;
-    const runtimeWasActive = await isRuntimeActive(config.dataDir, identity);
+    const runtimeSwap = await runtimeSwapForExistingInstall(config, identity, logger);
     output(JSON.stringify(await upgradeManagedRuntime({
       dataDir: config.dataDir,
       identity,
@@ -416,12 +489,13 @@ export async function main(args = process.argv.slice(2), output: (value: string)
           sentinel: `mega-brain-upgrade-probe-${randomUUID()}`,
         }),
       } : {}),
-      ...(runtimeWasActive ? activeRuntimeSwap(config, identity) : {}),
+      ...runtimeSwap,
+      logger,
     })));
     return;
   }
   if (command === 'uninstall') {
-    const hosts = parseHosts(option(args, '--hosts'));
+    const hosts = parseHosts(optionValues(args, '--hosts'));
     const transport = option(args, '--transport') ?? 'stdio';
     if (transport !== 'stdio' && transport !== 'http') throw new Error('Invalid --transport; expected stdio or http');
     const configPath = option(args, '--config');
@@ -432,7 +506,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
           command: 'mega-brain',
           args: ['mcp', '--repo', identity.root, ...(configPath ? ['--config', path.resolve(configPath)] : [])],
         };
-    const repository = await GitRepository.discover(identity.root);
+    const repository = await optionalGitRepository(identity, logger);
     const managedHooksPath = path.join(layout.projectRoot, 'hooks', 'git');
     const hostBackupDir = path.join(layout.projectRoot, 'integration-backups');
     const runtimeWasActive = await isRuntimeActive(config.dataDir, identity);
@@ -440,6 +514,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       dataDir: config.dataDir,
       identity,
       purge: flag(args, '--purge'),
+      logger,
       drain: () => drainProjectSupervisor({ dataDir: config.dataDir, identity }),
       ...(runtimeWasActive ? {
         resume: () => startManagedRuntime(config.dataDir, identity, {
@@ -458,17 +533,17 @@ export async function main(args = process.argv.slice(2), output: (value: string)
             await installHostHookFiles({ root: identity.root, backupDir: hostBackupDir, hosts });
           },
         },
-        {
+        ...(repository ? [{
           apply: () => restoreGitHooks(repository, managedHooksPath),
           rollback: () => installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: ['mega-brain'] }).then(() => undefined),
-        },
+        }] : []),
       ],
     })));
     return;
   }
   if (command === 'doctor') {
     const inspection = await inspectManagedRuntime(config.dataDir, identity);
-    const repository = await GitRepository.discover(identity.root);
+    const repository = await optionalGitRepository(identity, logger);
     const agentMemory = createAgentMemoryClient(config, undefined, inspection.manifest);
     const crgCommand = inspection.manifest.backends.codeReviewGraph;
     const crgDataDir = crgCommand.environment?.CRG_DATA_DIR ?? config.codeReviewGraph.dataDir;
@@ -491,7 +566,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
         identity,
         agentMemory,
         codeReviewGraph,
-        gitHead: () => repository.head(),
+        gitHead: () => repository ? repository.head() : Promise.resolve('NO_GIT'),
       }));
       output(JSON.stringify(result));
     } finally {

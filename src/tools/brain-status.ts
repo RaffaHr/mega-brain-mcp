@@ -17,6 +17,7 @@ export function brainStatus(input: {
 }): MegaBrainEnvelope {
   const warnings = input.backends.filter(({ healthy }) => !healthy).map(({ name }) => `${name} unavailable`);
   if (input.graphHead && input.graphHead !== input.head) warnings.push('code_review_graph index is behind Git HEAD');
+  if (!input.hooksHealthy) warnings.push('hook installation is unhealthy');
   return createEnvelope(
     {
       backends: input.backends.map(({ detail: _detail, ...health }) => health),

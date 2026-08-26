@@ -23,6 +23,11 @@ const proofs: Record<string, string[]> = {
   'AC-054': ['integration/install-transaction.test.ts'],
   'AC-055': ['contract/package-boundary.test.ts'],
   'AC-056': ['e2e/concurrent-projects.test.ts', 'contract/package-boundary.test.ts'],
+  'AC-057': ['unit/project-identity.test.ts', 'integration/application.test.ts'],
+  'AC-058': ['integration/stdio-mcp.test.ts'],
+  'AC-059': ['integration/runtime-manager.test.ts'],
+  'AC-060': ['integration/install-transaction.test.ts'],
+  'AC-061': ['integration/host-hooks.test.ts', 'integration/install-transaction.test.ts'],
 };
 
 for (const [criterion, files] of Object.entries(proofs)) {

@@ -22,7 +22,6 @@ function probe(responses: Record<string, string | Error>): PreflightProbe {
 
 test.each([
   ['old Node', '22.21.0', {}],
-  ['missing Git', '22.22.0', { 'npm --version': '10.9.0', 'git --version': new Error('ENOENT') }],
   ['missing Python', '22.22.0', { 'npm --version': '10.9.0', 'git --version': 'git version 2.45.0', 'python3 --version': new Error('ENOENT'), 'python --version': new Error('ENOENT') }],
   ['old Python', '22.22.0', { 'npm --version': '10.9.0', 'git --version': 'git version 2.45.0', 'python3 --version': 'Python 3.9.19', 'python --version': new Error('ENOENT') }],
   ['Python without venv', '22.22.0', { 'npm --version': '10.9.0', 'git --version': 'git version 2.45.0', 'python3 --version': 'Python 3.11.9', 'python3 -c import ensurepip, venv': new Error('No module named ensurepip'), 'python --version': new Error('ENOENT') }],
@@ -33,6 +32,19 @@ test.each([
   const layout = runtimeLayout(dataDir, identity);
   await expect(installManagedRuntime({ dataDir, identity, preflight: { nodeVersion, platform: 'linux', probe: probe(responses) }, runner: { run: async () => { throw new Error('installer must not run'); } } })).rejects.toThrow();
   await expect(access(layout.runtimeRoot)).rejects.toMatchObject({ code: 'ENOENT' });
+});
+
+test('AC-057: preflight tolera Git ausente e deixa recursos Git degradarem depois @spec:AC-057', async () => {
+  const values: Record<string, string | Error> = {
+    'npm --version': '11.6.0',
+    'git --version': new Error('ENOENT'),
+    'python3 --version': 'Python 3.12.10',
+    'python3 -c import ensurepip, venv': '',
+  };
+  const result = await runInstallPreflight({ nodeVersion: '24.19.0', platform: 'linux', probe: probe(values) });
+
+  expect(result.gitVersion).toBe('unavailable');
+  expect(result.pythonCommand).toBe('python3');
 });
 
 test('AC-031: compatible preflight selects an executable Python with venv support @spec:AC-031', async () => {

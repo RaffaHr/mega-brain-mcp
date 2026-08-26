@@ -9,9 +9,17 @@ import { normalizeHookEvent } from '../../src/hooks/events.js';
 import { installClaudeHooks, uninstallClaudeHooks } from '../../src/hooks/hosts/claude.js';
 import { installCodexHooks, uninstallCodexHooks } from '../../src/hooks/hosts/codex.js';
 import { DurableHookQueue } from '../../src/hooks/queue.js';
-import { installHostHookFiles, restoreHostHookFiles } from '../../src/cli/host-hooks.js';
+import { installHostHookFiles, parseHosts, restoreHostHookFiles } from '../../src/cli/host-hooks.js';
 
 describe('host hook dispatcher', () => {
+  test('AC-061: parser aceita hosts por virgula, espaco, repeticao e alias both @spec:AC-061', () => {
+    expect(parseHosts('codex,claude')).toEqual(['codex', 'claude']);
+    expect(parseHosts(['codex', 'claude'])).toEqual(['codex', 'claude']);
+    expect(parseHosts(['codex,', 'claude', 'codex'])).toEqual(['codex', 'claude']);
+    expect(parseHosts('both')).toEqual(['codex', 'claude']);
+    expect(() => parseHosts('cursor')).toThrow('Supported hosts are codex and claude');
+  });
+
   test('normaliza o subconjunto Codex e os 12 eventos Claude com chave idempotente', () => {
     const payload = { session_id: 's1', tool_use_id: 't1' };
     expect(normalizeHookEvent('codex', 'PostToolUse', payload).event).toBe('tool_succeeded');

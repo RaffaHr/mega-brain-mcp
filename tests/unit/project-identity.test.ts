@@ -1,10 +1,15 @@
+import { mkdtemp, rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { expect, test } from 'vitest';
+import { afterEach, expect, test } from 'vitest';
 
-import { deriveProjectIdentity, normalizeRemote } from '../../src/projects/identity.js';
+import { deriveProjectIdentity, discoverProjectIdentity, normalizeRemote } from '../../src/projects/identity.js';
 import { ProjectRegistry } from '../../src/projects/registry.js';
 import { runtimeLayout } from '../../src/runtime/layout.js';
+
+const temporaryDirectories: string[] = [];
+afterEach(async () => Promise.all(temporaryDirectories.splice(0).map((directory) => rm(directory, { recursive: true, force: true }))));
 
 test('project identity separates repository, checkout and worktree without retaining credentials', () => {
   const main = deriveProjectIdentity({
@@ -35,6 +40,19 @@ test('project aliases cannot be rebound to a different worktree', () => {
   expect(registry.resolve('shop')).toEqual(first);
   expect(() => registry.register('shop', second)).toThrow(/another worktree/);
   expect(() => registry.register('../escape', first)).toThrow(/Invalid project alias/);
+});
+
+test('AC-057: diretório sem .git recebe identidade estável sem bloquear comandos @spec:AC-057', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-non-git-'));
+  temporaryDirectories.push(root);
+
+  const identity = await discoverProjectIdentity(root);
+  const repeated = await discoverProjectIdentity(root);
+
+  expect(identity.gitBacked).toBe(false);
+  expect(identity.root).toBe(path.resolve(root).replaceAll('\\', '/').toLowerCase());
+  expect(identity.worktreeId).toBe(repeated.worktreeId);
+  expect(identity.gitDir).toContain('.mega-brain/non-git-project');
 });
 
 test('AC-046: layouts absolutos permanecem distintos por worktree @spec:AC-046', () => {

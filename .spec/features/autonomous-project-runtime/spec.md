@@ -61,6 +61,37 @@ Como usuário instalando o Mega Brain, quero responder a um setup interativo, pa
 - **Quando** `mega-brain install` é executado
 - **Então** não solicita entrada, produz o mesmo estado validado pelo setup e, para qualquer opção ausente ou incompatível, retorna erro acionável com código diferente de zero sem alterar arquivos, baixar pacotes ou manter processos
 
+#### AC-057 — Diretórios sem Git não bloqueiam inicialização
+
+- **Dado** um diretório de projeto que ainda não possui `.git`
+- **Quando** setup, install, mcp, serve ou status resolvem o contexto do projeto
+- **Então** o Mega Brain deriva uma identidade estável do caminho real, registra que Git está indisponível e só degrada ou falha nas operações que dependem de Git, como hooks, evidência de commit ou histórico
+
+#### AC-058 — MCP stdio nunca fica silencioso antes de aceitar mensagens
+
+- **Dado** `mega-brain mcp --repo .` em um projeto sem runtime instalado ou com runtime inválido
+- **Quando** o comando é iniciado manualmente ou por host MCP
+- **Então** emite logs informativos em `stderr`, verifica o runtime antes de iniciar supervisor e falha rápido com erro acionável em vez de ficar aguardando sem saída visível
+
+#### AC-059 — Ciclo de instalação reporta progresso
+
+- **Dado** setup, install, doctor, upgrade ou uninstall executando etapas longas ou transacionais
+- **Quando** cada etapa relevante começa ou termina
+- **Então** o comando emite logs informativos redigidos e redigidos contra segredo no canal apropriado, sem poluir `stdout` de JSON ou MCP stdio
+
+#### AC-060 — Runtime existente sem estado ativo é drenado antes do swap
+
+- **Dado** um projeto com `runtime/current` já criado no Windows, mesmo sem `runtime-state.json`
+- **Quando** `mega-brain install` ou `mega-brain upgrade` substitui o runtime
+- **Então** drena supervisor e backends existentes antes de renomear `runtime/current`, mas só reinicia automaticamente quando o runtime estava registrado como ativo
+
+#### AC-061 — Multi-host e uninstall toleram variações do Windows
+
+- **Dado** install ou uninstall recebendo `--hosts codex,claude`, `--hosts codex claude`, flags repetidas ou `--hosts both`
+- **Quando** o CLI interpreta a lista de hosts
+- **Então** configura ou restaura Codex e Claude sem rejeitar combinações válidas e sem duplicar hosts
+- **E** o uninstall usa retry transacional ao mover `runtime/current` para quarentena quando o Windows retorna erros transitórios de handle aberto
+
 ### US-019 — Isolar completamente runtimes e dados por projeto
 
 Como usuário com vários projetos ou worktrees, quero isolamento físico e lógico, para que memória, grafo, processos ou credenciais nunca atravessem projetos.

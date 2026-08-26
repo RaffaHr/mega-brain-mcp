@@ -8,16 +8,50 @@ export interface ProcessStopper {
   stop(pid: number): Promise<void>;
 }
 
+export interface StopManagedRuntimeOptions {
+  processExists?: (pid: number) => boolean | Promise<boolean>;
+  waitTimeoutMs?: number;
+  pollIntervalMs?: number;
+}
+
 export const systemProcessStopper: ProcessStopper = {
   async stop(pid) {
-    process.kill(pid, 'SIGTERM');
+    try { process.kill(pid, 'SIGTERM'); }
+    catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
+    }
   },
 };
+
+async function defaultProcessExists(pid: number): Promise<boolean> {
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (error) {
+    return (error as NodeJS.ErrnoException).code === 'EPERM';
+  }
+}
+
+async function waitForStopped(pids: number[], options: StopManagedRuntimeOptions): Promise<void> {
+  const processExists = options.processExists ?? defaultProcessExists;
+  const deadline = Date.now() + (options.waitTimeoutMs ?? 5_000);
+  let stillRunning: number[] = pids;
+  do {
+    stillRunning = [];
+    for (const pid of pids) {
+      if (await processExists(pid)) stillRunning.push(pid);
+    }
+    if (stillRunning.length === 0) return;
+    await new Promise((resolve) => setTimeout(resolve, options.pollIntervalMs ?? 100));
+  } while (Date.now() < deadline);
+  throw new Error(`Runtime processes did not stop within ${options.waitTimeoutMs ?? 5_000}ms: ${stillRunning.join(', ')}`);
+}
 
 export async function stopManagedRuntime(
   dataDir: string,
   identity: ProjectIdentity,
   stopper: ProcessStopper = systemProcessStopper,
+  options: StopManagedRuntimeOptions = {},
 ): Promise<void> {
   const layout = runtimeLayout(dataDir, identity);
   let state;
@@ -26,6 +60,8 @@ export async function stopManagedRuntime(
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
     throw error;
   }
-  await Promise.allSettled(Object.values(state.processes).map((pid) => stopper.stop(pid)));
+  const pids = Object.values(state.processes);
+  await Promise.allSettled(pids.map((pid) => stopper.stop(pid)));
+  await waitForStopped(pids, options);
   await rm(layout.stateFile, { force: true });
 }

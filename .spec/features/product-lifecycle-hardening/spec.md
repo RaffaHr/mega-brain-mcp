@@ -22,13 +22,13 @@ dependência fundamental.
 
 #### AC-030 — Preflight valida versões e comandos antes de mutar
 
-- **Dado** Node anterior a 22.22.0, Python anterior a 3.10, Python ausente ou Git ausente
+- **Dado** Node anterior a 22.22.0, Python anterior a 3.10 ou Python ausente
 - **Quando** `mega-brain install` é executado
 - **Então** a instalação termina com erro acionável antes de criar runtime, hooks, configuração MCP ou downloads de backends
 
 #### AC-031 — Ambiente compatível instala os backends ausentes
 
-- **Dado** Node 22.22 ou 24.19, Python 3.10+ e Git, sem AgentMemory nem Code Review Graph previamente instalados
+- **Dado** Node 22.22 ou 24.19 e Python 3.10+, sem AgentMemory nem Code Review Graph previamente instalados
 - **Quando** `mega-brain install` é executado em modo gerenciado
 - **Então** instala as versões fixadas em runtime isolado e registra no lock somente comandos realmente executáveis
 

@@ -16,6 +16,33 @@ afterEach(async () => {
   await Promise.all(temporaryDirectories.splice(0).map((directory) => rm(directory, { recursive: true, force: true })));
 });
 
+test('AC-059: instalação emite logs informativos para cada etapa relevante @spec:AC-059', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-runtime-logs-'));
+  temporaryDirectories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const logs: string[] = [];
+
+  await installManagedRuntime({
+    dataDir,
+    identity,
+    runner: { run: async () => undefined },
+    preflight: false,
+    validateArtifacts: false,
+    logger: { log: (_level, message) => { logs.push(message); } },
+  });
+
+  expect(logs).toEqual(expect.arrayContaining([
+    'install: checking prerequisites',
+    'install: preparing isolated runtime directories',
+    'install: installing AgentMemory packages',
+    'install: creating Code Review Graph virtualenv',
+    'install: installing Code Review Graph package',
+    'install: building Code Review Graph index',
+    'install: activating staged runtime',
+    'install: runtime installation complete',
+  ]));
+});
+
 test('AC-001: instalação cria runtime isolado e verificável @spec:AC-001', async () => {
   const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-runtime-'));
   temporaryDirectories.push(dataDir);
@@ -49,7 +76,7 @@ test('AC-001: instalação cria runtime isolado e verificável @spec:AC-001', as
   expect(path.isAbsolute(commands[3]?.options.env?.CRG_DATA_DIR ?? '')).toBe(true);
   expect(commands[3]?.options.env?.CRG_DATA_DIR).toContain(path.join('runtime', '.staging-'));
   expect(manifest.backends.codeReviewGraph.environment?.CRG_DATA_DIR).toBe(manifest.isolation!.paths.codeReviewGraph);
-  expect(manifest.versions).toEqual({ megaBrain: '0.1.1', agentMemory: '0.9.29', codeReviewGraph: '2.3.7' });
+  expect(manifest.versions).toEqual({ megaBrain: '0.1.2', agentMemory: '0.9.29', codeReviewGraph: '2.3.7' });
   expect(inspection.healthy).toBe(true);
   expect(inspection.checks).toEqual({ project: true, isolation: true, agentMemory: true, codeReviewGraph: true });
   expect(manifest.backends.codeReviewGraph.lifecycle).toBe('on-demand');

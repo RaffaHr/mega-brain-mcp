@@ -9,6 +9,7 @@ import type { MegaBrainConfig } from '../config/schema.js';
 import { DurableHookQueue } from '../hooks/queue.js';
 import type { EvidenceInput, KnowledgeType } from '../learning/taxonomy.js';
 import type { EvidenceChunk } from '../orchestration/ranking.js';
+import type { RecallSource } from '../orchestration/router.js';
 import type { ProjectIdentity } from '../projects/identity.js';
 import type { ProvenanceRepository } from '../provenance/repository.js';
 import { assessFreshness } from '../provenance/freshness.js';
@@ -23,11 +24,13 @@ import type { MegaBrainToolHandlers } from './index.js';
 export interface ApplicationDependencies {
   config: MegaBrainConfig;
   identity: ProjectIdentity;
-  git: GitRepository;
+  git: GitRepository | null;
   agentMemory: AgentMemoryClient;
   codeReviewGraph: CodeReviewGraphClient;
   provenance: ProvenanceRepository;
 }
+
+const NO_GIT_HEAD = 'NO_GIT';
 
 function textFromUnknown(value: unknown): string {
   if (typeof value === 'string') return value;
@@ -52,6 +55,11 @@ function assertProject(input: Record<string, unknown>, identity: ProjectIdentity
   if (requested !== identity.root && requested !== identity.worktreeId && requested !== identity.repositoryId) {
     throw new Error('Requested project does not match the configured checkout');
   }
+}
+
+async function currentHead(git: GitRepository | null): Promise<string> {
+  if (!git) return NO_GIT_HEAD;
+  return git.head();
 }
 
 function memoryRecall(client: AgentMemoryClient, project: string): RecallSourceAdapter {
@@ -132,9 +140,10 @@ function learningStore(client: AgentMemoryClient, project: string): LearningStor
   };
 }
 
-function validationStore(provenance: ProvenanceRepository, git: GitRepository): ValidationStore {
+function validationStore(provenance: ProvenanceRepository, git: GitRepository | null): ValidationStore {
   return {
     async assess(memoryId) {
+      if (!git) return { state: 'UNKNOWN', confidence: 0.25, reasons: ['git_repository_unavailable'] };
       const evidence = provenance.evidenceForMemory(memoryId);
       if (evidence.length === 0) return { state: 'UNKNOWN', confidence: 0.25, reasons: ['memory_has_no_local_provenance'] };
       const changed = new Set((await git.status()).map(({ path: changedPath }) => changedPath.replaceAll('\\', '/')));
@@ -168,16 +177,16 @@ function temporalItems(value: Record<string, unknown>, source: 'agentmemory_memo
 export function createApplicationHandlers(dependencies: ApplicationDependencies): MegaBrainToolHandlers {
   const { identity, git, agentMemory, codeReviewGraph, provenance } = dependencies;
   provenance.registerProject({ id: identity.worktreeId, checkoutId: identity.checkoutId, worktreeId: identity.worktreeId, root: identity.root });
-  const sources = {
+  const sources: Partial<Record<RecallSource, RecallSourceAdapter>> = {
     agentmemory: memoryRecall(agentMemory, identity.worktreeId),
     code_review_graph: graphRecall(codeReviewGraph),
-    git: gitRecall(git),
   };
+  if (git) sources.git = gitRecall(git);
   return {
     async brain_recall(input) {
       assertProject(input, identity);
       return brainRecall({ query: String(input.query), ...(input.intent ? { intent: input.intent as never } : {}), ...(input.budget ? { budget: input.budget as never } : {}) }, {
-        sources, project: identity.worktreeId, head: await git.head(),
+        sources, project: identity.worktreeId, head: await currentHead(git),
       });
     },
     async brain_learn(input) {
@@ -185,7 +194,7 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
       const evidence = (input.evidence ?? []) as EvidenceInput[];
       const learned = await brainLearn({
         project: identity.worktreeId,
-        head: await git.head(),
+        head: await currentHead(git),
         statement: String(input.statement),
         type: (input.type ?? 'experience') as KnowledgeType,
         evidence,
@@ -206,7 +215,7 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
       const target = String(input.target);
       return brainChangeContext({ target, ...(input.budget ? { budget: input.budget as never } : {}) }, {
         project: identity.worktreeId,
-        head: await git.head(),
+        head: await currentHead(git),
         async structure() {
           const [impact, flows, query] = await Promise.all([
             codeReviewGraph.call('get_impact_radius_tool', { changed_files: [target] }),
@@ -232,8 +241,8 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
       };
       return brainHistory(query, {
         project: identity.worktreeId,
-        head: await git.head(),
-        commits: async () => (await gitHistory(git, query.limit ?? 50)).map((commit) => ({ id: commit.hash, source: 'git', occurredAt: commit.authoredAt, summary: commit.subject, reference: commit.hash })),
+        head: await currentHead(git),
+        commits: async () => git ? (await gitHistory(git, query.limit ?? 50)).map((commit) => ({ id: commit.hash, source: 'git', occurredAt: commit.authoredAt, summary: commit.subject, reference: commit.hash })) : [],
         memories: async () => temporalItems(await agentMemory.memories({ project: identity.worktreeId }), 'agentmemory_memory'),
         sessions: async () => temporalItems(await agentMemory.sessions({ project: identity.worktreeId }), 'agentmemory_session'),
         currentStructure: async () => (await codeReviewGraph.call('get_architecture_overview_tool', {})).structuredContent ?? {},
@@ -241,11 +250,11 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
     },
     async brain_validate(input) {
       assertProject(input, identity);
-      return brainValidate({ project: identity.worktreeId, head: await git.head(), memoryIds: [String(input.memoryId)] }, validationStore(provenance, git));
+      return brainValidate({ project: identity.worktreeId, head: await currentHead(git), memoryIds: [String(input.memoryId)] }, validationStore(provenance, git));
     },
     async brain_status(input) {
       assertProject(input, identity);
-      const head = await git.head();
+      const head = await currentHead(git);
       const queue = new DurableHookQueue(path.join(dependencies.config.dataDir, 'projects', identity.worktreeId, 'hook-queue.json'));
       const [memory, graph] = await Promise.allSettled([
         agentMemory.health(),
@@ -254,7 +263,7 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
       const graphHead = graph.status === 'fulfilled'
         ? (graph.value.structuredContent?.graphHead ?? graph.value.structuredContent?.graph_head)
         : undefined;
-      return brainStatus({
+      const status = brainStatus({
         project: identity.worktreeId,
         head,
         ...(typeof graphHead === 'string' ? { graphHead } : {}),
@@ -262,9 +271,11 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
           { name: 'agentmemory', healthy: memory.status === 'fulfilled', version: memory.status === 'fulfilled' ? memory.value.version ?? null : null },
           { name: 'code_review_graph', healthy: graph.status === 'fulfilled', version: codeReviewGraph.serverVersion() },
         ],
-        hooksHealthy: true,
+        hooksHealthy: Boolean(git),
         queueDepth: (await queue.pending()).length,
       });
+      if (!git) status.warnings.push('git repository unavailable');
+      return status;
     },
   };
 }

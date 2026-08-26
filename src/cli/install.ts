@@ -4,6 +4,7 @@ import { access, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
+import type { LocalLogger } from '../observability/logger.js';
 import type { ProjectIdentity } from '../projects/identity.js';
 import { assertRuntimeChild, runtimeLayout } from '../runtime/layout.js';
 import { createRuntimeIsolation, writeRuntimeLock, type RuntimeLockManifest } from '../runtime/lock-manifest.js';
@@ -128,6 +129,7 @@ export interface InstallRuntimeOptions {
   transaction?: RuntimeTransaction;
   beforeSwap?(transaction: RuntimeTransaction): Promise<void>;
   afterSwap?(transaction: RuntimeTransaction, manifest: RuntimeLockManifest): Promise<void>;
+  logger?: LocalLogger;
 }
 
 export interface InstallProjectTransactionOptions extends Omit<InstallRuntimeOptions, 'transaction'> {
@@ -143,6 +145,10 @@ export interface RuntimeInspection {
 
 async function exists(filePath: string): Promise<boolean> {
   return access(filePath).then(() => true).catch(() => false);
+}
+
+function logInstallStep(options: InstallRuntimeOptions, message: string, fields: Record<string, unknown> = {}): void {
+  options.logger?.log('info', `install: ${message}`, { project: options.identity.worktreeId, ...fields });
 }
 
 export async function installManagedRuntime(options: InstallRuntimeOptions): Promise<RuntimeLockManifest> {
@@ -163,9 +169,11 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
     if (!options.remoteIsolationProbe) {
       throw new Error('Remote AgentMemory requires a reversible namespace isolation probe. No files were changed.');
     }
+    logInstallStep(options, 'probing remote AgentMemory isolation', { baseUrl: options.remoteAgentMemory.baseUrl });
     await options.remoteIsolationProbe();
   }
   const runner = options.runner ?? systemCommandRunner;
+  logInstallStep(options, 'checking prerequisites');
   const preflight = options.preflight === false
     ? null
     : await runInstallPreflight({ ...options.preflight, ...(options.pythonCommand ? { pythonCommand: options.pythonCommand } : {}) });
@@ -194,6 +202,7 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
   const python = options.pythonCommand ?? preflight?.pythonCommand ?? (process.platform === 'win32' ? 'python.exe' : 'python3');
   const codeReviewGraph = options.codeReviewGraph ?? { mode: 'managed' as const };
 
+  logInstallStep(options, 'preparing isolated runtime directories', { runtimeRoot: layout.runtimeRoot });
   await mkdir(layout.runtimeRoot, { recursive: true });
   await mkdir(staging, { recursive: true });
   transaction.addRollback(() => rm(staging, { recursive: true, force: true }));
@@ -202,6 +211,7 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
   await mkdir(crgDir, { recursive: true });
   await mkdir(stagedCrgData, { recursive: true });
     if (installIiiEngine) {
+      logInstallStep(options, 'installing iii-engine artifact', { version: III_ENGINE_VERSION });
       await installIiiEngineArtifact({
         destination: path.join(stagedIiiEngine, 'iii.exe'),
         version: III_ENGINE_VERSION,
@@ -209,6 +219,7 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
       });
     }
     if (agentMemoryMode === 'managed') {
+      logInstallStep(options, 'installing AgentMemory packages', { version: MANAGED_VERSIONS.agentMemory });
       await runner.run(
         npm.command,
         [...npm.args, 'install', '--ignore-scripts', '--no-audit', '--no-fund', '--prefix', agentMemoryDir, `@agentmemory/agentmemory@${MANAGED_VERSIONS.agentMemory}`, `@agentmemory/mcp@${MANAGED_VERSIONS.agentMemory}`],
@@ -216,12 +227,14 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
       );
     }
     if (codeReviewGraph.mode === 'managed') {
+      logInstallStep(options, 'creating Code Review Graph virtualenv');
       await runner.run(python, ['-m', 'venv', venvDir], { cwd: staging });
     }
     const venvPython = runtimePlatform === 'win32'
       ? path.join(venvDir, 'Scripts', 'python.exe')
       : path.join(venvDir, 'bin', 'python');
     if (codeReviewGraph.mode === 'managed') {
+      logInstallStep(options, 'installing Code Review Graph package', { version: MANAGED_VERSIONS.codeReviewGraph });
       await runner.run(venvPython, ['-m', 'pip', 'install', `code-review-graph==${MANAGED_VERSIONS.codeReviewGraph}`], { cwd: staging });
     }
 
@@ -251,6 +264,7 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
     };
     const crgCommand = codeReviewGraph.mode === 'managed' ? venvPython : codeReviewGraph.command;
     const crgBaseArgs = codeReviewGraph.mode === 'managed' ? ['-m', 'code_review_graph'] : codeReviewGraph.args ?? [];
+    logInstallStep(options, 'building Code Review Graph index', { root: options.identity.root });
     await runner.run(crgCommand, [...crgBaseArgs, 'build'], {
       cwd: options.identity.root,
       env: crgEnvironment,
@@ -271,7 +285,7 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
         worktreeId: options.identity.worktreeId,
       },
       versions: {
-        megaBrain: '0.1.1',
+        megaBrain: '0.1.2',
         ...MANAGED_VERSIONS,
         ...(installIiiEngine ? { iiiEngine: III_ENGINE_VERSION } : {}),
       },
@@ -319,12 +333,14 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
     }
     await writeFile(path.join(crgDir, '.installed'), codeReviewGraph.mode === 'managed' ? MANAGED_VERSIONS.codeReviewGraph : 'custom', 'utf8');
 
+    logInstallStep(options, 'activating staged runtime');
     await options.beforeSwap?.(transaction);
     if (installIiiEngine) await swapStagedPath(transaction, stagedIiiEngine, isolation.paths.iiiEngine);
     await swapStagedPath(transaction, stagedCrgData, isolation.paths.codeReviewGraph);
     await rm(stagedBackendData, { recursive: true, force: true });
     await swapStagedPath(transaction, staging, layout.current);
     await options.afterSwap?.(transaction, manifest);
+    logInstallStep(options, 'runtime installation complete', { runtime: layout.current });
     return manifest;
 }
 
