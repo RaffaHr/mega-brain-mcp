@@ -49,9 +49,10 @@ test('AC-057: diretório sem .git recebe identidade estável sem bloquear comand
   const identity = await discoverProjectIdentity(root);
   const repeated = await discoverProjectIdentity(root);
   const expectedRoot = await realpath(root).catch(() => path.resolve(root));
+  const normalizedExpectedRoot = expectedRoot.replaceAll('\\', '/').replace(/\/$/, '');
 
   expect(identity.gitBacked).toBe(false);
-  expect(identity.root).toBe(expectedRoot.replaceAll('\\', '/').toLowerCase());
+  expect(identity.root).toBe(process.platform === 'win32' ? normalizedExpectedRoot.toLowerCase() : normalizedExpectedRoot);
   expect(identity.worktreeId).toBe(repeated.worktreeId);
   expect(identity.gitDir).toContain('.mega-brain/non-git-project');
 });
