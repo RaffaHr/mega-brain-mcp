@@ -10,13 +10,17 @@ import { installClaudeHooks, uninstallClaudeHooks } from '../../src/hooks/hosts/
 import { installCodexHooks, uninstallCodexHooks } from '../../src/hooks/hosts/codex.js';
 import { DurableHookQueue } from '../../src/hooks/queue.js';
 import { installHostHookFiles, restoreHostHookFiles } from '../../src/cli/host-hooks.js';
-import { expandHostSelection } from '../../src/cli/host-selection.js';
+import { expandHostSelection, parseHostSelection } from '../../src/cli/host-selection.js';
 
 describe('host hook dispatcher', () => {
   test('AC-061: seleção de host cobre Codex, Claude e ambos @spec:AC-061', () => {
     expect(expandHostSelection('codex')).toEqual(['codex']);
     expect(expandHostSelection('claude')).toEqual(['claude']);
     expect(expandHostSelection('both')).toEqual(['codex', 'claude']);
+    expect(parseHostSelection('codex')).toEqual(['codex']);
+    expect(parseHostSelection('claude,codex')).toEqual(['codex', 'claude']);
+    expect(parseHostSelection(undefined)).toBeNull();
+    expect(() => parseHostSelection('vim')).toThrow(/Invalid --hosts/);
   });
 
   test('normaliza o subconjunto Codex e os 12 eventos Claude com chave idempotente', () => {

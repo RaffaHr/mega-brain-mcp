@@ -31,7 +31,7 @@ import { managedDoctorDependencies, runDoctor } from './doctor.js';
 import { handleGitHook, handleHostHook } from './hook.js';
 import { installHostMcpFiles, restoreHostMcpFiles } from './host-integration.js';
 import { installHostHookFiles, restoreHostHookFiles } from './host-hooks.js';
-import { promptForHosts } from './host-selection.js';
+import { parseHostSelection, promptForHosts } from './host-selection.js';
 import { installProjectTransaction, inspectManagedRuntime } from './install.js';
 import { runMcpCommand } from './mcp.js';
 import { runInstallPreflight } from './preflight.js';
@@ -393,7 +393,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
   }
   if (command === 'install') {
     const prompts = createTerminalPrompts();
-    const hosts = await promptForHosts(prompts);
+    const hosts = parseHostSelection(option(args, '--hosts')) ?? await promptForHosts(prompts);
     if (hosts === null) { prompts.notify('Install cancelled; no changes were applied.'); return; }
     const repository = await optionalGitRepository(identity, logger);
     const transport = option(args, '--transport') ?? 'stdio';
@@ -520,7 +520,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
   }
   if (command === 'uninstall') {
     const prompts = createTerminalPrompts();
-    const hosts = await promptForHosts(prompts, 'Remove Mega Brain from which hosts?');
+    const hosts = parseHostSelection(option(args, '--hosts')) ?? await promptForHosts(prompts, 'Remove Mega Brain from which hosts?');
     if (hosts === null) { prompts.notify('Uninstall cancelled; no changes were applied.'); return; }
     const transport = option(args, '--transport') ?? 'stdio';
     if (transport !== 'stdio' && transport !== 'http') throw new Error('Invalid --transport; expected stdio or http');
