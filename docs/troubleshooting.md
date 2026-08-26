@@ -57,12 +57,9 @@ in `.mcp.json`. Do not register AgentMemory or Code Review Graph separately.
 
 ## Remote AgentMemory validation does not advance
 
-Confirm `MEGA_BRAIN_AGENTMEMORY_URL`, then set
-`MEGA_BRAIN_AGENTMEMORY_SECRET_ENV` to the name of an environment variable that
-contains the secret. The secret value itself must never be placed in config.
-Setup intentionally remains on this step when the URL, authentication,
-namespace separation or cleanup probe fails; retry or switch to managed mode.
-Non-interactive install exits with `No files were changed` and must be rerun.
+Confirm the remote URL, then set an environment variable with the secret and enter only that variable name in setup. For example, in PowerShell set `$env:MEGA_BRAIN_REMOTE_SECRET = '<secret>'`, then enter `MEGA_BRAIN_REMOTE_SECRET` when setup asks for the remote secret environment variable name. The secret value itself must never be placed in config.
+
+Setup intentionally remains on this step when the URL, authentication, namespace separation or cleanup probe fails. If health succeeds but setup reports that strict namespace isolation could not be proven, the remote service returned the sentinel written for one project when queried from another project namespace; use managed mode or fix the remote AgentMemory isolation behavior before retrying. Non-interactive install exits with `No files were changed` and must be rerun.
 
 ## Code Review Graph is behind Git HEAD
 

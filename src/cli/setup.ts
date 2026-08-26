@@ -38,8 +38,15 @@ function hosts(value: 'codex' | 'claude' | 'both'): SetupHost[] {
   return value === 'both' ? ['codex', 'claude'] : [value];
 }
 
+const SECRET_ENV_VAR_PATTERN = /^[A-Za-z_][A-Za-z0-9_]*$/u;
+
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
+}
+
+function validateSecretEnvironmentName(value: string): void {
+  if (SECRET_ENV_VAR_PATTERN.test(value)) return;
+  throw new Error('Enter the environment variable name that contains the remote secret, not the secret value. Example: set MEGA_BRAIN_REMOTE_SECRET in your shell, then enter MEGA_BRAIN_REMOTE_SECRET here');
 }
 
 export async function runSetupWizard(dependencies: SetupDependencies): Promise<SetupResult> {
@@ -87,11 +94,11 @@ export async function runSetupWizard(dependencies: SetupDependencies): Promise<S
     }
     const baseUrl = await prompts.input('remoteUrl', 'Remote AgentMemory URL');
     if (baseUrl === null) return { status: 'cancelled' };
-    const secretEnvVar = await prompts.input('remoteSecretEnv', 'Environment variable containing the remote secret');
+    const secretEnvVar = await prompts.input('remoteSecretEnv', 'Remote secret environment variable name (example: MEGA_BRAIN_REMOTE_SECRET)');
     if (secretEnvVar === null) return { status: 'cancelled' };
     try {
       new URL(baseUrl);
-      if (!/^[A-Za-z_][A-Za-z0-9_]*$/u.test(secretEnvVar)) throw new Error('Invalid secret environment variable name');
+      validateSecretEnvironmentName(secretEnvVar);
       const secret = dependencies.environment[secretEnvVar];
       if (!secret) throw new Error(`Environment variable ${secretEnvVar} is not set`);
       await dependencies.probeRemote({ baseUrl, secretEnvVar, secret, identity });

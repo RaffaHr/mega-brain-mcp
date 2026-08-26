@@ -107,6 +107,35 @@ test('AC-049: remoto inválido permanece na etapa e pode trocar para managed sem
   expect(JSON.stringify(install.mock.calls[0]![0])).not.toContain('runtime-only-secret');
 });
 
+test('AC-049: secret colado no campo de env var recebe erro acionavel @spec:AC-049', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-setup-secret-value-'));
+  directories.push(root);
+  const identity = deriveProjectIdentity({ root, gitDir: '.git', commonGitDir: '.git' });
+  const install = vi.fn(async () => undefined);
+  const probeRemote = vi.fn(async () => undefined);
+  const prompts = new ScriptedPrompts({
+    repository: [root], hosts: ['codex'], agentMemoryMode: ['remote', 'managed'],
+    remoteUrl: ['https://memory.example.test'],
+    remoteSecretEnv: ['958dcb9c8d649f268ffe5d54e90c23eb82e91017025e12ca25f5e4c0ef8c0ac5'],
+    advanced: [false], confirm: [true],
+  });
+
+  await runSetupWizard({
+    prompts,
+    currentDirectory: root,
+    environment: {},
+    defaultDataDir: path.join(root, '.data-root'),
+    preflight: async () => preflight(),
+    discoverIdentity: async () => identity,
+    probeRemote,
+    install,
+  });
+
+  expect(probeRemote).not.toHaveBeenCalled();
+  expect(prompts.messages.join('\n')).toContain('not the secret value');
+  expect(install.mock.calls[0]![0].config.agentMemory.mode).toBe('managed');
+});
+
 test('AC-043: opções avançadas preservam CRG customizado, data root e opt-ins seguros @spec:AC-043', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-setup-advanced-'));
   directories.push(root);
