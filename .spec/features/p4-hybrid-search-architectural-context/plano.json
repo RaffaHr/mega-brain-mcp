@@ -1,0 +1,78 @@
+{
+  "runId": "mega-brain-mcp-p4-hybrid-search-architectural-context-mtbuzsgx",
+  "feature": "p4-hybrid-search-architectural-context",
+  "agent": "claude",
+  "modo": "paralelo",
+  "paralelizar": null,
+  "modeloForcado": null,
+  "esforcoForcado": null,
+  "geradoEm": "2026-08-27 18:31",
+  "branchTrabalho": "spec/p4-hybrid-search-architectural-context",
+  "baseDir": ".spec/features/p4-hybrid-search-architectural-context",
+  "specDir": ".spec",
+  "repoName": "mega-brain-mcp",
+  "logsDir": "../onp-worktrees/mega-brain-mcp-p4-hybrid-search-architectural-context-logs",
+  "ondas": [
+    [
+      "faixa-1"
+    ]
+  ],
+  "faixas": [
+    {
+      "id": "faixa-1",
+      "branch": "spec/p4-hybrid-search-architectural-context-faixa-1",
+      "worktree": "../onp-worktrees/mega-brain-mcp-p4-hybrid-search-architectural-context-faixa-1",
+      "tarefas": [
+        {
+          "id": "T-052",
+          "titulo": "Implementar tabela virtual FTS5 e busca lexical BM25 no ProvenanceRepository",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "src/provenance/migrations.ts",
+            "src/provenance/repository.ts",
+            "test/p4-hybrid-search-architectural-context.spec.test.js"
+          ],
+          "refs": [
+            "US-034",
+            "AC-086"
+          ]
+        },
+        {
+          "id": "T-053",
+          "titulo": "Integrar canal lexical local no RRF Ranker e application handlers",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "src/orchestration/ranking.ts",
+            "src/orchestration/router.ts",
+            "src/server/application.ts",
+            "test/p4-hybrid-search-architectural-context.spec.test.js"
+          ],
+          "refs": [
+            "US-034",
+            "AC-087"
+          ]
+        },
+        {
+          "id": "T-054",
+          "titulo": "Injetar visão geral de arquitetura do CRG no Context Builder em queries de arquitetura",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "src/server/application.ts",
+            "src/orchestration/context-builder.ts",
+            "test/p4-hybrid-search-architectural-context.spec.test.js"
+          ],
+          "refs": [
+            "US-035",
+            "AC-088"
+          ]
+        }
+      ]
+    }
+  ],
+  "sequenciais": [],
+  "concluidas": [],
+  "avisos": []
+}

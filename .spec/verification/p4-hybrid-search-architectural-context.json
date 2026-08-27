@@ -1,0 +1,52 @@
+{
+  "feature": "p4-hybrid-search-architectural-context",
+  "timestamp": "2026-08-27T16:10:00.000Z",
+  "gitRev": "ad08077",
+  "command": "npx vitest run test/p4-hybrid-search-architectural-context.spec.test.js --reporter=json --outputFile=.spec/verification/vitest-results.json",
+  "reporter": "vitest-json",
+  "exitCode": 0,
+  "testsParsed": 3,
+  "results": {
+    "AC-086": {
+      "status": "pass",
+      "testName": "P4 Hybrid search & architectural context (@spec:p4-hybrid-search-architectural-context) AC-086: Indexa memórias em FTS5 e executa busca lexical BM25",
+      "method": "vitest-json"
+    },
+    "AC-087": {
+      "status": "pass",
+      "testName": "P4 Hybrid search & architectural context (@spec:p4-hybrid-search-architectural-context) AC-087: brain_recall funde fontes via RRF incluindo provenance_lexical",
+      "method": "vitest-json"
+    },
+    "AC-088": {
+      "status": "pass",
+      "testName": "P4 Hybrid search & architectural context (@spec:p4-hybrid-search-architectural-context) AC-088: brain_recall injeta overview arquitetural do CRG quando intent é architecture",
+      "method": "vitest-json"
+    }
+  },
+  "principles": {
+    "P-004": {
+      "status": "pass",
+      "testName": "P-004: tools públicas de consulta não alteram o repositório"
+    },
+    "P-005": {
+      "status": "pass",
+      "testName": "P-005: backends permanecem privados e com privilégio mínimo"
+    },
+    "P-002": {
+      "status": "pass",
+      "testName": "P-002: credenciais nunca salvas em texto puro"
+    },
+    "P-007": {
+      "status": "pass",
+      "testName": "P-007: egress e consumo de LLM são opt-in"
+    },
+    "P-003": {
+      "status": "pass",
+      "testName": "P-003: freshness exige evidência atual"
+    },
+    "P-006": {
+      "status": "pass",
+      "testName": "P-006: hooks preservam integrações e falham de forma aberta"
+    }
+  }
+}
