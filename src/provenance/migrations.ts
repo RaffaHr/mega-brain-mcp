@@ -74,4 +74,17 @@ export const PROVENANCE_MIGRATIONS = [
       WHERE symbol IS NULL;
     `,
   },
+  {
+    version: 3,
+    sql: `
+      CREATE VIRTUAL TABLE IF NOT EXISTS memory_fts USING fts5(
+        memory_id UNINDEXED,
+        statement,
+        type,
+        path,
+        symbol,
+        tokenize = 'porter unicode61'
+      );
+    `,
+  },
 ] as const;

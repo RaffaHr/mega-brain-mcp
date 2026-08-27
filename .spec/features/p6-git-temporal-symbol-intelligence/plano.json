@@ -1,0 +1,78 @@
+{
+  "runId": "mega-brain-mcp-p6-git-temporal-symbol-intelligence-mtbv2wj0",
+  "feature": "p6-git-temporal-symbol-intelligence",
+  "agent": "claude",
+  "modo": "paralelo",
+  "paralelizar": null,
+  "modeloForcado": null,
+  "esforcoForcado": null,
+  "geradoEm": "2026-08-27 18:33",
+  "branchTrabalho": "spec/p6-git-temporal-symbol-intelligence",
+  "baseDir": ".spec/features/p6-git-temporal-symbol-intelligence",
+  "specDir": ".spec",
+  "repoName": "mega-brain-mcp",
+  "logsDir": "../onp-worktrees/mega-brain-mcp-p6-git-temporal-symbol-intelligence-logs",
+  "ondas": [
+    [
+      "faixa-1"
+    ]
+  ],
+  "faixas": [
+    {
+      "id": "faixa-1",
+      "branch": "spec/p6-git-temporal-symbol-intelligence-faixa-1",
+      "worktree": "../onp-worktrees/mega-brain-mcp-p6-git-temporal-symbol-intelligence-faixa-1",
+      "tarefas": [
+        {
+          "id": "T-058",
+          "titulo": "Implementar mineração de histórico por símbolo com Git Pickaxe",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "src/adapters/git/history.ts",
+            "src/tools/brain-history.ts",
+            "test/p6-git-temporal-symbol-intelligence.spec.test.js"
+          ],
+          "refs": [
+            "US-039",
+            "AC-092"
+          ]
+        },
+        {
+          "id": "T-059",
+          "titulo": "Integrar timeline ancorada do AgentMemory no brain_history",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "src/server/application.ts",
+            "src/tools/brain-history.ts",
+            "test/p6-git-temporal-symbol-intelligence.spec.test.js"
+          ],
+          "refs": [
+            "US-040",
+            "AC-093"
+          ]
+        },
+        {
+          "id": "T-060",
+          "titulo": "Implementar contagem de churn e alerta de risco por símbolo no brain_change_context",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "src/orchestration/change-context.ts",
+            "src/tools/brain-change-context.ts",
+            "src/server/application.ts",
+            "test/p6-git-temporal-symbol-intelligence.spec.test.js"
+          ],
+          "refs": [
+            "US-041",
+            "AC-094"
+          ]
+        }
+      ]
+    }
+  ],
+  "sequenciais": [],
+  "concluidas": [],
+  "avisos": []
+}

@@ -10,7 +10,7 @@ export const freshnessSchema = z.enum([
 ]);
 
 export const sourceSchema = z.object({
-  kind: z.enum(['agentmemory', 'code_review_graph', 'git', 'mega_brain']),
+  kind: z.enum(['agentmemory', 'code_review_graph', 'git', 'mega_brain', 'provenance_lexical']),
   reference: z.string(),
   authority: z.number().min(0).max(1),
 });

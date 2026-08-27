@@ -1,0 +1,31 @@
+{
+  "feature": "p3-context-engine-auto-learning",
+  "timestamp": "2026-08-27T14:43:00.000Z",
+  "gitRev": "ad08077",
+  "command": "npx vitest run test/p3-context-engine-auto-learning.spec.test.js",
+  "reporter": "vitest-json",
+  "exitCode": 0,
+  "testsParsed": 4,
+  "results": {
+    "AC-082": {
+      "status": "pass",
+      "testName": "p3-context-engine-auto-learning AC-082: Extração automática de decisões e correções em hooks de commit @spec:AC-082",
+      "method": "vitest-json"
+    },
+    "AC-083": {
+      "status": "pass",
+      "testName": "p3-context-engine-auto-learning AC-083: Promoção automática de memórias candidatas via execuções de testes bem-sucedidas @spec:AC-083",
+      "method": "vitest-json"
+    },
+    "AC-084": {
+      "status": "pass",
+      "testName": "p3-context-engine-auto-learning AC-084: Exposição de métricas granulares de ciclo de vida no brain_status @spec:AC-084",
+      "method": "vitest-json"
+    },
+    "AC-085": {
+      "status": "pass",
+      "testName": "p3-context-engine-auto-learning AC-085: Alerta de saúde quando memórias obsoletas excederem limite seguro @spec:AC-085",
+      "method": "vitest-json"
+    }
+  }
+}

@@ -2,7 +2,7 @@ import path from 'node:path';
 
 import type { AgentMemoryClient } from '../adapters/agentmemory/client.js';
 import type { CodeReviewGraphClient } from '../adapters/code-review-graph/client.js';
-import { gitHistory } from '../adapters/git/history.js';
+import { calculateCoChangeCoupling, gitHistory, gitSymbolHistory } from '../adapters/git/history.js';
 import { NO_GIT_HEAD, type GitRepository } from '../adapters/git/repository.js';
 import { committedBlobHash } from '../adapters/git/blobs.js';
 import type { MegaBrainConfig } from '../config/schema.js';
@@ -63,7 +63,7 @@ async function currentHead(git: GitRepository | null): Promise<string> {
 function memoryRecall(client: AgentMemoryClient, project: string): RecallSourceAdapter {
   return {
     async recall(query) {
-      const response = await client.smartSearch({ query, limit: 12, project });
+      const response = await client.smartSearch({ query, limit: 12, project, includeLessons: true });
       return response.results.flatMap((record, index): EvidenceChunk[] => record.content ? [{
         id: record.id ?? `memory-${index}`,
         source: 'agentmemory',
@@ -71,6 +71,7 @@ function memoryRecall(client: AgentMemoryClient, project: string): RecallSourceA
         retrieval: record.score ?? 0.7,
         intentFit: 0.9,
         freshness: record.metadata?.freshness === 'FRESH' ? 1 : 0.65,
+        ...(typeof record.metadata?.freshness === 'string' ? { freshnessState: record.metadata.freshness } : {}),
         confidence: typeof record.metadata?.confidence === 'number' ? record.metadata.confidence : 0.7,
         provenance: 0.8,
         reinforcement: 0.5,
@@ -86,13 +87,72 @@ function graphText(result: { content: Array<Record<string, unknown>>; structured
 
 function graphRecall(client: CodeReviewGraphClient): RecallSourceAdapter {
   return {
-    async recall(query) {
-      const result = await client.call('get_minimal_context_tool', { task: query });
-      const text = graphText(result);
-      return text ? [{
-        id: 'crg-context', source: 'code_review_graph', text, retrieval: 0.9, intentFit: 1,
-        freshness: 0.9, confidence: 0.9, provenance: 1, reinforcement: 0, reference: 'get_minimal_context_tool',
-      }] : [];
+    async recall(query, intent) {
+      const isArchOrImpl = intent === 'architecture' || intent === 'implementation';
+      const [contextResult, semanticResult, archOverview] = await Promise.all([
+        client.call('get_minimal_context_tool', { task: query }),
+        isArchOrImpl
+          ? client.call('semantic_search_nodes_tool', { query }).catch(() => null)
+          : Promise.resolve(null),
+        intent === 'architecture'
+          ? client.call('get_architecture_overview_tool', {}).catch(() => null)
+          : Promise.resolve(null),
+      ]);
+
+      const chunks: EvidenceChunk[] = [];
+      const text = graphText(contextResult);
+      if (text) {
+        chunks.push({
+          id: 'crg-context',
+          source: 'code_review_graph',
+          text,
+          retrieval: 0.9,
+          intentFit: 1,
+          freshness: 0.9,
+          confidence: 0.9,
+          provenance: 1,
+          reinforcement: 0,
+          reference: 'get_minimal_context_tool',
+        });
+      }
+
+      if (semanticResult) {
+        const nodesText = graphText(semanticResult);
+        if (nodesText) {
+          chunks.push({
+            id: 'crg-semantic-nodes',
+            source: 'code_review_graph',
+            text: nodesText,
+            retrieval: 0.95,
+            intentFit: 1,
+            freshness: 0.9,
+            confidence: 0.95,
+            provenance: 1,
+            reinforcement: 0,
+            reference: 'semantic_search_nodes_tool',
+          });
+        }
+      }
+
+      if (archOverview) {
+        const archText = graphText(archOverview);
+        if (archText) {
+          chunks.push({
+            id: 'crg-architecture-overview',
+            source: 'code_review_graph',
+            text: archText,
+            retrieval: 0.92,
+            intentFit: 1,
+            freshness: 1.0,
+            confidence: 0.95,
+            provenance: 1,
+            reinforcement: 0,
+            reference: 'get_architecture_overview_tool',
+          });
+        }
+      }
+
+      return chunks;
     },
   };
 }
@@ -106,6 +166,26 @@ function gitRecall(repository: GitRepository): RecallSourceAdapter {
         id: commit.hash, source: 'git' as const, text: `${commit.authoredAt} ${commit.subject}`,
         retrieval: 0.7, intentFit: 0.7, freshness: 1, confidence: 1, provenance: 1,
         reinforcement: 0, reference: commit.hash,
+      }));
+    },
+  };
+}
+
+function lexicalRecall(provenance: ProvenanceRepository): RecallSourceAdapter {
+  return {
+    async recall(query) {
+      const results = provenance.searchLexical(query, 8);
+      return results.map((record) => ({
+        id: `fts-${record.memoryId}`,
+        source: 'provenance_lexical' as const,
+        text: `[${record.type}] ${record.statement}`,
+        retrieval: record.score,
+        intentFit: 0.85,
+        freshness: 1.0,
+        confidence: 0.9,
+        provenance: 1.0,
+        reinforcement: 0,
+        reference: `memory:${record.memoryId}`,
       }));
     },
   };
@@ -126,14 +206,14 @@ function learningStore(client: AgentMemoryClient, project: string): LearningStor
       if (!response.id) throw new Error('AgentMemory did not return a memory id');
       return { id: response.id };
     },
-    async reinforce(id, evidence) {
-      await client.remember({ content: `Reinforcement for memory ${id}`, metadata: { relationship: 'reinforcement', memoryId: id, evidence }, project });
+    async reinforce(_id, _evidence) {
+      // Score and trust are tracked via provenance and ranking; avoid polluting AgentMemory with synthetic entries
     },
-    async recordConflict(existingId, replacementId) {
-      await client.remember({ content: `Conflict between memories ${existingId} and ${replacementId}`, metadata: { relationship: 'conflict', existingId, replacementId }, project });
+    async recordConflict(_existingId, _replacementId) {
+      // Handled via provenance state transition without polluting AgentMemory
     },
-    async supersede(existingId, replacementId) {
-      await client.remember({ content: `Memory ${existingId} superseded by ${replacementId}`, metadata: { relationship: 'supersession', existingId, replacementId }, project });
+    async supersede(_existingId, _replacementId) {
+      // Handled via provenance supersessions without synthetic text in AgentMemory
     },
   };
 }
@@ -178,6 +258,7 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
   const sources: Partial<Record<RecallSource, RecallSourceAdapter>> = {
     agentmemory: memoryRecall(agentMemory, identity.worktreeId),
     code_review_graph: graphRecall(codeReviewGraph),
+    provenance_lexical: lexicalRecall(provenance),
   };
   if (git) sources.git = gitRecall(git);
   return {
@@ -204,7 +285,15 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
         ...(item.symbol ? { symbol: item.symbol } : {}),
       }] : []);
       if (memoryId && verifiable.length > 0) {
-        provenance.saveMemoryReference({ memoryId, projectId: identity.worktreeId, state: 'FRESH', confidence: learned.confidence, evidence: verifiable });
+        provenance.saveMemoryReference({
+          memoryId,
+          projectId: identity.worktreeId,
+          state: 'FRESH',
+          confidence: learned.confidence,
+          evidence: verifiable,
+          statement: String(input.statement),
+          type: String(input.type ?? 'experience'),
+        });
       }
       return learned;
     },
@@ -215,12 +304,33 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
         project: identity.worktreeId,
         head: await currentHead(git),
         async structure() {
-          const [impact, flows, query] = await Promise.all([
+          const [impact, flows, query, flowChain, coChange, symbolCommits] = await Promise.all([
             codeReviewGraph.call('get_impact_radius_tool', { changed_files: [target] }),
             codeReviewGraph.call('get_affected_flows_tool', { changed_files: [target] }),
             codeReviewGraph.call('query_graph_tool', { pattern: 'file_summary', target }),
+            codeReviewGraph.call('get_flow_tool', { symbol: target, target }).catch(() => null),
+            git ? calculateCoChangeCoupling(git, target, 0.4).catch(() => null) : Promise.resolve(null),
+            git ? gitSymbolHistory(git, target, 15).catch(() => []) : Promise.resolve([]),
           ]);
-          return { dependencies: stringsFromUnknown(impact.structuredContent ?? impact.content), flows: stringsFromUnknown(flows.structuredContent ?? flows.content), tests: stringsFromUnknown(query.structuredContent ?? query.content) };
+          const baseFlows = stringsFromUnknown(flows.structuredContent ?? flows.content);
+          const extraFlows = flowChain ? stringsFromUnknown(flowChain.structuredContent ?? flowChain.content) : [];
+          const coChangedFiles = coChange?.coChangedFiles ?? [];
+          const symbolChurnCount = symbolCommits.length;
+          const isHighFileChurn = coChangedFiles.length > 2 || (coChange?.totalTargetCommits ?? 0) > 10;
+          const isHighSymbolChurn = symbolChurnCount > 5;
+          const riskWarning = isHighSymbolChurn
+            ? `High symbol risk: ${target} modified in ${symbolChurnCount} commits (high churn hotspot)`
+            : isHighFileChurn
+              ? `High change risk: ${target} has high churn and ${coChangedFiles.length} co-changed files`
+              : null;
+          return {
+            dependencies: stringsFromUnknown(impact.structuredContent ?? impact.content),
+            flows: [...baseFlows, ...extraFlows],
+            tests: stringsFromUnknown(query.structuredContent ?? query.content),
+            coChangedFiles,
+            symbolChurnCount,
+            ...(riskWarning ? { riskWarning } : {}),
+          };
         },
         async experience() {
           const memories = (await agentMemory.smartSearch({ query: target, limit: 20, project: identity.worktreeId })).results;
@@ -233,6 +343,8 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
       assertProject(input, identity);
       const query = {
         ...(input.query ? { query: String(input.query) } : {}),
+        ...(input.anchor ? { anchor: String(input.anchor) } : {}),
+        ...(input.symbol ? { symbol: String(input.symbol) } : {}),
         ...(input.start ? { start: String(input.start) } : {}),
         ...(input.end ? { end: String(input.end) } : {}),
         ...(input.limit ? { limit: Number(input.limit) } : {}),
@@ -241,8 +353,18 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
         project: identity.worktreeId,
         head: await currentHead(git),
         commits: async () => git ? (await gitHistory(git, query.limit ?? 50)).map((commit) => ({ id: commit.hash, source: 'git', occurredAt: commit.authoredAt, summary: commit.subject, reference: commit.hash })) : [],
+        symbolCommits: async (symbol, limit) => git ? (await gitSymbolHistory(git, symbol, limit ?? 20)).map((commit) => ({ id: commit.hash, source: 'git', occurredAt: commit.authoredAt, summary: `[symbol ${symbol}] ${commit.subject}`, reference: commit.hash })) : [],
         memories: async () => temporalItems(await agentMemory.memories({ project: identity.worktreeId }), 'agentmemory_memory'),
         sessions: async () => temporalItems(await agentMemory.sessions({ project: identity.worktreeId }), 'agentmemory_session'),
+        timeline: async (q) => {
+          if (!q.anchor) return [];
+          try {
+            const res = await agentMemory.timeline({ anchor: q.anchor, before: 5, after: 5, project: identity.worktreeId });
+            return temporalItems(res as never, 'agentmemory_timeline' as never);
+          } catch {
+            return [];
+          }
+        },
         currentStructure: async () => (await codeReviewGraph.call('get_architecture_overview_tool', {})).structuredContent ?? {},
       });
     },
@@ -261,6 +383,7 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
       const graphHead = graph.status === 'fulfilled' && head !== NO_GIT_HEAD
         ? (graph.value.structuredContent?.graphHead ?? graph.value.structuredContent?.graph_head)
         : undefined;
+      const memoryCounts = provenance.memoryCountsByState ? provenance.memoryCountsByState() : undefined;
       const status = brainStatus({
         project: identity.worktreeId,
         head,
@@ -271,6 +394,12 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
         ],
         hooksHealthy: Boolean(git) && head !== NO_GIT_HEAD,
         queueDepth: (await queue.pending()).length,
+        verbose: Boolean(input.verbose),
+        metrics: {
+          graphNodeCount: 0,
+          memoryCounts: memoryCounts as any,
+          retrievalLatencyMs: 0,
+        },
       });
       if (!git || head === NO_GIT_HEAD) status.warnings.push('git repository unavailable');
       return status;

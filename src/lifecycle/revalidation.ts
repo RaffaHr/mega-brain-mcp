@@ -28,3 +28,39 @@ export async function revalidateAfterChange(
   }
   return { changedPaths: directPaths, blastRadius, invalidatedMemoryIds };
 }
+
+export interface BatchReconciliationDependencies {
+  findPossiblyStaleMemories(): Array<{ memoryId: string }>;
+  checkAstFreshness(memoryId: string): Promise<{ isFresh: boolean; reason?: string }>;
+  updateMemoryState(memoryId: string, state: 'FRESH' | 'STALE', confidence: number, reason: string): void;
+}
+
+export interface BatchReconciliationResult {
+  totalEvaluated: number;
+  restoredFresh: string[];
+  confirmedStale: string[];
+}
+
+export async function reconcilePossiblyStaleMemories(
+  dependencies: BatchReconciliationDependencies,
+): Promise<BatchReconciliationResult> {
+  const candidates = dependencies.findPossiblyStaleMemories();
+  const result: BatchReconciliationResult = {
+    totalEvaluated: candidates.length,
+    restoredFresh: [],
+    confirmedStale: [],
+  };
+
+  for (const { memoryId } of candidates) {
+    const assessment = await dependencies.checkAstFreshness(memoryId);
+    if (assessment.isFresh) {
+      dependencies.updateMemoryState(memoryId, 'FRESH', 1.0, 'ast_hash_intact');
+      result.restoredFresh.push(memoryId);
+    } else {
+      dependencies.updateMemoryState(memoryId, 'STALE', 0.1, assessment.reason ?? 'symbol_modified');
+      result.confirmedStale.push(memoryId);
+    }
+  }
+
+  return result;
+}

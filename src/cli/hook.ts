@@ -87,14 +87,14 @@ export async function handleGitHook(input: {
         }
         return (await repository.run(['diff-tree', '--no-commit-id', '--name-only', '-r', head])).split(/\r?\n/).filter(Boolean);
       },
-      updateGraph: () => crgUpdate(input.config, input.identity),
-      linkSession: async (commitHash) => { await agentMemory.remember({ content: `Git commit ${commitHash}`, metadata: { commitHash, event: input.event } }); },
+      updateGraph: async () => { await crgUpdate(input.config, input.identity); },
+      linkSession: async (commitHash: string) => { await agentMemory.remember({ content: `Git commit ${commitHash}`, metadata: { commitHash, event: input.event } }); },
       revalidation: {
-        findAffectedMemoryIds: async (paths) => provenance.memoryIdsForPaths(paths),
+        findAffectedMemoryIds: async (paths: string[]) => provenance.memoryIdsForPaths(paths),
         findBlastRadius: async () => [],
-        markPossiblyStale: async (memoryId, reason) => provenance.updateState(memoryId, 'POSSIBLY_STALE', 0.45, reason),
+        markPossiblyStale: async (memoryId: string, reason: string) => { provenance.updateState(memoryId, 'POSSIBLY_STALE', 0.45, reason); },
       },
-    }).catch(async (error) => {
+    }).catch(async (error: unknown) => {
       const sanitizedPayload = redactRecord({
         event: input.event,
         head,

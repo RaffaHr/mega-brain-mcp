@@ -1,0 +1,90 @@
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plano de execução — p0-memory-dedup-cleanup</title>
+<style>
+  :root { --bg:#fafafa; --fg:#1a1a1a; --card:#fff; --borda:#e2e2e2; --sub:#666;
+          --acc:#0a7c42; --acc-fg:#fff; --aviso:#8a6d00; --aviso-bg:#fff8e1; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#141414; --fg:#eaeaea; --card:#1e1e1e; --borda:#333; --sub:#9a9a9a;
+            --acc:#17a35c; --aviso:#e0c36a; --aviso-bg:#2a2410; }
+  }
+  * { box-sizing:border-box }
+  body { margin:0; padding:2rem 1rem; background:var(--bg); color:var(--fg);
+         font:15px/1.55 system-ui,-apple-system,sans-serif }
+  main { max-width:64rem; margin:0 auto }
+  h1 { font-size:1.5rem; margin:0 0 .25rem } h3 { margin:1.5rem 0 .5rem }
+  h4 { margin:0 0 .5rem } small { color:var(--sub); font-weight:400 }
+  .sub { color:var(--sub); margin:0 0 1.25rem }
+  code { font:.85em ui-monospace,monospace; background:var(--card);
+         border:1px solid var(--borda); border-radius:4px; padding:.05em .35em; overflow-wrap:anywhere }
+  .resumo { display:flex; gap:.75rem; flex-wrap:wrap; margin:0 0 1rem }
+  .resumo div { background:var(--card); border:1px solid var(--borda); border-radius:8px;
+                padding:.5rem .9rem } .resumo b { font-size:1.2rem }
+  .executor { background:var(--card); border:1px solid var(--borda); border-radius:10px;
+              padding:1rem; margin:0 0 .5rem }
+  .executor h2 { margin:0 0 .5rem; font-size:1.05rem }
+  .nota { color:var(--sub); font-size:.85rem; margin:.5rem 0 0 }
+  #cmd { display:inline-block; margin-top:.6rem }
+  .grade { display:grid; grid-template-columns:repeat(auto-fit,minmax(17rem,1fr)); gap:.75rem }
+  .faixa { background:var(--card); border:1px solid var(--borda); border-radius:10px; padding: .9rem }
+  .tarefa { display:flex; flex-direction:column; gap:.15rem; padding:.6rem 0;
+            border-top:1px dashed var(--borda) }
+  .tarefa:first-of-type { border-top:0 }
+  .tid { font:700 .85rem ui-monospace,monospace; color:var(--acc) }
+  .meta,.arquivos { font-size:.85rem; color:var(--sub) }
+  .avisos { background:var(--aviso-bg); color:var(--aviso); border-radius:8px;
+            padding:.6rem .9rem; margin:0 0 1rem; font-size:.9rem }
+  ol li { margin:.25rem 0 }
+</style>
+<main>
+  <h1>Plano de execução — p0-memory-dedup-cleanup</h1>
+  <p class="sub">gerado por <code>onp-spec plano</code> em 2026-08-27 14:37 · regenere após mudar tasks.md</p>
+  <div class="resumo">
+    <div><b>3</b> tarefa(s), uma após a outra</div>
+    <div>modo <b>sequencial</b> (escolha do usuário)</div>
+    <div>branch <code>spec/p0-memory-dedup-cleanup</code></div>
+  </div>
+  
+  <div class="executor">
+    <h2>Como executar — via agente</h2>
+    <p>Peça ao agente (Claude Code) para executar o plano. Ele roda:</p>
+    <div><code id="cmd">bash .spec/features/p0-memory-dedup-cleanup/executar-tarefas.sh</code></div>
+    <p class="nota">Este arquivo é só visualização. Cada tarefa roda <code>claude -p</code> na árvore principal, uma após a outra, com contexto limpo e modelo/esforço já definidos.
+    O gate final (verify + audit) roda sozinho; a execução fica em background e, a cada
+    1 minuto, o agente posta no chat a <b>tabela de andamento</b>
+    (<code>onp-spec resumo p0-memory-dedup-cleanup --tabela</code>) e o
+    <b>resumo geral de andamento</b> (<code>onp-spec resumo p0-memory-dedup-cleanup</code>).</p>
+  </div>
+  
+  
+    <section class="onda">
+      <h3>Ordem de execução <small>uma tarefa após a outra, na árvore principal</small></h3>
+      <div class="grade"><div class="faixa">
+        <div class="tarefa">
+          <span class="tid">T-040</span>
+          <span class="ttitulo">Eliminar criação de memórias sintéticas em reforço e conflito</span>
+          <span class="meta"><code>claude-sonnet-5</code> · esforço <b>medium</b></span>
+          <span class="arquivos"><code>src/server/application.ts</code> <code>src/tools/brain-learn.ts</code> <code>test/p0-memory-dedup-cleanup.spec.test.js</code></span>
+        </div>
+        <div class="tarefa">
+          <span class="tid">T-041</span>
+          <span class="ttitulo">Registrar supersessão exclusivamente na proveniência e metadados</span>
+          <span class="meta"><code>claude-sonnet-5</code> · esforço <b>medium</b></span>
+          <span class="arquivos"><code>src/server/application.ts</code> <code>src/tools/brain-learn.ts</code> <code>src/provenance/repository.ts</code> <code>test/p0-memory-dedup-cleanup.spec.test.js</code></span>
+        </div>
+        <div class="tarefa">
+          <span class="tid">T-042</span>
+          <span class="ttitulo">Implementar truncamento seguro de blocos e deduplicação no Context Builder</span>
+          <span class="meta"><code>claude-sonnet-5</code> · esforço <b>medium</b></span>
+          <span class="arquivos"><code>src/orchestration/context-builder.ts</code> <code>src/orchestration/ranking.ts</code> <code>test/p0-memory-dedup-cleanup.spec.test.js</code></span>
+        </div></div></div>
+    </section>
+  <section class="onda">
+    <h3>Branches e commits</h3>
+    <ol>
+      <li>tudo parte da branch de trabalho <code>spec/p0-memory-dedup-cleanup</code></li>
+      <li>as tarefas rodam nela mesma, na ordem; 1 tarefa = 1 commit <code>T-xxx p0-memory-dedup-cleanup: título</code></li>
+      <li>gate final: <code>onp-spec verify p0-memory-dedup-cleanup</code> + <code>onp-spec audit --ci</code> — exit 0 ou não está pronto</li>
+    </ol>
+  </section>
+</main>

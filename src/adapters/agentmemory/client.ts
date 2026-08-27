@@ -76,9 +76,12 @@ export class AgentMemoryClient {
     return this.#request('GET', '/agentmemory/health', agentMemoryHealthSchema);
   }
 
-  async smartSearch(input: { query: string; limit?: number; project?: string; requireHydratedResults?: boolean }) {
+  async smartSearch(input: { query: string; limit?: number; project?: string; requireHydratedResults?: boolean; includeLessons?: boolean }) {
     const { requireHydratedResults, ...searchInput } = input;
-    const compact = await this.#request('POST', '/agentmemory/smart-search', smartSearchResponseSchema, searchInput);
+    const compact = await this.#request('POST', '/agentmemory/smart-search', smartSearchResponseSchema, {
+      ...searchInput,
+      ...(searchInput.includeLessons !== undefined ? { includeLessons: searchInput.includeLessons } : {}),
+    });
     const expandIds = compact.results.flatMap(({ id, obsId, content }) => {
       const candidateId = obsId ?? id;
       return candidateId && (requireHydratedResults || !content) ? [candidateId] : [];

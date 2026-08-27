@@ -1,7 +1,20 @@
-import type { KnowledgeAuthority } from './taxonomy.js';
+import type { ProvenanceRepository } from '../provenance/repository.js';
 
-export function promoteAuthority(current: KnowledgeAuthority, verifiedEvidenceCount: number): KnowledgeAuthority {
-  if (verifiedEvidenceCount > 0) return 'verified';
-  if (current === 'unverified') return 'experiential';
-  return current;
+export interface PromotionResult {
+  promotedMemoryIds: string[];
+}
+
+export async function promoteCandidateMemories(
+  provenance: ProvenanceRepository,
+  filter?: { commitHash?: string; paths?: string[] },
+): Promise<PromotionResult> {
+  const candidates = provenance.findCandidateMemories?.(filter) ?? [];
+  const promoted: string[] = [];
+
+  for (const candidate of candidates) {
+    provenance.updateState(candidate.memoryId, 'ACTIVE' as any, 1.0, 'test_suite_succeeded');
+    promoted.push(candidate.memoryId);
+  }
+
+  return { promotedMemoryIds: promoted };
 }
