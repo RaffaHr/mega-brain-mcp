@@ -282,7 +282,7 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
         worktreeId: options.identity.worktreeId,
       },
       versions: {
-        megaBrain: '0.1.4',
+        megaBrain: '0.1.4-alpha',
         ...MANAGED_VERSIONS,
         ...(installIiiEngine ? { iiiEngine: III_ENGINE_VERSION } : {}),
       },
