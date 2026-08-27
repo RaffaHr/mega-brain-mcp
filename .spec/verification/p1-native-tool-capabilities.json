@@ -1,0 +1,31 @@
+{
+  "feature": "p1-native-tool-capabilities",
+  "timestamp": "2026-08-27T14:32:00.000Z",
+  "gitRev": "ad08077",
+  "command": "npx vitest run test/p1-native-tool-capabilities.spec.test.js",
+  "reporter": "vitest-json",
+  "exitCode": 0,
+  "testsParsed": 4,
+  "results": {
+    "AC-074": {
+      "status": "pass",
+      "testName": "p1-native-tool-capabilities AC-074: Utilização da tool semantic_search_nodes_tool em consultas de arquitetura @spec:AC-074",
+      "method": "vitest-json"
+    },
+    "AC-075": {
+      "status": "pass",
+      "testName": "p1-native-tool-capabilities AC-075: Enriquecimento de contexto com busca de fluxos afetados em símbolos específicos @spec:AC-075",
+      "method": "vitest-json"
+    },
+    "AC-076": {
+      "status": "pass",
+      "testName": "p1-native-tool-capabilities AC-076: Ranqueamento híbrido RRF entre AgentMemory, CRG e Git @spec:AC-076",
+      "method": "vitest-json"
+    },
+    "AC-077": {
+      "status": "pass",
+      "testName": "p1-native-tool-capabilities AC-077: Inclusão de lições consolidadas no smartSearch do AgentMemory @spec:AC-077",
+      "method": "vitest-json"
+    }
+  }
+}
