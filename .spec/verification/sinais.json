@@ -1013,19 +1013,19 @@
       "codigo": "VERIFY_OBSOLETO",
       "feature": "mega-brain-mcp-v1",
       "ref": "—",
-      "ocorrencias": 9,
+      "ocorrencias": 11,
       "primeiraVez": "2026-08-24T22:59:52.327Z",
-      "ultimaVez": "2026-08-27T12:19:17.863Z",
-      "gitRev": "250cb48"
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
     },
     "VERIFY_OBSOLETO::agentmemory-runtime-config::—": {
       "codigo": "VERIFY_OBSOLETO",
       "feature": "agentmemory-runtime-config",
       "ref": "—",
-      "ocorrencias": 8,
+      "ocorrencias": 10,
       "primeiraVez": "2026-08-24T23:51:10.837Z",
-      "ultimaVez": "2026-08-27T12:19:17.862Z",
-      "gitRev": "250cb48"
+      "ultimaVez": "2026-08-27T18:26:13.293Z",
+      "gitRev": "ad08077"
     },
     "STATUS_INVALIDO::product-lifecycle-hardening::.spec\\features\\product-lifecycle-hardening\\spec.md": {
       "codigo": "STATUS_INVALIDO",
@@ -1157,10 +1157,10 @@
       "codigo": "VERIFY_OBSOLETO",
       "feature": "product-lifecycle-hardening",
       "ref": "—",
-      "ocorrencias": 5,
+      "ocorrencias": 7,
       "primeiraVez": "2026-08-25T01:50:04.323Z",
-      "ultimaVez": "2026-08-27T12:19:17.863Z",
-      "gitRev": "250cb48"
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
     },
     "STATUS_INVALIDO::autonomous-project-runtime::.spec\\features\\autonomous-project-runtime\\spec.md": {
       "codigo": "STATUS_INVALIDO",
@@ -1598,64 +1598,64 @@
       "codigo": "TASK_CONCLUIDA_SEM_PROVA",
       "feature": "autonomous-project-runtime",
       "ref": "T-031",
-      "ocorrencias": 5,
+      "ocorrencias": 15,
       "primeiraVez": "2026-08-27T12:19:17.862Z",
-      "ultimaVez": "2026-08-27T12:19:17.862Z",
-      "gitRev": "250cb48"
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
     },
     "AC_SEM_PROVA::autonomous-project-runtime::AC-057": {
       "codigo": "AC_SEM_PROVA",
       "feature": "autonomous-project-runtime",
       "ref": "AC-057",
-      "ocorrencias": 1,
+      "ocorrencias": 3,
       "primeiraVez": "2026-08-27T12:19:17.862Z",
-      "ultimaVez": "2026-08-27T12:19:17.862Z",
-      "gitRev": "250cb48"
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
     },
     "AC_SEM_PROVA::autonomous-project-runtime::AC-058": {
       "codigo": "AC_SEM_PROVA",
       "feature": "autonomous-project-runtime",
       "ref": "AC-058",
-      "ocorrencias": 1,
+      "ocorrencias": 3,
       "primeiraVez": "2026-08-27T12:19:17.862Z",
-      "ultimaVez": "2026-08-27T12:19:17.862Z",
-      "gitRev": "250cb48"
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
     },
     "AC_SEM_PROVA::autonomous-project-runtime::AC-059": {
       "codigo": "AC_SEM_PROVA",
       "feature": "autonomous-project-runtime",
       "ref": "AC-059",
-      "ocorrencias": 1,
+      "ocorrencias": 3,
       "primeiraVez": "2026-08-27T12:19:17.862Z",
-      "ultimaVez": "2026-08-27T12:19:17.862Z",
-      "gitRev": "250cb48"
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
     },
     "AC_SEM_PROVA::autonomous-project-runtime::AC-060": {
       "codigo": "AC_SEM_PROVA",
       "feature": "autonomous-project-runtime",
       "ref": "AC-060",
-      "ocorrencias": 1,
+      "ocorrencias": 3,
       "primeiraVez": "2026-08-27T12:19:17.862Z",
-      "ultimaVez": "2026-08-27T12:19:17.862Z",
-      "gitRev": "250cb48"
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
     },
     "AC_SEM_PROVA::autonomous-project-runtime::AC-061": {
       "codigo": "AC_SEM_PROVA",
       "feature": "autonomous-project-runtime",
       "ref": "AC-061",
-      "ocorrencias": 1,
+      "ocorrencias": 3,
       "primeiraVez": "2026-08-27T12:19:17.862Z",
-      "ultimaVez": "2026-08-27T12:19:17.863Z",
-      "gitRev": "250cb48"
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
     },
     "VERIFY_OBSOLETO::autonomous-project-runtime::—": {
       "codigo": "VERIFY_OBSOLETO",
       "feature": "autonomous-project-runtime",
       "ref": "—",
-      "ocorrencias": 1,
+      "ocorrencias": 3,
       "primeiraVez": "2026-08-27T12:19:17.863Z",
-      "ultimaVez": "2026-08-27T12:19:17.863Z",
-      "gitRev": "250cb48"
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
     },
     "ARQUIVO_INEXISTENTE::fase0-hardening::T-001": {
       "codigo": "ARQUIVO_INEXISTENTE",
@@ -1679,19 +1679,19 @@
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "src/cli/host-selection.ts",
-      "ocorrencias": 1,
+      "ocorrencias": 3,
       "primeiraVez": "2026-08-27T12:19:17.863Z",
-      "ultimaVez": "2026-08-27T12:19:17.863Z",
-      "gitRev": "250cb48"
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
     },
     "ARQUIVO_ORFAO::—::src/types/marked-terminal.d.ts": {
       "codigo": "ARQUIVO_ORFAO",
       "feature": "—",
       "ref": "src/types/marked-terminal.d.ts",
-      "ocorrencias": 1,
+      "ocorrencias": 3,
       "primeiraVez": "2026-08-27T12:19:17.863Z",
-      "ultimaVez": "2026-08-27T12:19:17.863Z",
-      "gitRev": "250cb48"
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
     },
     "VERIFY_FALHOU::fase0-hardening::AC-063": {
       "codigo": "VERIFY_FALHOU",
@@ -1755,6 +1755,393 @@
       "primeiraVez": "2026-08-27T12:39:49.661Z",
       "ultimaVez": "2026-08-27T12:59:21.966Z",
       "gitRev": "250cb48"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::fase0-hardening::T-036": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "fase0-hardening",
+      "ref": "T-036",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-27T14:28:38.063Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::fase0-hardening::T-037": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "fase0-hardening",
+      "ref": "T-037",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-27T14:28:38.063Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::fase0-hardening::T-038": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "fase0-hardening",
+      "ref": "T-038",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-27T14:28:38.063Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::fase0-hardening::T-039": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "fase0-hardening",
+      "ref": "T-039",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-27T14:28:38.063Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_PROVA::fase0-hardening::AC-066": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "fase0-hardening",
+      "ref": "AC-066",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-27T14:28:38.063Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_PROVA::fase0-hardening::AC-067": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "fase0-hardening",
+      "ref": "AC-067",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-27T14:28:38.063Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_PROVA::fase0-hardening::AC-068": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "fase0-hardening",
+      "ref": "AC-068",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-27T14:28:38.063Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_PROVA::fase0-hardening::AC-069": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "fase0-hardening",
+      "ref": "AC-069",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-27T14:28:38.063Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "VERIFY_OBSOLETO::fase0-hardening::—": {
+      "codigo": "VERIFY_OBSOLETO",
+      "feature": "fase0-hardening",
+      "ref": "—",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-27T14:28:38.063Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "VERIFY_OBSOLETO::p0-memory-dedup-cleanup::—": {
+      "codigo": "VERIFY_OBSOLETO",
+      "feature": "p0-memory-dedup-cleanup",
+      "ref": "—",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p1-native-tool-capabilities::AC-074": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p1-native-tool-capabilities",
+      "ref": "AC-074",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p1-native-tool-capabilities::AC-075": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p1-native-tool-capabilities",
+      "ref": "AC-075",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p1-native-tool-capabilities::AC-076": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p1-native-tool-capabilities",
+      "ref": "AC-076",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p1-native-tool-capabilities::AC-077": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p1-native-tool-capabilities",
+      "ref": "AC-077",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "VERIFY_OBSOLETO::p1-native-tool-capabilities::—": {
+      "codigo": "VERIFY_OBSOLETO",
+      "feature": "p1-native-tool-capabilities",
+      "ref": "—",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p2-symbol-lifecycle-git-intelligence::AC-078": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p2-symbol-lifecycle-git-intelligence",
+      "ref": "AC-078",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p2-symbol-lifecycle-git-intelligence::AC-079": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p2-symbol-lifecycle-git-intelligence",
+      "ref": "AC-079",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p2-symbol-lifecycle-git-intelligence::AC-080": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p2-symbol-lifecycle-git-intelligence",
+      "ref": "AC-080",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p2-symbol-lifecycle-git-intelligence::AC-081": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p2-symbol-lifecycle-git-intelligence",
+      "ref": "AC-081",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "VERIFY_OBSOLETO::p2-symbol-lifecycle-git-intelligence::—": {
+      "codigo": "VERIFY_OBSOLETO",
+      "feature": "p2-symbol-lifecycle-git-intelligence",
+      "ref": "—",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p3-context-engine-auto-learning::AC-082": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p3-context-engine-auto-learning",
+      "ref": "AC-082",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p3-context-engine-auto-learning::AC-083": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p3-context-engine-auto-learning",
+      "ref": "AC-083",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p3-context-engine-auto-learning::AC-084": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p3-context-engine-auto-learning",
+      "ref": "AC-084",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p3-context-engine-auto-learning::AC-085": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p3-context-engine-auto-learning",
+      "ref": "AC-085",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "VERIFY_OBSOLETO::p3-context-engine-auto-learning::—": {
+      "codigo": "VERIFY_OBSOLETO",
+      "feature": "p3-context-engine-auto-learning",
+      "ref": "—",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p4-hybrid-search-architectural-context::AC-086": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p4-hybrid-search-architectural-context",
+      "ref": "AC-086",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p4-hybrid-search-architectural-context::AC-087": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p4-hybrid-search-architectural-context",
+      "ref": "AC-087",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p4-hybrid-search-architectural-context::AC-088": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p4-hybrid-search-architectural-context",
+      "ref": "AC-088",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TESTE::p4-hybrid-search-architectural-context::AC-086": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "p4-hybrid-search-architectural-context",
+      "ref": "AC-086",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TESTE::p4-hybrid-search-architectural-context::AC-087": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "p4-hybrid-search-architectural-context",
+      "ref": "AC-087",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TESTE::p4-hybrid-search-architectural-context::AC-088": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "p4-hybrid-search-architectural-context",
+      "ref": "AC-088",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p5-consolidation-governance-reconciliation::AC-089": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p5-consolidation-governance-reconciliation",
+      "ref": "AC-089",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p5-consolidation-governance-reconciliation::AC-090": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p5-consolidation-governance-reconciliation",
+      "ref": "AC-090",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p5-consolidation-governance-reconciliation::AC-091": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p5-consolidation-governance-reconciliation",
+      "ref": "AC-091",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TESTE::p5-consolidation-governance-reconciliation::AC-089": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "p5-consolidation-governance-reconciliation",
+      "ref": "AC-089",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TESTE::p5-consolidation-governance-reconciliation::AC-090": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "p5-consolidation-governance-reconciliation",
+      "ref": "AC-090",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TESTE::p5-consolidation-governance-reconciliation::AC-091": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "p5-consolidation-governance-reconciliation",
+      "ref": "AC-091",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p6-git-temporal-symbol-intelligence::AC-092": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p6-git-temporal-symbol-intelligence",
+      "ref": "AC-092",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p6-git-temporal-symbol-intelligence::AC-093": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p6-git-temporal-symbol-intelligence",
+      "ref": "AC-093",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TASK::p6-git-temporal-symbol-intelligence::AC-094": {
+      "codigo": "AC_SEM_TASK",
+      "feature": "p6-git-temporal-symbol-intelligence",
+      "ref": "AC-094",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TESTE::p6-git-temporal-symbol-intelligence::AC-092": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "p6-git-temporal-symbol-intelligence",
+      "ref": "AC-092",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TESTE::p6-git-temporal-symbol-intelligence::AC-093": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "p6-git-temporal-symbol-intelligence",
+      "ref": "AC-093",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
+    },
+    "AC_SEM_TESTE::p6-git-temporal-symbol-intelligence::AC-094": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "p6-git-temporal-symbol-intelligence",
+      "ref": "AC-094",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T18:26:13.294Z",
+      "ultimaVez": "2026-08-27T18:26:13.294Z",
+      "gitRev": "ad08077"
     }
   }
 }
