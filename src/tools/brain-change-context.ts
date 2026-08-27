@@ -12,11 +12,12 @@ export async function brainChangeContext(
   dependencies: BrainChangeContextDependencies,
 ): Promise<MegaBrainEnvelope> {
   const result = await buildChangeContext(input, dependencies);
-  const hasStructure = result.dependencies.length + result.flows.length + result.tests.length > 0;
+  const hasStructure = result.dependencies.length + result.flows.length + result.tests.length + (result.coChangedFiles?.length ?? 0) > 0;
   const hasExperience = result.rules.length + result.bugs.length + result.decisions.length + result.risks.length > 0;
   const warnings = [
     ...(hasStructure ? [] : ['No current structural context was found']),
     ...(hasExperience ? [] : ['No remembered experience was found']),
+    ...(result.riskWarning ? [result.riskWarning] : []),
   ];
   return createEnvelope(result as unknown as Record<string, unknown>, {
     status: warnings.length ? 'degraded' : 'ok',

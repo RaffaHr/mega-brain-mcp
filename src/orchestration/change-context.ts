@@ -5,6 +5,9 @@ export interface StructuralChangeContext {
   dependencies: string[];
   flows: string[];
   tests: string[];
+  coChangedFiles?: string[];
+  symbolChurnCount?: number;
+  riskWarning?: string | null;
 }
 
 export interface RememberedChangeContext {
@@ -25,6 +28,9 @@ export interface ChangeContextResult extends StructuralChangeContext, Remembered
   context: string;
   estimatedTokens: number;
   budget: number;
+  coChangedFiles: string[];
+  symbolChurnCount?: number;
+  riskWarning: string | null;
 }
 
 function unique(values: string[]): string[] {
@@ -65,6 +71,9 @@ export async function buildChangeContext(
     dependencies: unique(rawStructure.dependencies),
     flows: unique(rawStructure.flows),
     tests: unique(rawStructure.tests),
+    coChangedFiles: rawStructure.coChangedFiles ? unique(rawStructure.coChangedFiles) : [],
+    symbolChurnCount: rawStructure.symbolChurnCount,
+    riskWarning: rawStructure.riskWarning ?? null,
   };
   const experience: RememberedChangeContext = {
     rules: unique(rawExperience.rules),
@@ -76,16 +85,25 @@ export async function buildChangeContext(
     chunk('dependencies', 'code_review_graph', 'Dependencies', structure.dependencies, input.target),
     chunk('flows', 'code_review_graph', 'Flows', structure.flows, input.target),
     chunk('tests', 'git', 'Tests', structure.tests, input.target),
+    structure.coChangedFiles && structure.coChangedFiles.length > 0
+      ? chunk('coChangedFiles', 'git', 'CoChangedFiles', structure.coChangedFiles, input.target)
+      : null,
+    structure.riskWarning
+      ? chunk('riskWarning', 'git', 'RiskWarning', [structure.riskWarning], input.target)
+      : null,
     chunk('rules', 'agentmemory', 'Rules', experience.rules, input.target),
     chunk('bugs', 'agentmemory', 'Bugs', experience.bugs, input.target),
     chunk('decisions', 'agentmemory', 'Decisions', experience.decisions, input.target),
     chunk('risks', 'agentmemory', 'Risks', experience.risks, input.target),
   ].filter((value): value is EvidenceChunk => value !== null);
+
   const pack = buildContextPack(candidates, input.budget ?? 'NORMAL', dependencies.maxTokenBudget);
   return {
     target: input.target,
     ...structure,
     ...experience,
+    coChangedFiles: structure.coChangedFiles ?? [],
+    riskWarning: structure.riskWarning ?? null,
     context: pack.text,
     estimatedTokens: pack.estimatedTokens,
     budget: pack.budget,

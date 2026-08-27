@@ -1,4 +1,4 @@
-export type HistorySource = 'git' | 'agentmemory_session' | 'agentmemory_memory';
+export type HistorySource = 'git' | 'agentmemory_session' | 'agentmemory_memory' | 'agentmemory_timeline';
 
 export interface HistoryItem {
   id: string;
@@ -10,6 +10,8 @@ export interface HistoryItem {
 
 export interface HistoryQuery {
   query?: string;
+  anchor?: string;
+  symbol?: string;
   start?: string;
   end?: string;
   limit?: number;
@@ -19,6 +21,8 @@ export interface HistoryDependencies<TStructure = unknown> {
   commits(input: HistoryQuery): Promise<HistoryItem[]>;
   memories(input: HistoryQuery): Promise<HistoryItem[]>;
   sessions(input: HistoryQuery): Promise<HistoryItem[]>;
+  timeline?(input: HistoryQuery): Promise<HistoryItem[]>;
+  symbolCommits?(symbol: string, limit?: number): Promise<HistoryItem[]>;
   currentStructure(): Promise<TStructure>;
 }
 
@@ -45,13 +49,15 @@ export async function assembleHistory<TStructure>(
   if (input.start !== undefined && input.end !== undefined && Date.parse(input.start) > Date.parse(input.end)) {
     throw new Error('History start must not be after end');
   }
-  const [commits, memories, sessions, currentStructure] = await Promise.all([
+  const [commits, memories, sessions, anchoredTimeline, symbolHistory, currentStructure] = await Promise.all([
     dependencies.commits(input),
     dependencies.memories(input),
     dependencies.sessions(input),
+    dependencies.timeline ? dependencies.timeline(input) : Promise.resolve([]),
+    dependencies.symbolCommits && input.symbol ? dependencies.symbolCommits(input.symbol, limit) : Promise.resolve([]),
     dependencies.currentStructure(),
   ]);
-  const timeline = [...commits, ...memories, ...sessions]
+  const timeline = [...commits, ...memories, ...sessions, ...anchoredTimeline, ...symbolHistory]
     .filter((item) => inRange(item, input.start, input.end))
     .sort((left, right) => Date.parse(left.occurredAt) - Date.parse(right.occurredAt) || left.id.localeCompare(right.id))
     .slice(-limit)
