@@ -1,0 +1,79 @@
+{
+  "runId": "mega-brain-mcp-p5-consolidation-governance-reconciliation-mtbv2wag",
+  "feature": "p5-consolidation-governance-reconciliation",
+  "agent": "claude",
+  "modo": "paralelo",
+  "paralelizar": null,
+  "modeloForcado": null,
+  "esforcoForcado": null,
+  "geradoEm": "2026-08-27 18:33",
+  "branchTrabalho": "spec/p5-consolidation-governance-reconciliation",
+  "baseDir": ".spec/features/p5-consolidation-governance-reconciliation",
+  "specDir": ".spec",
+  "repoName": "mega-brain-mcp",
+  "logsDir": "../onp-worktrees/mega-brain-mcp-p5-consolidation-governance-reconciliation-logs",
+  "ondas": [
+    [
+      "faixa-1"
+    ]
+  ],
+  "faixas": [
+    {
+      "id": "faixa-1",
+      "branch": "spec/p5-consolidation-governance-reconciliation-faixa-1",
+      "worktree": "../onp-worktrees/mega-brain-mcp-p5-consolidation-governance-reconciliation-faixa-1",
+      "tarefas": [
+        {
+          "id": "T-055",
+          "titulo": "Implementar motor determinístico de consolidação e supersessão de memórias",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "src/learning/consolidation.ts",
+            "src/provenance/repository.ts",
+            "test/p5-consolidation-governance-reconciliation.spec.test.js"
+          ],
+          "refs": [
+            "US-036",
+            "AC-089"
+          ]
+        },
+        {
+          "id": "T-056",
+          "titulo": "Implementar expurgo de governança para arquivos deletados no Git",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "src/lifecycle/governance.ts",
+            "src/hooks/dispatcher.ts",
+            "src/server/application.ts",
+            "test/p5-consolidation-governance-reconciliation.spec.test.js"
+          ],
+          "refs": [
+            "US-037",
+            "AC-090"
+          ]
+        },
+        {
+          "id": "T-057",
+          "titulo": "Implementar reconciliação em lote de memórias POSSIBLY_STALE",
+          "modelo": "claude-sonnet-5",
+          "esforco": "medium",
+          "arquivos": [
+            "src/lifecycle/revalidation.ts",
+            "src/provenance/freshness.ts",
+            "src/server/application.ts",
+            "test/p5-consolidation-governance-reconciliation.spec.test.js"
+          ],
+          "refs": [
+            "US-038",
+            "AC-091"
+          ]
+        }
+      ]
+    }
+  ],
+  "sequenciais": [],
+  "concluidas": [],
+  "avisos": []
+}
