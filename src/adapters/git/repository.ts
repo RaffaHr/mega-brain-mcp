@@ -18,6 +18,7 @@ export interface GitStatusEntry {
   index: string;
   worktree: string;
   path: string;
+  origPath?: string;
 }
 
 export class GitRepository {
@@ -47,10 +48,23 @@ export class GitRepository {
   }
 
   async status(): Promise<GitStatusEntry[]> {
-    return (await this.run(['status', '--porcelain=v1', '-z']))
-      .split('\0')
-      .filter(Boolean)
-      .map((entry) => ({ index: entry[0] ?? ' ', worktree: entry[1] ?? ' ', path: entry.slice(3) }));
+    const raw = await this.run(['status', '--porcelain=v1', '-z']);
+    const tokens = raw.split('\0').filter(Boolean);
+    const entries: GitStatusEntry[] = [];
+    for (let i = 0; i < tokens.length; i++) {
+      const entry = tokens[i];
+      if (!entry) continue;
+      const index = entry[0] ?? ' ';
+      const worktree = entry[1] ?? ' ';
+      const path = entry.slice(3);
+      if (index === 'R' || worktree === 'R' || index === 'C' || worktree === 'C') {
+        const origPath = tokens[++i];
+        entries.push({ index, worktree, path, ...(origPath ? { origPath } : {}) });
+      } else {
+        entries.push({ index, worktree, path });
+      }
+    }
+    return entries;
   }
 
   async trackedFiles(): Promise<string[]> {

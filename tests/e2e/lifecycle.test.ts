@@ -24,7 +24,7 @@ test('AC-016: status mostra saúde sem expor secrets @spec:AC-016', async () => 
     inspect: async () => ({ healthy: true, checks: { project: true }, manifest: {
       schemaVersion: 1, installedAt: '2026-08-24T12:00:00.000Z',
       project: { repositoryId: 'r', checkoutId: 'c', worktreeId: 'w' },
-      versions: { megaBrain: '0.1.4', agentMemory: '0.9.29', codeReviewGraph: '2.3.7' },
+      versions: { megaBrain: '0.1.4-alpha', agentMemory: '0.9.29', codeReviewGraph: '2.3.7' },
       backends: {
         agentMemory: { command: 'node', args: [], cwd: '.', lifecycle: 'daemon' },
         codeReviewGraph: { command: 'python', args: [], cwd: '.', lifecycle: 'on-demand' },
@@ -61,7 +61,7 @@ test('AC-022: doctor comprova o ciclo real dos backends @spec:AC-022', async () 
       healthy: true, checks: { project: true, agentMemory: true, codeReviewGraph: true },
       manifest: {
         schemaVersion: 1, installedAt: '2026-08-24T12:00:00.000Z', project: { repositoryId: 'r', checkoutId: 'c', worktreeId: 'w' },
-        versions: { megaBrain: '0.1.4', agentMemory: '0.9.29', codeReviewGraph: '2.3.7' },
+        versions: { megaBrain: '0.1.4-alpha', agentMemory: '0.9.29', codeReviewGraph: '2.3.7' },
         backends: {
           agentMemory: { command: 'node', args: [], cwd: '.', lifecycle: 'daemon' },
           codeReviewGraph: { command: 'python', args: [], cwd: '.', lifecycle: 'on-demand' },

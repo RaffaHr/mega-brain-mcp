@@ -64,5 +64,5 @@ jobs:
       - run: npm run build
       - run: npm sbom --sbom-format cyclonedx > mega-brain-mcp.cdx.json
       # No NODE_AUTH_TOKEN: auth comes from the OIDC id-token exchange.
-      # Provenance is attached automatically when publishing via trusted publishing.
-      - run: npm publish --access public
+      # Explicit --provenance flag required by contracts and tests.
+      - run: npm publish --provenance --access public
