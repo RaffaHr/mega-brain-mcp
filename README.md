@@ -194,23 +194,23 @@ The host sees exactly six tools. Backend tools are private implementation detail
 
 | Tool | Main use | Reads | Writes |
 | --- | --- | --- | --- |
-| `brain_recall` | Retrieve ranked project knowledge for a question. | AgentMemory, Code Review Graph, Git | No |
-| `brain_learn` | Store a lesson, rule, decision, bug, or experience with evidence. | AgentMemory, provenance | AgentMemory, provenance |
-| `brain_change_context` | Explain what may be affected before changing a file or symbol. | Code Review Graph, AgentMemory | No |
-| `brain_history` | Build a timeline from commits, sessions, and memories. | Git, AgentMemory, Code Review Graph | No |
-| `brain_validate` | Reassess whether a remembered item is still fresh against local evidence. | Provenance, Git | Validation metadata |
-| `brain_status` | Report backend health, graph freshness, hooks, and queue depth. | Runtime state, AgentMemory, Code Review Graph, Git | No |
+| `brain_recall` | Retrieve 4-channel ranked context (RRF k=60) with dense vectors, AST nodes, Git logs, and SQLite FTS5 BM25 lexical matches. Injects architectural overview on architectural queries. | AgentMemory, Code Review Graph, Git, SQLite FTS5 | No |
+| `brain_learn` | Store a lesson, rule, decision, bug, or experience with verifiable commit/blob/symbol evidence. Supports deterministic consolidation and supersessions without vector pollution. | AgentMemory, provenance | AgentMemory, provenance |
+| `brain_change_context` | Explain what may be affected before changing a file or symbol. Evaluates impact radius, flow paths, temporal co-change coupling, symbol churn, and remembered risk hotspots. | Code Review Graph, AgentMemory, Git history | No |
+| `brain_history` | Build a chronological timeline from commits, sessions, memories, anchored AgentMemory episodes, and Git Pickaxe (`git log -S`) symbol evolution. | Git, AgentMemory, Code Review Graph | No |
+| `brain_validate` | Reassess whether a remembered item is still fresh against local blob/AST symbol body hashes and batch-reconcile stale candidates. | Provenance, Git | Validation metadata |
+| `brain_status` | Report backend health, graph synchronization, hook queue depth, and memory counts across states (`FRESH`, `ACTIVE`, `CANDIDATE`, `POSSIBLY_STALE`, `STALE`, `DEPRECATED`). | Runtime state, AgentMemory, Code Review Graph, Git, Provenance | No |
 
 ### `brain_recall`
 
-Use `brain_recall` before implementation, debugging, architectural questions, or any task where prior project decisions matter.
+Use `brain_recall` before implementation, debugging, architectural questions, or any task where prior project decisions matter. It executes a 4-channel Reciprocal Rank Fusion (RRF $k=60$) across dense vector embeddings (AgentMemory), structural AST nodes (Code Review Graph), commit history (Git), and local exact lexical indexing (SQLite FTS5 BM25). In addition, queries with `intent: "architecture"` automatically inject Code Review Graph's native architecture overview.
 
 Input:
 
 ```json
 {
   "query": "How does the checkout flow publish domain events?",
-  "intent": "implementation",
+  "intent": "architecture",
   "budget": "NORMAL"
 }
 ```
@@ -227,14 +227,18 @@ sequenceDiagram
   participant CRG as Code Review Graph
   participant Git
   participant AM as AgentMemory
+  participant FTS as SQLite FTS5 (BM25)
 
   Agent->>MB: brain_recall(query, intent?, budget?)
-  MB->>Router: classify intent and choose source order
-  Router-->>MB: e.g. code_review_graph -> git -> agentmemory
-  MB->>CRG: structural recall when relevant
-  MB->>Git: commit/history evidence when available
-  MB->>AM: remembered lessons and sessions
-  MB-->>Agent: ranked context pack + freshness + sources
+  MB->>Router: classify intent and determine budget
+  par 4-Channel Retrieval
+    MB->>CRG: semantic node search & architecture overview
+    MB->>Git: commit & diff history
+    MB->>AM: dense semantic vector search & lessons
+    MB->>FTS: exact lexical BM25 code identifier search
+  end
+  MB->>MB: 4-channel Reciprocal Rank Fusion (RRF k=60) + freshness weighting
+  MB-->>Agent: ranked context pack + freshness state + sources
 ```
 
 Example JSON-RPC call:
@@ -248,7 +252,7 @@ Example JSON-RPC call:
     "name": "brain_recall",
     "arguments": {
       "query": "Where is hook dispatch handled?",
-      "intent": "implementation",
+      "intent": "architecture",
       "budget": "FAST"
     }
   }
@@ -257,7 +261,7 @@ Example JSON-RPC call:
 
 ### `brain_learn`
 
-Use `brain_learn` when the agent discovers a project rule, a hard-won debugging fact, a decision, or a behavior that should be available in future sessions.
+Use `brain_learn` when the agent discovers a project rule, a hard-won debugging fact, a decision, or a behavior that should be available in future sessions. Includes secret redaction, deduplication against existing items, deterministic semantic consolidation, and verifiable provenance tracking linked to commits, blobs, and AST symbol hashes.
 
 Input:
 
@@ -268,26 +272,28 @@ Input:
   "evidence": [
     {
       "path": "src/hooks/events.ts",
-      "symbol": "CODEX_HOOK_EVENTS"
+      "symbol": "CODEX_HOOK_EVENTS",
+      "blobHash": "a1b2c3d...",
+      "commitHash": "9d2d805..."
     }
   ]
 }
 ```
 
-Optional `type` values are `fact`, `decision`, `architecture`, `procedure`, `bug`, `rule`, `preference`, and `experience`. Evidence can include `path`, `symbol`, `blobHash`, and `commitHash`. When both `blobHash` and `commitHash` are present, Mega Brain can later reassess freshness when Git changes.
+Optional `type` values are `fact`, `decision`, `architecture`, `procedure`, `bug`, `rule`, `preference`, and `experience`. Evidence can include `path`, `symbol`, `blobHash`, `commitHash`, and `astBodyHash`. When evidence hashes are present, Mega Brain continuously reassesses freshness against Git changes.
 
 Flow:
 
 ```mermaid
 flowchart TD
-  A["Agent calls brain_learn"] --> B["Redact secrets from statement and evidence"]
-  B --> C["Check equivalent or conflicting memory"]
+  A["Agent calls brain_learn / Git auto-learn"] --> B["Redact secrets from statement and evidence"]
+  B --> C["Check duplicate or conflicting memory"]
   C -->|Equivalent| D["Reinforce existing memory"]
-  C -->|Supersedes| E["Store replacement and link supersession"]
-  C -->|New or conflict| F["Store new AgentMemory item"]
+  C -->|Supersedes / Consolidates| E["Store replacement and link supersessions in SQLite"]
+  C -->|New or distinct| F["Store new AgentMemory item & SQLite provenance"]
   D --> G["Return memoryId, action, authority"]
   E --> G
-  F --> H["Save verifiable provenance when commit/blob evidence exists"]
+  F --> H["Index in SQLite FTS5 (memory_fts)"]
   H --> G
 ```
 
@@ -313,7 +319,7 @@ Example JSON-RPC call:
 
 ### `brain_change_context`
 
-Use `brain_change_context` before editing a file, package, route, model, or feature boundary. It combines current graph structure with remembered rules, bugs, decisions, and risks.
+Use `brain_change_context` before editing a file, package, route, model, or feature boundary. It combines current Code Review Graph impact radius and affected flows with temporal co-change coupling from Git history, symbol churn frequency, and remembered risk hotspots from AgentMemory.
 
 Input:
 
@@ -331,6 +337,7 @@ sequenceDiagram
   participant Agent
   participant MB as Mega Brain
   participant CRG as Code Review Graph
+  participant Git
   participant AM as AgentMemory
 
   Agent->>MB: brain_change_context(target)
@@ -338,10 +345,13 @@ sequenceDiagram
     MB->>CRG: get_impact_radius_tool(changed_files)
     MB->>CRG: get_affected_flows_tool(changed_files)
     MB->>CRG: query_graph_tool(file_summary)
+  and Temporal Git intelligence
+    MB->>Git: temporal co-change coupling mining
+    MB->>Git: historical symbol churn count & hotspot analysis
   and Remembered experience
-    MB->>AM: smart-search(target)
+    MB->>AM: smart-search(target) for rules, bugs, decisions & risks
   end
-  MB-->>Agent: dependencies, flows, tests, rules, bugs, decisions, risks
+  MB-->>Agent: dependencies, flows, co-change files, symbol churn warnings, tests, rules, bugs, decisions, risks
 ```
 
 Example JSON-RPC call:
@@ -363,7 +373,7 @@ Example JSON-RPC call:
 
 ### `brain_history`
 
-Use `brain_history` when the agent needs chronology: when a behavior changed, what sessions touched a topic, or how current structure relates to historical evidence.
+Use `brain_history` when the agent needs chronological intelligence: when a behavior changed, what sessions touched a topic, anchored timeline episodes around bugs/decisions, or how a specific symbol evolved over time via Git Pickaxe (`git log -S`).
 
 Input:
 
@@ -382,14 +392,14 @@ Flow:
 
 ```mermaid
 flowchart LR
-  A["brain_history"] --> B["Git commits"]
-  A --> C["AgentMemory memories"]
-  A --> D["AgentMemory sessions"]
+  A["brain_history"] --> B["Git commits & Pickaxe symbol history"]
+  A --> C["AgentMemory memories & anchored timelines"]
+  A --> D["AgentMemory sessions & episodes"]
   A --> E["Current architecture snapshot"]
-  B --> F["Filter by date"]
+  B --> F["Filter by date and symbol"]
   C --> F
   D --> F
-  F --> G["Sort timeline"]
+  F --> G["Sort chronologically"]
   E --> H["Attach currentStructure"]
   G --> I["Return immutable timeline"]
   H --> I
@@ -414,7 +424,7 @@ Example JSON-RPC call:
 
 ### `brain_validate`
 
-Use `brain_validate` when an agent is about to rely on a specific memory and wants to check whether its local evidence is still valid. The public schema accepts `outcome` and `evidence`, but the current v1 handler records a freshness assessment from provenance and Git; it does not rewrite the remembered content.
+Use `brain_validate` when an agent is about to rely on a specific memory and wants to verify whether its local code evidence is still fresh. Validates blob SHA-256 and AST symbol body hashes against Git HEAD, automatically batch-reconciling `POSSIBLY_STALE` candidates back to `FRESH` (if unchanged) or transitioning them to `STALE`.
 
 Input:
 
@@ -436,9 +446,9 @@ sequenceDiagram
   participant Git
 
   Agent->>MB: brain_validate(memoryId, outcome, evidence)
-  MB->>Prov: load memory evidence refs
-  MB->>Git: compare current blobs/HEAD where available
-  MB->>Prov: record freshness assessment
+  MB->>Prov: load memory evidence refs & AST symbol body hashes
+  MB->>Git: compare current blobs and AST AST body hashes at HEAD
+  MB->>Prov: record freshness assessment (FRESH / POSSIBLY_STALE / STALE / DEPRECATED)
   MB-->>Agent: FRESH, POSSIBLY_STALE, STALE, or UNKNOWN
 ```
 
@@ -462,7 +472,7 @@ Example JSON-RPC call:
 
 ### `brain_status`
 
-Use `brain_status` at the start of a session, after a checkout, when recall seems stale, or before trusting Code Review Graph impact output.
+Use `brain_status` at the start of a session, after a checkout, when recall seems stale, or before trusting Code Review Graph impact output. Reports backend health, graph synchronization, hook queue depth, and memory counts across states (`FRESH`, `ACTIVE`, `CANDIDATE`, `POSSIBLY_STALE`, `STALE`, `DEPRECATED`).
 
 Input:
 
@@ -480,12 +490,14 @@ flowchart TD
   A --> C["Probe AgentMemory health"]
   A --> D["Start/probe Code Review Graph"]
   A --> E["Read hook queue depth"]
-  D --> F{"Graph HEAD == Git HEAD?"}
-  F -->|Yes| G["freshness: FRESH"]
-  F -->|No| H["warning: graph index is behind Git HEAD"]
-  C --> I["Return backend health, hooksHealthy, queueDepth"]
-  G --> I
-  H --> I
+  A --> F["Query Provenance memory state distribution"]
+  D --> G{"Graph HEAD == Git HEAD?"}
+  G -->|Yes| H["freshness: FRESH"]
+  G -->|No| I["warning: graph index is behind Git HEAD"]
+  C --> J["Return backend health, hooksHealthy, queueDepth, memoryCounts"]
+  H --> J
+  I --> J
+  F --> J
 ```
 
 Example JSON-RPC call:
@@ -574,9 +586,9 @@ When the project is a Git repository, Mega Brain installs an isolated `core.hook
 
 | Git hook | Why Mega Brain listens |
 | --- | --- |
-| `post-commit` | Link new commits to remembered session context and refresh graph state. |
-| `post-checkout` | Detect branch/worktree movement and mark affected memories as possibly stale. |
-| `post-merge` | Refresh graph and freshness after upstream changes arrive. |
+| `post-commit` | Link new commits to remembered session context, refresh graph state, extract `CANDIDATE` memories from Conventional Commits, and run `governanceDelete` expurgations for deleted files. |
+| `post-checkout` | Detect branch/worktree movement, mark affected memories as `POSSIBLY_STALE`, and trigger proactive AST body hash freshness revalidation. |
+| `post-merge` | Refresh graph, run governance expurgations for deleted files, and evaluate freshness after upstream changes arrive. |
 | `post-rewrite` | Handle rebases/amends where commit identities change. |
 
 The generated script first runs the previously configured hook, preserves that hook's exit status, then starts Mega Brain in the background:
@@ -598,14 +610,17 @@ flowchart TD
   A["Git fires post-commit/post-checkout/post-merge/post-rewrite"] --> B["Run previous project hook if executable"]
   B --> C["Preserve previous hook exit status"]
   C --> D["Start mega-brain hook git <event> in background"]
-  D --> E["Read HEAD and changed paths"]
+  D --> E["Read HEAD and changed/deleted paths"]
   E --> F["Update Code Review Graph"]
-  E --> G["Find memories whose evidence paths changed"]
-  G --> H["Mark affected memories POSSIBLY_STALE"]
-  F --> I["Remember Git commit/session link in AgentMemory"]
-  H --> I
-  I --> J["Record idempotent hook event in provenance"]
-  C --> K["Git receives original hook status"]
+  E --> G["Process governance expurgations for deleted files"]
+  E --> H["Extract CANDIDATE memories from Conventional Commits"]
+  E --> I["Mark affected memories POSSIBLY_STALE and revalidate AST body hashes"]
+  F --> J["Remember Git commit/session link in AgentMemory"]
+  G --> J
+  H --> J
+  I --> J
+  J --> K["Record idempotent hook event in provenance"]
+  C --> L["Git receives original hook status"]
 ```
 
 ### Queueing and retries
