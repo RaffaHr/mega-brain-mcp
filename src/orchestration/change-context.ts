@@ -72,7 +72,7 @@ export async function buildChangeContext(
     flows: unique(rawStructure.flows),
     tests: unique(rawStructure.tests),
     coChangedFiles: rawStructure.coChangedFiles ? unique(rawStructure.coChangedFiles) : [],
-    symbolChurnCount: rawStructure.symbolChurnCount,
+    ...(rawStructure.symbolChurnCount !== undefined ? { symbolChurnCount: rawStructure.symbolChurnCount } : {}),
     riskWarning: rawStructure.riskWarning ?? null,
   };
   const experience: RememberedChangeContext = {

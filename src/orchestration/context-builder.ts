@@ -18,7 +18,7 @@ export function estimateTokens(text: string): number {
 export function deduplicateEvidenceChunks(chunks: EvidenceChunk[]): EvidenceChunk[] {
   const seen = new Map<string, EvidenceChunk>();
   for (const chunk of chunks) {
-    const key = normalizeKnowledge(chunk.text);
+    const key = `${chunk.source}:${normalizeKnowledge(chunk.text)}`;
     const existing = seen.get(key);
     if (!existing || chunk.confidence > existing.confidence || (chunk.confidence === existing.confidence && chunk.freshness > existing.freshness)) {
       seen.set(key, chunk);

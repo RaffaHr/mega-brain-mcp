@@ -140,6 +140,6 @@ test('AC-035: real MCP orchestration routes through AgentMemory HTTP, CRG stdio 
     await codeReviewGraph.stop().catch(() => undefined);
     database.close();
     await closeHttp(agentMemoryServer).catch(() => undefined);
-    await rm(root, { recursive: true, force: true });
+    await rm(root, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }).catch(() => undefined);
   }
 }, 90_000);

@@ -5,7 +5,7 @@ import { openProvenanceDatabase } from '../src/provenance/database.js';
 import { ProvenanceRepository } from '../src/provenance/repository.js';
 
 describe('P6 Git temporal symbol intelligence (@spec:p6-git-temporal-symbol-intelligence)', () => {
-  it('AC-092: Mineração de histórico de símbolos via Git Pickaxe', async () => {
+  it('AC-092: Mineração de histórico de símbolos via Git Pickaxe @spec:AC-092', async () => {
     const mockGit = {
       run: async (args) => {
         const joined = args.join(' ');
@@ -24,7 +24,7 @@ describe('P6 Git temporal symbol intelligence (@spec:p6-git-temporal-symbol-inte
     expect(commits[1].hash).toBe('c102');
   });
 
-  it('AC-093: Linha do tempo de episódios ancorada no brain_history', async () => {
+  it('AC-093: Linha do tempo de episódios ancorada no brain_history @spec:AC-093', async () => {
     const db = openProvenanceDatabase(':memory:');
     const repo = new ProvenanceRepository(db);
 
@@ -70,7 +70,7 @@ describe('P6 Git temporal symbol intelligence (@spec:p6-git-temporal-symbol-inte
     expect(historyResult.result.timeline[1].summary).toContain('Fixed token validator');
   });
 
-  it('AC-094: Alerta de risco por símbolo com alto churn histórico', async () => {
+  it('AC-094: Alerta de risco por símbolo com alto churn histórico @spec:AC-094', async () => {
     const db = openProvenanceDatabase(':memory:');
     const repo = new ProvenanceRepository(db);
 

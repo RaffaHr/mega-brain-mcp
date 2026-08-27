@@ -6,7 +6,7 @@ import { processDeletedPathsGovernance } from '../src/lifecycle/governance.js';
 import { reconcilePossiblyStaleMemories } from '../src/lifecycle/revalidation.js';
 
 describe('P5 Consolidation, governance & reconciliation (@spec:p5-consolidation-governance-reconciliation)', () => {
-  it('AC-089: Agrupamento e síntese determinística de memórias do mesmo escopo', async () => {
+  it('AC-089: Agrupamento e síntese determinística de memórias do mesmo escopo @spec:AC-089', async () => {
     const db = openProvenanceDatabase(':memory:');
     const repo = new ProvenanceRepository(db);
     repo.registerProject({
@@ -58,7 +58,7 @@ describe('P5 Consolidation, governance & reconciliation (@spec:p5-consolidation-
     expect(newState.state).toBe('FRESH');
   });
 
-  it('AC-090: Expurgo de memórias vinculadas a arquivos removidos no Git', async () => {
+  it('AC-090: Expurgo de memórias vinculadas a arquivos removidos no Git @spec:AC-090', async () => {
     const db = openProvenanceDatabase(':memory:');
     const repo = new ProvenanceRepository(db);
     repo.registerProject({
@@ -102,7 +102,7 @@ describe('P5 Consolidation, governance & reconciliation (@spec:p5-consolidation-
     expect(state.confidence).toBe(0);
   });
 
-  it('AC-091: Reconciliação proativa de integridade de AST', async () => {
+  it('AC-091: Reconciliação proativa de integridade de AST @spec:AC-091', async () => {
     const db = openProvenanceDatabase(':memory:');
     const repo = new ProvenanceRepository(db);
     repo.registerProject({

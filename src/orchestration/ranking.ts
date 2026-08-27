@@ -22,11 +22,11 @@ export const FRESHNESS_WEIGHTS: Record<string, number> = {
 
 export function getFreshnessFactor(chunk: EvidenceChunk): number {
   if (chunk.freshnessState && FRESHNESS_WEIGHTS[chunk.freshnessState] !== undefined) {
-    return FRESHNESS_WEIGHTS[chunk.freshnessState];
+    return FRESHNESS_WEIGHTS[chunk.freshnessState]!;
   }
-  if (chunk.freshness >= 1.0) return FRESHNESS_WEIGHTS.FRESH;
-  if (chunk.freshness <= 0.2) return FRESHNESS_WEIGHTS.STALE;
-  return FRESHNESS_WEIGHTS.POSSIBLY_STALE;
+  if (chunk.freshness >= 1.0) return FRESHNESS_WEIGHTS['FRESH'] ?? 1.0;
+  if (chunk.freshness <= 0.2) return FRESHNESS_WEIGHTS['STALE'] ?? 0.1;
+  return FRESHNESS_WEIGHTS['POSSIBLY_STALE'] ?? 0.6;
 }
 
 export function rankEvidence(chunk: EvidenceChunk): number {

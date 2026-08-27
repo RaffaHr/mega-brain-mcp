@@ -71,7 +71,7 @@ function memoryRecall(client: AgentMemoryClient, project: string): RecallSourceA
         retrieval: record.score ?? 0.7,
         intentFit: 0.9,
         freshness: record.metadata?.freshness === 'FRESH' ? 1 : 0.65,
-        freshnessState: typeof record.metadata?.freshness === 'string' ? (record.metadata.freshness as string) : undefined,
+        ...(typeof record.metadata?.freshness === 'string' ? { freshnessState: record.metadata.freshness } : {}),
         confidence: typeof record.metadata?.confidence === 'number' ? record.metadata.confidence : 0.7,
         provenance: 0.8,
         reinforcement: 0.5,

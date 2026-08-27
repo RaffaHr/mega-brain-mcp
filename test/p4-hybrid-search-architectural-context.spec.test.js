@@ -4,7 +4,7 @@ import { ProvenanceRepository } from '../src/provenance/repository.js';
 import { createApplicationHandlers } from '../src/server/application.js';
 
 describe('P4 Hybrid search & architectural context (@spec:p4-hybrid-search-architectural-context)', () => {
-  it('AC-086: Indexa memórias em FTS5 e executa busca lexical BM25', () => {
+  it('AC-086: Indexa memórias em FTS5 e executa busca lexical BM25 @spec:AC-086', () => {
     const db = openProvenanceDatabase(':memory:');
     const repo = new ProvenanceRepository(db);
 
@@ -49,7 +49,7 @@ describe('P4 Hybrid search & architectural context (@spec:p4-hybrid-search-archi
     expect(empty).toEqual([]);
   });
 
-  it('AC-087: brain_recall funde fontes via RRF incluindo provenance_lexical', async () => {
+  it('AC-087: brain_recall funde fontes via RRF incluindo provenance_lexical @spec:AC-087', async () => {
     const db = openProvenanceDatabase(':memory:');
     const repo = new ProvenanceRepository(db);
     repo.registerProject({
@@ -114,7 +114,7 @@ describe('P4 Hybrid search & architectural context (@spec:p4-hybrid-search-archi
     expect(recall.result.context).toContain('Tokenization logic');
   });
 
-  it('AC-088: brain_recall injeta overview arquitetural do CRG quando intent é architecture', async () => {
+  it('AC-088: brain_recall injeta overview arquitetural do CRG quando intent é architecture @spec:AC-088', async () => {
     const db = openProvenanceDatabase(':memory:');
     const repo = new ProvenanceRepository(db);
 
