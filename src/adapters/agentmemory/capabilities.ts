@@ -50,8 +50,8 @@ export async function probeRemoteAgentMemoryIsolation(
   let isolationError: Error | undefined;
   try {
     const [inA, inB] = await Promise.all([
-      client.smartSearch({ query: input.sentinel, limit: 10, project: input.projectA }),
-      client.smartSearch({ query: input.sentinel, limit: 10, project: input.projectB }),
+      client.smartSearch({ query: input.sentinel, limit: 10, project: input.projectA, requireHydratedResults: true }),
+      client.smartSearch({ query: input.sentinel, limit: 10, project: input.projectB, requireHydratedResults: true }),
     ]);
     const visibleInA = inA.results.some(({ id, content }) => id === remembered.id || content === input.sentinel);
     const visibleInB = inB.results.some(({ id, content }) => id === remembered.id || content === input.sentinel);
@@ -64,7 +64,7 @@ export async function probeRemoteAgentMemoryIsolation(
     });
   }
 
-  const afterCleanup = await client.smartSearch({ query: input.sentinel, limit: 10, project: input.projectA });
+  const afterCleanup = await client.smartSearch({ query: input.sentinel, limit: 10, project: input.projectA, requireHydratedResults: true });
   if (afterCleanup.results.some(({ id, content }) => id === remembered.id || content === input.sentinel)) {
     throw new Error('Remote AgentMemory isolation probe cleanup could not be confirmed');
   }

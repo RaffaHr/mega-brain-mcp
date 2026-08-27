@@ -3,7 +3,7 @@ import path from 'node:path';
 import type { AgentMemoryClient } from '../adapters/agentmemory/client.js';
 import type { CodeReviewGraphClient } from '../adapters/code-review-graph/client.js';
 import { gitHistory } from '../adapters/git/history.js';
-import type { GitRepository } from '../adapters/git/repository.js';
+import { NO_GIT_HEAD, type GitRepository } from '../adapters/git/repository.js';
 import { committedBlobHash } from '../adapters/git/blobs.js';
 import type { MegaBrainConfig } from '../config/schema.js';
 import { DurableHookQueue } from '../hooks/queue.js';
@@ -29,8 +29,6 @@ export interface ApplicationDependencies {
   codeReviewGraph: CodeReviewGraphClient;
   provenance: ProvenanceRepository;
 }
-
-const NO_GIT_HEAD = 'NO_GIT';
 
 function textFromUnknown(value: unknown): string {
   if (typeof value === 'string') return value;
@@ -260,7 +258,7 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
         agentMemory.health(),
         codeReviewGraph.start().then(() => codeReviewGraph.call('detect_changes_tool', {})),
       ]);
-      const graphHead = graph.status === 'fulfilled'
+      const graphHead = graph.status === 'fulfilled' && head !== NO_GIT_HEAD
         ? (graph.value.structuredContent?.graphHead ?? graph.value.structuredContent?.graph_head)
         : undefined;
       const status = brainStatus({
@@ -271,10 +269,10 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
           { name: 'agentmemory', healthy: memory.status === 'fulfilled', version: memory.status === 'fulfilled' ? memory.value.version ?? null : null },
           { name: 'code_review_graph', healthy: graph.status === 'fulfilled', version: codeReviewGraph.serverVersion() },
         ],
-        hooksHealthy: Boolean(git),
+        hooksHealthy: Boolean(git) && head !== NO_GIT_HEAD,
         queueDepth: (await queue.pending()).length,
       });
-      if (!git) status.warnings.push('git repository unavailable');
+      if (!git || head === NO_GIT_HEAD) status.warnings.push('git repository unavailable');
       return status;
     },
   };

@@ -152,8 +152,12 @@ export AGENTMEMORY_TOOLS=core
 mega-brain --help | grep 'Usage: mega-brain'
 mega-brain install --repo /tmp/repo --hosts codex
 grep '\\[mcp_servers.mega-brain\\]' /tmp/repo/.codex/config.toml
-grep 'command = "mega-brain"' /tmp/repo/.codex/config.toml
-grep 'mega-brain hook host codex' /tmp/repo/.codex/hooks.json
+grep -F 'args = ["--no-warnings"' /tmp/repo/.codex/config.toml
+grep -F '@raffahr/mega-brain-mcp/dist/cli/index.js' /tmp/repo/.codex/config.toml
+grep -F '"mcp","--repo","/tmp/repo"' /tmp/repo/.codex/config.toml
+! grep -F 'command = "mega-brain"' /tmp/repo/.codex/config.toml
+grep -F '@raffahr/mega-brain-mcp/dist/cli/index.js' /tmp/repo/.codex/hooks.json
+grep 'hook.*host.*codex' /tmp/repo/.codex/hooks.json
 ! grep -R '\\.staging-' /tmp/mega-data/projects/*/runtime/current/runtime-lock.json
 cleanup() {
   find /tmp/mega-data/projects -path '*/logs/*.log' -type f -exec sh -c 'echo "--- $1"; cat "$1"' _ {} \\; 2>/dev/null || true

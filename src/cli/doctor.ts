@@ -2,6 +2,7 @@ import type { AgentMemoryClient } from '../adapters/agentmemory/client.js';
 import { probeAgentMemory } from '../adapters/agentmemory/capabilities.js';
 import type { CodeReviewGraphClient } from '../adapters/code-review-graph/client.js';
 import { probeCodeReviewGraphIsolation } from '../adapters/code-review-graph/capabilities.js';
+import { NO_GIT_HEAD } from '../adapters/git/repository.js';
 import type { ProjectIdentity } from '../projects/identity.js';
 import { redactValue } from '../security/redaction.js';
 import { createEnvelope, type MegaBrainEnvelope } from '../server/envelope.js';
@@ -33,8 +34,8 @@ export async function runDoctor(options: DoctorOptions, dependencies: DoctorDepe
   if (!agentMemory.healthy) warnings.push('agentmemory unavailable');
   if (!codeReviewGraph.healthy) warnings.push('code_review_graph unavailable');
   if (agentMemory.version && agentMemory.version !== runtime.manifest.versions.agentMemory) warnings.push('agentmemory version mismatch');
-  if (codeReviewGraph.graphHead && codeReviewGraph.graphHead !== head) warnings.push('code_review_graph index is behind Git HEAD');
-  if (head === 'NO_GIT') warnings.push('git repository unavailable');
+  if (codeReviewGraph.graphHead && head !== NO_GIT_HEAD && codeReviewGraph.graphHead !== head) warnings.push('code_review_graph index is behind Git HEAD');
+  if (head === NO_GIT_HEAD) warnings.push('git repository unavailable');
   if (!options.hooksHealthy) warnings.push('hook installation is unhealthy');
   if (options.queueDepth > 0) warnings.push('hook queue has pending events');
   const healthy = warnings.length === 0;
@@ -62,7 +63,7 @@ export async function runDoctor(options: DoctorOptions, dependencies: DoctorDepe
     project: options.project,
     head,
     confidence: healthy ? 1 : 0.5,
-    freshness: codeReviewGraph.graphHead && codeReviewGraph.graphHead !== head ? 'POSSIBLY_STALE' : 'FRESH',
+    freshness: codeReviewGraph.graphHead && head !== NO_GIT_HEAD && codeReviewGraph.graphHead !== head ? 'POSSIBLY_STALE' : 'FRESH',
     sources: [
       { kind: 'agentmemory', reference: 'health', authority: 1 },
       { kind: 'code_review_graph', reference: 'mcp-handshake', authority: 1 },

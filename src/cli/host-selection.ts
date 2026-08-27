@@ -13,6 +13,16 @@ export function expandHostSelection(value: HostSelection): SupportedHost[] {
   return value === 'both' ? ['codex', 'claude'] : [value];
 }
 
+export function parseHostSelection(value: string | undefined): SupportedHost[] | null {
+  if (!value) return null;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === 'both') return ['codex', 'claude'];
+  if (normalized === 'codex') return ['codex'];
+  if (normalized === 'claude') return ['claude'];
+  if (normalized === 'codex,claude' || normalized === 'claude,codex') return ['codex', 'claude'];
+  throw new Error('Invalid --hosts; expected codex, claude, both, or codex,claude');
+}
+
 export async function promptForHosts(
   prompts: PromptAdapter,
   message = 'Configure which hosts?',

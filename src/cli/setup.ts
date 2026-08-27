@@ -29,6 +29,7 @@ export interface SetupDependencies {
   environment: NodeJS.ProcessEnv;
   preflight(repository: string): Promise<InstallPreflightResult>;
   discoverIdentity(repository: string): Promise<ProjectIdentity>;
+  initializeGit?(repository: string): Promise<void>;
   probeRemote(input: { baseUrl: string; secret: string; identity: ProjectIdentity }): Promise<unknown>;
   install(plan: SetupPlan): Promise<void>;
 }
@@ -56,7 +57,21 @@ export async function runSetupWizard(dependencies: SetupDependencies): Promise<S
       preflight = await dependencies.preflight(resolved);
       prompts.notify('Detecting project identity');
       identity = await dependencies.discoverIdentity(resolved);
-      if (!identity.gitBacked) prompts.notify('No Git repository found; Git hooks and Git-backed evidence will be skipped until this directory is initialized as a repository.');
+      if (!identity.gitBacked) {
+        prompts.notify('No Git repository found. Mega Brain setup requires Git for managed Code Review Graph, Git hooks, and Git-backed evidence.');
+        const action = await prompts.select('nonGitRepositoryAction', 'How should setup continue?', [
+          { value: 'init', label: 'Initialize Git repository with git init' },
+          { value: 'retry', label: 'Try again after I initialize Git myself' },
+          { value: 'cancel', label: 'Cancel setup' },
+        ] as const, 'init');
+        if (action === null || action === 'cancel') return { status: 'cancelled' };
+        if (action === 'init') {
+          if (!dependencies.initializeGit) throw new Error('Git initialization is unavailable in this setup environment');
+          await dependencies.initializeGit(resolved);
+          prompts.notify('Git repository initialized. Rechecking project identity.');
+        }
+        continue;
+      }
       prompts.notify(`Preflight: Node ${preflight.nodeVersion}; Python ${preflight.pythonVersion}; Git ${preflight.gitVersion}; ${preflight.platform}`);
       break;
     } catch (error) {

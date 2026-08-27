@@ -3,6 +3,16 @@ import { realpath } from 'node:fs/promises';
 import { promisify } from 'node:util';
 
 const execFileAsync = promisify(execFile);
+export const NO_GIT_HEAD = 'NO_GIT';
+
+export function isGitHeadUnavailable(error: unknown): boolean {
+  const stderr = String((error as { stderr?: unknown }).stderr ?? '');
+  return stderr.includes("ambiguous argument 'HEAD'")
+    || stderr.includes('unknown revision or path not in the working tree')
+    || stderr.includes('does not have any commits yet')
+    || stderr.includes("bad revision 'HEAD'")
+    || stderr.includes("bad default revision 'HEAD'");
+}
 
 export interface GitStatusEntry {
   index: string;
@@ -28,7 +38,12 @@ export class GitRepository {
   }
 
   async head(): Promise<string> {
-    return (await this.run(['rev-parse', 'HEAD'])).trim();
+    try {
+      return (await this.run(['rev-parse', 'HEAD'])).trim();
+    } catch (error) {
+      if (isGitHeadUnavailable(error)) return NO_GIT_HEAD;
+      throw error;
+    }
   }
 
   async status(): Promise<GitStatusEntry[]> {
@@ -43,7 +58,12 @@ export class GitRepository {
   }
 
   async changedFiles(base = 'HEAD'): Promise<string[]> {
-    return (await this.run(['diff', '--name-only', '-z', base])).split('\0').filter(Boolean);
+    try {
+      return (await this.run(['diff', '--name-only', '-z', base])).split('\0').filter(Boolean);
+    } catch (error) {
+      if (base === 'HEAD' && isGitHeadUnavailable(error)) return (await this.status()).map(({ path: changedPath }) => changedPath);
+      throw error;
+    }
   }
 
   async worktrees(): Promise<Array<Record<string, string>>> {

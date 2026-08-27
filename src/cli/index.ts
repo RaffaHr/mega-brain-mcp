@@ -1,15 +1,17 @@
 #!/usr/bin/env node
+import { execFile } from 'node:child_process';
 import { realpathSync } from 'node:fs';
 import { access } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { promisify } from 'node:util';
 
 import { AgentMemoryClient } from '../adapters/agentmemory/client.js';
 import { probeRemoteAgentMemoryIsolation } from '../adapters/agentmemory/capabilities.js';
 import { CodeReviewGraphClient } from '../adapters/code-review-graph/client.js';
-import { GitRepository } from '../adapters/git/repository.js';
+import { GitRepository, NO_GIT_HEAD } from '../adapters/git/repository.js';
 import { createLocalLogger, type LocalLogger } from '../observability/logger.js';
 import { loadConfig } from '../config/load.js';
 import type { MegaBrainConfig } from '../config/schema.js';
@@ -29,7 +31,7 @@ import { managedDoctorDependencies, runDoctor } from './doctor.js';
 import { handleGitHook, handleHostHook } from './hook.js';
 import { installHostMcpFiles, restoreHostMcpFiles } from './host-integration.js';
 import { installHostHookFiles, restoreHostHookFiles } from './host-hooks.js';
-import { promptForHosts } from './host-selection.js';
+import { parseHostSelection, promptForHosts } from './host-selection.js';
 import { installProjectTransaction, inspectManagedRuntime } from './install.js';
 import { runMcpCommand } from './mcp.js';
 import { runInstallPreflight } from './preflight.js';
@@ -41,6 +43,9 @@ import { runSupervisorCommand } from './supervisor.js';
 import { drainProjectSupervisor, uninstallMegaBrain } from './uninstall.js';
 import { upgradeManagedRuntime } from './upgrade.js';
 import { snapshotFile, type RuntimeTransaction } from '../runtime/transaction.js';
+
+const execFileAsync = promisify(execFile);
+const REMOTE_AGENTMEMORY_SETUP_TIMEOUT_MS = 30_000;
 
 function option(args: string[], name: string): string | undefined {
   const index = args.indexOf(name);
@@ -123,6 +128,26 @@ function mcpEndpoint(args: string[]): string {
   const port = Number(option(args, '--port') ?? process.env.MEGA_BRAIN_PORT ?? 3000);
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid --port');
   return `http://127.0.0.1:${port}/mcp`;
+}
+
+function currentCliPath(): string {
+  return fileURLToPath(import.meta.url);
+}
+
+export function currentCliStdioConnection(args: string[]): { transport: 'stdio'; command: string; args: string[] } {
+  return { transport: 'stdio', command: process.execPath, args: ['--no-warnings', currentCliPath(), ...args] };
+}
+
+function shellCommandPart(value: string): string {
+  return `"${value.replaceAll('"', '\\"')}"`;
+}
+
+export function currentCliShellCommand(args: string[]): string {
+  return [process.execPath, '--no-warnings', currentCliPath(), ...args].map(shellCommandPart).join(' ');
+}
+
+export function currentCliArgv(): string[] {
+  return [process.execPath, '--no-warnings', currentCliPath()];
 }
 
 async function readStdinText(): Promise<string> {
@@ -233,8 +258,11 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       environment: process.env,
       preflight: (_repository) => runInstallPreflight({ ...(setupPython ? { pythonCommand: setupPython } : {}) }),
       discoverIdentity: discoverProjectIdentity,
+      initializeGit: async (repository) => {
+        await execFileAsync('git', ['-C', repository, 'init'], { encoding: 'utf8', windowsHide: true });
+      },
       probeRemote: ({ baseUrl, secret, identity }) => probeRemoteAgentMemoryIsolation(
-        new AgentMemoryClient({ baseUrl, authToken: secret }),
+        new AgentMemoryClient({ baseUrl, authToken: secret, timeoutMs: REMOTE_AGENTMEMORY_SETUP_TIMEOUT_MS }),
         {
           projectA: identity.worktreeId,
           projectB: `${identity.worktreeId}-isolation-control`,
@@ -272,6 +300,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
             remoteIsolationProbe: () => probeRemoteAgentMemoryIsolation(new AgentMemoryClient({
               baseUrl: plan.config.agentMemory.baseUrl,
               ...(plan.config.agentMemory.authToken ? { authToken: plan.config.agentMemory.authToken } : {}),
+              timeoutMs: REMOTE_AGENTMEMORY_SETUP_TIMEOUT_MS,
             }), {
               projectA: plan.identity.worktreeId,
               projectB: `${plan.identity.worktreeId}-isolation-control`,
@@ -287,11 +316,13 @@ export async function main(args = process.argv.slice(2), output: (value: string)
               root: plan.identity.root,
               backupDir,
               hosts: plan.hosts,
-              connection: { transport: 'stdio', command: 'mega-brain', args: ['mcp', '--repo', plan.identity.root] },
+              connection: currentCliStdioConnection(['mcp', '--repo', plan.identity.root]),
               transaction,
             });
-            await installHostHookFiles({ root: plan.identity.root, backupDir, hosts: plan.hosts, transaction });
-            if (repository) await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: ['mega-brain'], transaction });
+            for (const host of plan.hosts) {
+              await installHostHookFiles({ root: plan.identity.root, backupDir, hosts: [host], command: currentCliShellCommand(['hook', 'host', host]), transaction });
+            }
+            if (repository) await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: currentCliArgv(), transaction });
           },
         });
         prompts.notify(`Setup complete for ${manifest.project.worktreeId}. Reopen ${plan.hosts.join(' and ')} to start Mega Brain automatically.`);
@@ -306,6 +337,9 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     : null;
   const { config, identity } = await projectContext(args, logger);
   const layout = runtimeLayout(config.dataDir, identity);
+  if ((command === 'install' || command === 'upgrade') && !identity.gitBacked && config.codeReviewGraph.command === 'code-review-graph') {
+    throw new Error('Managed Code Review Graph requires a Git repository. Run git init in this project, or use mega-brain setup to initialize Git interactively before install continues.');
+  }
   if (command === 'mcp') {
     await runMcpCommand({ config, identity, logger });
     return;
@@ -359,7 +393,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
   }
   if (command === 'install') {
     const prompts = createTerminalPrompts();
-    const hosts = await promptForHosts(prompts);
+    const hosts = parseHostSelection(option(args, '--hosts')) ?? await promptForHosts(prompts);
     if (hosts === null) { prompts.notify('Install cancelled; no changes were applied.'); return; }
     const repository = await optionalGitRepository(identity, logger);
     const transport = option(args, '--transport') ?? 'stdio';
@@ -367,11 +401,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     const configPath = option(args, '--config');
     const connection = transport === 'http'
       ? { transport: 'http' as const, url: mcpEndpoint(args) }
-      : {
-          transport: 'stdio' as const,
-          command: 'mega-brain',
-          args: ['mcp', '--repo', identity.root, ...(configPath ? ['--config', path.resolve(configPath)] : [])],
-        };
+      : currentCliStdioConnection(['mcp', '--repo', identity.root, ...(configPath ? ['--config', path.resolve(configPath)] : [])]);
     const managedHooksPath = path.join(layout.projectRoot, 'hooks', 'git');
     const hostBackupDir = path.join(layout.projectRoot, 'integration-backups');
     if (config.agentMemory.mode === 'managed' && installPreflight!.managedIiiEngineRequired && !flag(args, '--accept-iii-engine')) {
@@ -402,7 +432,11 @@ export async function main(args = process.argv.slice(2), output: (value: string)
         remoteAgentMemory: {
           baseUrl: config.agentMemory.baseUrl,
         },
-        remoteIsolationProbe: () => probeRemoteAgentMemoryIsolation(createAgentMemoryClient(config), {
+        remoteIsolationProbe: () => probeRemoteAgentMemoryIsolation(new AgentMemoryClient({
+          baseUrl: config.agentMemory.baseUrl,
+          ...(config.agentMemory.authToken ? { authToken: config.agentMemory.authToken } : {}),
+          timeoutMs: REMOTE_AGENTMEMORY_SETUP_TIMEOUT_MS,
+        }), {
           projectA: identity.worktreeId,
           projectB: `${identity.worktreeId}-isolation-control`,
           sentinel: `mega-brain-install-probe-${randomUUID()}`,
@@ -412,8 +446,10 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       logger,
       async configure(transaction) {
         await installHostMcpFiles({ root: identity.root, backupDir: hostBackupDir, hosts, connection, transaction });
-        await installHostHookFiles({ root: identity.root, backupDir: hostBackupDir, hosts, transaction });
-        if (repository) await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: ['mega-brain'], transaction });
+        for (const host of hosts) {
+          await installHostHookFiles({ root: identity.root, backupDir: hostBackupDir, hosts: [host], command: currentCliShellCommand(['hook', 'host', host]), transaction });
+        }
+        if (repository) await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: currentCliArgv(), transaction });
       },
     });
     output(JSON.stringify({ manifest, hosts, connection, hooksInstalled: Boolean(repository), mcpConfigured: true }));
@@ -467,7 +503,11 @@ export async function main(args = process.argv.slice(2), output: (value: string)
         remoteAgentMemory: {
           baseUrl: config.agentMemory.baseUrl,
         },
-        remoteIsolationProbe: () => probeRemoteAgentMemoryIsolation(createAgentMemoryClient(config), {
+        remoteIsolationProbe: () => probeRemoteAgentMemoryIsolation(new AgentMemoryClient({
+          baseUrl: config.agentMemory.baseUrl,
+          ...(config.agentMemory.authToken ? { authToken: config.agentMemory.authToken } : {}),
+          timeoutMs: REMOTE_AGENTMEMORY_SETUP_TIMEOUT_MS,
+        }), {
           projectA: identity.worktreeId,
           projectB: `${identity.worktreeId}-isolation-control`,
           sentinel: `mega-brain-upgrade-probe-${randomUUID()}`,
@@ -480,18 +520,14 @@ export async function main(args = process.argv.slice(2), output: (value: string)
   }
   if (command === 'uninstall') {
     const prompts = createTerminalPrompts();
-    const hosts = await promptForHosts(prompts, 'Remove Mega Brain from which hosts?');
+    const hosts = parseHostSelection(option(args, '--hosts')) ?? await promptForHosts(prompts, 'Remove Mega Brain from which hosts?');
     if (hosts === null) { prompts.notify('Uninstall cancelled; no changes were applied.'); return; }
     const transport = option(args, '--transport') ?? 'stdio';
     if (transport !== 'stdio' && transport !== 'http') throw new Error('Invalid --transport; expected stdio or http');
     const configPath = option(args, '--config');
     const connection = transport === 'http'
       ? { transport: 'http' as const, url: mcpEndpoint(args) }
-      : {
-          transport: 'stdio' as const,
-          command: 'mega-brain',
-          args: ['mcp', '--repo', identity.root, ...(configPath ? ['--config', path.resolve(configPath)] : [])],
-        };
+      : currentCliStdioConnection(['mcp', '--repo', identity.root, ...(configPath ? ['--config', path.resolve(configPath)] : [])]);
     const repository = await optionalGitRepository(identity, logger);
     const managedHooksPath = path.join(layout.projectRoot, 'hooks', 'git');
     const hostBackupDir = path.join(layout.projectRoot, 'integration-backups');
@@ -516,12 +552,14 @@ export async function main(args = process.argv.slice(2), output: (value: string)
           },
           rollback: async () => {
             await installHostMcpFiles({ root: identity.root, backupDir: hostBackupDir, hosts, connection });
-            await installHostHookFiles({ root: identity.root, backupDir: hostBackupDir, hosts });
+            for (const host of hosts) {
+              await installHostHookFiles({ root: identity.root, backupDir: hostBackupDir, hosts: [host], command: currentCliShellCommand(['hook', 'host', host]) });
+            }
           },
         },
         ...(repository ? [{
           apply: () => restoreGitHooks(repository, managedHooksPath),
-          rollback: () => installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: ['mega-brain'] }).then(() => undefined),
+          rollback: () => installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: currentCliArgv() }).then(() => undefined),
         }] : []),
       ],
     })));
@@ -552,7 +590,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
         identity,
         agentMemory,
         codeReviewGraph,
-        gitHead: () => repository ? repository.head() : Promise.resolve('NO_GIT'),
+        gitHead: () => repository ? repository.head() : Promise.resolve(NO_GIT_HEAD),
       }));
       output(JSON.stringify(result));
     } finally {

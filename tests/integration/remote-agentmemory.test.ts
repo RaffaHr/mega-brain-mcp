@@ -44,6 +44,13 @@ test('AC-049: probe remoto sempre remove sentinela, inclusive ao detectar vazame
       return Response.json({ status: 'ok' });
     }
     if (request.url.endsWith('/smart-search')) {
+      const body = init?.body ? JSON.parse(String(init.body)) as Record<string, unknown> : {};
+      if (Array.isArray(body.expandIds)) {
+        return Response.json({
+          mode: 'expanded',
+          results: [{ obsId: 'sentinel-id', observation: { id: 'sentinel-id', narrative: 'sentinel' } }],
+        });
+      }
       if (deleted) return Response.json({ results: [] });
       return Response.json({ results: [{ id: 'sentinel-id', content: 'sentinel' }] });
     }
@@ -55,4 +62,35 @@ test('AC-049: probe remoto sempre remove sentinela, inclusive ao detectar vazame
     projectA: 'project-a', projectB: 'project-b', sentinel: 'sentinel',
   })).rejects.toThrow(/strict namespace isolation/i);
   expect(deleted).toBe(true);
+});
+
+test('AC-049: probe remoto ignora candidato compacto que não hidrata no projeto consultado @spec:AC-049', async () => {
+  let deleted = false;
+  const bodies: Array<Record<string, unknown>> = [];
+  const fetch = vi.fn(async (input: URL | RequestInfo, init?: RequestInit) => {
+    const request = new Request(input, init);
+    const body = init?.body ? JSON.parse(String(init.body)) as Record<string, unknown> : {};
+    bodies.push(body);
+    if (request.url.endsWith('/remember')) return Response.json({ id: 'sentinel-id' });
+    if (request.url.endsWith('/governance/memories')) {
+      deleted = true;
+      return Response.json({ status: 'ok' });
+    }
+    if (request.url.includes('/memories/sentinel-id')) {
+      return Response.json({ memory: { id: 'sentinel-id', content: 'sentinel', project: 'project-a' } });
+    }
+    if (request.url.endsWith('/smart-search')) {
+      if (Array.isArray(body.expandIds)) return Response.json({ mode: 'expanded', results: [] });
+      if (deleted) return Response.json({ results: [] });
+      return Response.json({ results: [{ obsId: 'sentinel-id', title: 'sentinel' }] });
+    }
+    return Response.json({ status: 'ok' });
+  }) as typeof globalThis.fetch;
+  const client = new AgentMemoryClient({ baseUrl: 'https://memory.example.test', fetch });
+
+  await expect(probeRemoteAgentMemoryIsolation(client, {
+    projectA: 'project-a', projectB: 'project-b', sentinel: 'sentinel',
+  })).resolves.toMatchObject({ isolated: true, cleanupConfirmed: true });
+  expect(deleted).toBe(true);
+  expect(bodies).not.toContainEqual(expect.objectContaining({ requireHydratedResults: true }));
 });

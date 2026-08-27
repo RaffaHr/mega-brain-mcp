@@ -50,3 +50,27 @@ test('metadata stores references and hashes without storing memory content', () 
   expect(repository.memoryState('memory-1')).toEqual({ state: 'FRESH', confidence: 1 });
   expect(database.prepare("SELECT name FROM pragma_table_info('memory_refs') WHERE name = 'content'").get()).toBeUndefined();
 });
+
+test('provenance funciona com node:sqlite quando better-sqlite3 nativo nao esta disponivel', () => {
+  const previous = process.env.MEGA_BRAIN_SQLITE_BACKEND;
+  process.env.MEGA_BRAIN_SQLITE_BACKEND = 'node';
+  try {
+    const database = openProvenanceDatabase(':memory:');
+    databases.push(database);
+    const repository = new ProvenanceRepository(database);
+    repository.registerProject({ id: 'repo-node', checkoutId: 'checkout', worktreeId: 'worktree-node', root: '/repo' });
+    repository.saveMemoryReference({
+      memoryId: 'memory-node',
+      projectId: 'repo-node',
+      state: 'FRESH',
+      confidence: 0.9,
+      evidence: [{ path: 'src/index.ts', blobHash: 'blob', commitHash: 'commit' }],
+    });
+
+    expect(repository.memoryState('memory-node')).toEqual({ state: 'FRESH', confidence: 0.9 });
+    expect(repository.memoryIdsForPaths(['src/index.ts'])).toEqual(['memory-node']);
+  } finally {
+    if (previous === undefined) delete process.env.MEGA_BRAIN_SQLITE_BACKEND;
+    else process.env.MEGA_BRAIN_SQLITE_BACKEND = previous;
+  }
+});

@@ -6,7 +6,7 @@ import { expect, test } from 'vitest';
 
 import type { AgentMemoryClient } from '../../src/adapters/agentmemory/client.js';
 import type { CodeReviewGraphClient } from '../../src/adapters/code-review-graph/client.js';
-import type { GitRepository } from '../../src/adapters/git/repository.js';
+import { NO_GIT_HEAD, type GitRepository } from '../../src/adapters/git/repository.js';
 import type { MegaBrainConfig } from '../../src/config/schema.js';
 import { deriveProjectIdentity } from '../../src/projects/identity.js';
 import { openProvenanceDatabase } from '../../src/provenance/database.js';
@@ -94,5 +94,36 @@ test('AC-057: handlers operam status sem exigir Git ate uma tool precisar dele @
   expect(status.head).toBe('NO_GIT');
   expect(status.status).toBe('degraded');
   expect(status.warnings).toEqual(expect.arrayContaining(['git repository unavailable', 'hook installation is unhealthy']));
+  database.close();
+});
+
+test('handlers degradam quando Git existe mas ainda nao tem HEAD', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-app-unborn-git-'));
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const database = openProvenanceDatabase(':memory:');
+  const agentMemory = {
+    health: async () => ({ healthy: true, version: '0.9.29' }),
+    smartSearch: async () => ({ results: [] }),
+  } as unknown as AgentMemoryClient;
+  const codeReviewGraph = {
+    start: async () => undefined,
+    call: async () => ({ content: [], structuredContent: { graphHead: 'abc' } }),
+    serverVersion: () => '2.3.7',
+  } as unknown as CodeReviewGraphClient;
+  const git = { head: async () => NO_GIT_HEAD } as unknown as GitRepository;
+  const handlers = createApplicationHandlers({
+    config: testConfig(dataDir),
+    identity,
+    git,
+    agentMemory,
+    codeReviewGraph,
+    provenance: new ProvenanceRepository(database),
+  });
+  const status = await handlers.brain_status!({});
+
+  expect(status.head).toBe(NO_GIT_HEAD);
+  expect(status.status).toBe('degraded');
+  expect(status.warnings).toContain('git repository unavailable');
+  expect(status.warnings).not.toContain('code_review_graph index is behind Git HEAD');
   database.close();
 });

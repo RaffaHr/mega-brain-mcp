@@ -4,6 +4,23 @@ Mega Brain MCP is a local-first knowledge control plane for software projects. I
 
 The public MCP surface is exactly `brain_recall`, `brain_learn`, `brain_change_context`, `brain_history`, `brain_validate`, and `brain_status`.
 
+> [!NOTE]
+> Agents talk to one Mega Brain MCP server. They do not call AgentMemory or Code Review Graph directly. Mega Brain owns routing, provenance, freshness, hooks, queueing, and backend isolation.
+
+## Contents
+
+- [Requirements](#requirements)
+- [Install the package](#install-the-package)
+- [Set up one project](#set-up-one-project)
+- [What gets installed per project](#what-gets-installed-per-project)
+- [Runtime architecture](#runtime-architecture)
+- [MCP tools](#mcp-tools)
+- [Hooks](#hooks)
+- [Example agent session](#example-agent-session)
+- [Use and verify](#use-and-verify)
+- [Configuration precedence](#configuration-precedence)
+- [Development and isolated release gates](#development-and-isolated-release-gates)
+
 ## Requirements
 
 - Node.js `>=22.22.0` (certified on 22.22.0 and 24.19.0)
@@ -34,7 +51,7 @@ tarball shape that npm publishes:
 ```powershell
 npm ci
 npm pack
-npm install --global .\raffahr-mega-brain-mcp-0.1.3.tgz
+npm install --global .\raffahr-mega-brain-mcp-0.1.4.tgz
 mega-brain --help
 ```
 
@@ -126,6 +143,559 @@ project also receives:
 
 After installation, approve the project MCP/hooks when Codex (`/mcp`, `/hooks`) or Claude Code (`/mcp`) asks for project trust.
 
+## Runtime architecture
+
+Mega Brain installs one public MCP endpoint per project and keeps all implementation backends private. The selected coding agent starts Mega Brain through MCP `stdio`; Mega Brain starts or connects to AgentMemory and Code Review Graph using the project identity selected by `--repo`.
+
+```mermaid
+flowchart LR
+  Agent["Coding agent\nCodex, Claude Code, or another MCP client"]
+  MCP["Mega Brain MCP\nsix public brain_* tools"]
+  Supervisor["Project supervisor\nleases, logs, runtime state"]
+  AM["AgentMemory\nlessons, sessions, recall"]
+  CRG["Code Review Graph\nstructure, impact, flows"]
+  Git["Git\nHEAD, commits, changed files"]
+  Prov["Provenance DB\nfreshness, evidence, invalidations"]
+
+  Agent <-->|MCP stdio| MCP
+  MCP --> Supervisor
+  Supervisor --> AM
+  Supervisor --> CRG
+  MCP --> Git
+  MCP --> Prov
+  MCP --> AM
+  MCP --> CRG
+  Git --> Prov
+```
+
+Every tool response is wrapped in the same envelope:
+
+```json
+{
+  "schemaVersion": "1.0",
+  "status": "ok",
+  "project": "<worktreeId>",
+  "head": "<git-head-or-NO_GIT_HEAD>",
+  "confidence": 0.9,
+  "freshness": "FRESH",
+  "sources": [
+    { "kind": "agentmemory", "reference": "memory-id", "authority": 0.8 }
+  ],
+  "warnings": [],
+  "result": {}
+}
+```
+
+The envelope lets an agent distinguish current structural evidence, remembered experience, degraded backend state, and possibly stale knowledge without learning backend-specific APIs.
+
+## MCP tools
+
+The host sees exactly six tools. Backend tools are private implementation details and are intentionally hidden from the agent.
+
+| Tool | Main use | Reads | Writes |
+| --- | --- | --- | --- |
+| `brain_recall` | Retrieve ranked project knowledge for a question. | AgentMemory, Code Review Graph, Git | No |
+| `brain_learn` | Store a lesson, rule, decision, bug, or experience with evidence. | AgentMemory, provenance | AgentMemory, provenance |
+| `brain_change_context` | Explain what may be affected before changing a file or symbol. | Code Review Graph, AgentMemory | No |
+| `brain_history` | Build a timeline from commits, sessions, and memories. | Git, AgentMemory, Code Review Graph | No |
+| `brain_validate` | Reassess whether a remembered item is still fresh against local evidence. | Provenance, Git | Validation metadata |
+| `brain_status` | Report backend health, graph freshness, hooks, and queue depth. | Runtime state, AgentMemory, Code Review Graph, Git | No |
+
+### `brain_recall`
+
+Use `brain_recall` before implementation, debugging, architectural questions, or any task where prior project decisions matter.
+
+Input:
+
+```json
+{
+  "query": "How does the checkout flow publish domain events?",
+  "intent": "implementation",
+  "budget": "NORMAL"
+}
+```
+
+Optional `intent` values are `implementation`, `impact`, `history`, `decision`, `procedure`, `architecture`, `workflow`, and `debugging`. Optional `budget` values are `FAST`, `NORMAL`, and `DEEP`.
+
+Flow:
+
+```mermaid
+sequenceDiagram
+  participant Agent
+  participant MB as Mega Brain
+  participant Router as Intent router
+  participant CRG as Code Review Graph
+  participant Git
+  participant AM as AgentMemory
+
+  Agent->>MB: brain_recall(query, intent?, budget?)
+  MB->>Router: classify intent and choose source order
+  Router-->>MB: e.g. code_review_graph -> git -> agentmemory
+  MB->>CRG: structural recall when relevant
+  MB->>Git: commit/history evidence when available
+  MB->>AM: remembered lessons and sessions
+  MB-->>Agent: ranked context pack + freshness + sources
+```
+
+Example JSON-RPC call:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 10,
+  "method": "tools/call",
+  "params": {
+    "name": "brain_recall",
+    "arguments": {
+      "query": "Where is hook dispatch handled?",
+      "intent": "implementation",
+      "budget": "FAST"
+    }
+  }
+}
+```
+
+### `brain_learn`
+
+Use `brain_learn` when the agent discovers a project rule, a hard-won debugging fact, a decision, or a behavior that should be available in future sessions.
+
+Input:
+
+```json
+{
+  "statement": "Codex and Claude host hooks use one dispatcher command; the specific lifecycle event comes from the hook payload.",
+  "type": "architecture",
+  "evidence": [
+    {
+      "path": "src/hooks/events.ts",
+      "symbol": "CODEX_HOOK_EVENTS"
+    }
+  ]
+}
+```
+
+Optional `type` values are `fact`, `decision`, `architecture`, `procedure`, `bug`, `rule`, `preference`, and `experience`. Evidence can include `path`, `symbol`, `blobHash`, and `commitHash`. When both `blobHash` and `commitHash` are present, Mega Brain can later reassess freshness when Git changes.
+
+Flow:
+
+```mermaid
+flowchart TD
+  A["Agent calls brain_learn"] --> B["Redact secrets from statement and evidence"]
+  B --> C["Check equivalent or conflicting memory"]
+  C -->|Equivalent| D["Reinforce existing memory"]
+  C -->|Supersedes| E["Store replacement and link supersession"]
+  C -->|New or conflict| F["Store new AgentMemory item"]
+  D --> G["Return memoryId, action, authority"]
+  E --> G
+  F --> H["Save verifiable provenance when commit/blob evidence exists"]
+  H --> G
+```
+
+Example JSON-RPC call:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 11,
+  "method": "tools/call",
+  "params": {
+    "name": "brain_learn",
+    "arguments": {
+      "statement": "Run brain_status before relying on graph freshness after a checkout.",
+      "type": "procedure",
+      "evidence": [
+        { "path": "src/tools/brain-status.ts" }
+      ]
+    }
+  }
+}
+```
+
+### `brain_change_context`
+
+Use `brain_change_context` before editing a file, package, route, model, or feature boundary. It combines current graph structure with remembered rules, bugs, decisions, and risks.
+
+Input:
+
+```json
+{
+  "target": "src/cli/hook.ts",
+  "budget": "NORMAL"
+}
+```
+
+Flow:
+
+```mermaid
+sequenceDiagram
+  participant Agent
+  participant MB as Mega Brain
+  participant CRG as Code Review Graph
+  participant AM as AgentMemory
+
+  Agent->>MB: brain_change_context(target)
+  par Structural context
+    MB->>CRG: get_impact_radius_tool(changed_files)
+    MB->>CRG: get_affected_flows_tool(changed_files)
+    MB->>CRG: query_graph_tool(file_summary)
+  and Remembered experience
+    MB->>AM: smart-search(target)
+  end
+  MB-->>Agent: dependencies, flows, tests, rules, bugs, decisions, risks
+```
+
+Example JSON-RPC call:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 12,
+  "method": "tools/call",
+  "params": {
+    "name": "brain_change_context",
+    "arguments": {
+      "target": "src/server/application.ts",
+      "budget": "DEEP"
+    }
+  }
+}
+```
+
+### `brain_history`
+
+Use `brain_history` when the agent needs chronology: when a behavior changed, what sessions touched a topic, or how current structure relates to historical evidence.
+
+Input:
+
+```json
+{
+  "query": "host hooks",
+  "limit": 10,
+  "start": "2026-08-01T00:00:00.000Z",
+  "end": "2026-08-31T23:59:59.999Z"
+}
+```
+
+`limit` must be between 1 and 100. `start` and `end` are ISO datetimes.
+
+Flow:
+
+```mermaid
+flowchart LR
+  A["brain_history"] --> B["Git commits"]
+  A --> C["AgentMemory memories"]
+  A --> D["AgentMemory sessions"]
+  A --> E["Current architecture snapshot"]
+  B --> F["Filter by date"]
+  C --> F
+  D --> F
+  F --> G["Sort timeline"]
+  E --> H["Attach currentStructure"]
+  G --> I["Return immutable timeline"]
+  H --> I
+```
+
+Example JSON-RPC call:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 13,
+  "method": "tools/call",
+  "params": {
+    "name": "brain_history",
+    "arguments": {
+      "query": "hook installation",
+      "limit": 20
+    }
+  }
+}
+```
+
+### `brain_validate`
+
+Use `brain_validate` when an agent is about to rely on a specific memory and wants to check whether its local evidence is still valid. The public schema accepts `outcome` and `evidence`, but the current v1 handler records a freshness assessment from provenance and Git; it does not rewrite the remembered content.
+
+Input:
+
+```json
+{
+  "memoryId": "mem_123",
+  "outcome": "confirmed",
+  "evidence": ["HEAD", "src/hooks/events.ts"]
+}
+```
+
+Flow:
+
+```mermaid
+sequenceDiagram
+  participant Agent
+  participant MB as Mega Brain
+  participant Prov as Provenance DB
+  participant Git
+
+  Agent->>MB: brain_validate(memoryId, outcome, evidence)
+  MB->>Prov: load memory evidence refs
+  MB->>Git: compare current blobs/HEAD where available
+  MB->>Prov: record freshness assessment
+  MB-->>Agent: FRESH, POSSIBLY_STALE, STALE, or UNKNOWN
+```
+
+Example JSON-RPC call:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 14,
+  "method": "tools/call",
+  "params": {
+    "name": "brain_validate",
+    "arguments": {
+      "memoryId": "mem_123",
+      "outcome": "confirmed",
+      "evidence": ["src/hooks/events.ts"]
+    }
+  }
+}
+```
+
+### `brain_status`
+
+Use `brain_status` at the start of a session, after a checkout, when recall seems stale, or before trusting Code Review Graph impact output.
+
+Input:
+
+```json
+{
+  "verbose": true
+}
+```
+
+Flow:
+
+```mermaid
+flowchart TD
+  A["brain_status"] --> B["Read Git HEAD"]
+  A --> C["Probe AgentMemory health"]
+  A --> D["Start/probe Code Review Graph"]
+  A --> E["Read hook queue depth"]
+  D --> F{"Graph HEAD == Git HEAD?"}
+  F -->|Yes| G["freshness: FRESH"]
+  F -->|No| H["warning: graph index is behind Git HEAD"]
+  C --> I["Return backend health, hooksHealthy, queueDepth"]
+  G --> I
+  H --> I
+```
+
+Example JSON-RPC call:
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 15,
+  "method": "tools/call",
+  "params": {
+    "name": "brain_status",
+    "arguments": {
+      "verbose": true
+    }
+  }
+}
+```
+
+## Hooks
+
+Mega Brain uses hooks to keep project knowledge current when the coding agent acts and when Git changes. Hooks are fail-open: Mega Brain failures are captured or queued, but they do not block the host or replace the status of an existing Git hook.
+
+### Host lifecycle hooks
+
+Codex and Claude Code use the same design: every registered event runs one dispatcher command, and the host passes the actual lifecycle event in the hook payload.
+
+| Host | File | Events | Command shape |
+| --- | --- | --- | --- |
+| Codex | `.codex/hooks.json` | `SessionStart`, `UserPromptSubmit`, `PreToolUse`, `PostToolUse`, `PreCompact`, `Stop` | `mega-brain hook host codex` |
+| Claude Code | `.claude/settings.local.json` | `Notification`, `PostToolUse`, `PostToolUseFailure`, `PreCompact`, `PreToolUse`, `SessionEnd`, `SessionStart`, `Stop`, `SubagentStart`, `SubagentStop`, `TaskCompleted`, `UserPromptSubmit` | `mega-brain hook host claude` |
+
+The generated command can be an absolute Node invocation instead of `mega-brain` directly. That is intentional: it avoids depending on a shell `PATH` when the host starts hooks from a different working directory.
+
+Host hook flow:
+
+```mermaid
+sequenceDiagram
+  participant Host as Codex or Claude Code
+  participant CLI as mega-brain hook host
+  participant Dispatcher
+  participant AM as AgentMemory
+  participant CRG as Code Review Graph
+  participant Queue as hook-queue.json
+
+  Host->>CLI: command + JSON payload on stdin
+  CLI->>Dispatcher: host + hook_event_name + payload
+  Dispatcher->>Dispatcher: redact payload and compute idempotency key
+  alt duplicate event
+    Dispatcher-->>Host: continue true, duplicate true
+  else first event
+    par Capture memory
+      Dispatcher->>AM: remember("codex:prompt_submitted")
+    and Refresh graph when needed
+      Dispatcher->>CRG: update on tool_succeeded, tool_failed, or stopped
+    end
+    alt backend success
+      Dispatcher->>Queue: mark processed
+      Dispatcher-->>Host: continue true
+    else backend failure
+      Dispatcher->>Queue: enqueue pending event
+      Dispatcher-->>Host: continue true, queued true
+    end
+  end
+```
+
+Canonical event mapping:
+
+| Raw host event | Canonical event |
+| --- | --- |
+| `Notification` | `notification` |
+| `SessionStart` | `session_started` |
+| `SessionEnd` | `session_ended` |
+| `UserPromptSubmit` | `prompt_submitted` |
+| `PreToolUse` | `before_tool` |
+| `PostToolUse` | `tool_succeeded` |
+| `PostToolUseFailure` | `tool_failed` |
+| `PreCompact` | `before_compaction` |
+| `Stop` | `stopped` |
+| `SubagentStart` | `subagent_started` |
+| `SubagentStop` | `subagent_stopped` |
+| `TaskCompleted` | `task_completed` |
+
+### Git hook multiplexer
+
+When the project is a Git repository, Mega Brain installs an isolated `core.hooksPath` that contains four managed hooks.
+
+| Git hook | Why Mega Brain listens |
+| --- | --- |
+| `post-commit` | Link new commits to remembered session context and refresh graph state. |
+| `post-checkout` | Detect branch/worktree movement and mark affected memories as possibly stale. |
+| `post-merge` | Refresh graph and freshness after upstream changes arrive. |
+| `post-rewrite` | Handle rebases/amends where commit identities change. |
+
+The generated script first runs the previously configured hook, preserves that hook's exit status, then starts Mega Brain in the background:
+
+```sh
+previous_status=0
+if [ -x '<previous-hooks-path>/<event>' ]; then
+  '<previous-hooks-path>/<event>' "$@"
+  previous_status=$?
+fi
+( mega-brain hook git '<event>' "$@" >/dev/null 2>&1 || true ) &
+exit "$previous_status"
+```
+
+Git hook flow:
+
+```mermaid
+flowchart TD
+  A["Git fires post-commit/post-checkout/post-merge/post-rewrite"] --> B["Run previous project hook if executable"]
+  B --> C["Preserve previous hook exit status"]
+  C --> D["Start mega-brain hook git <event> in background"]
+  D --> E["Read HEAD and changed paths"]
+  E --> F["Update Code Review Graph"]
+  E --> G["Find memories whose evidence paths changed"]
+  G --> H["Mark affected memories POSSIBLY_STALE"]
+  F --> I["Remember Git commit/session link in AgentMemory"]
+  H --> I
+  I --> J["Record idempotent hook event in provenance"]
+  C --> K["Git receives original hook status"]
+```
+
+### Queueing and retries
+
+If AgentMemory, Code Review Graph, or provenance work fails during hook handling, Mega Brain writes the event to the project queue:
+
+```text
+<MEGA_BRAIN_DATA_DIR>/projects/<worktreeId>/hook-queue.json
+```
+
+`brain_status` reports the queue depth. A non-zero queue means the agent should treat recent hook-derived context as potentially incomplete until the backend issue is fixed and the queued events are processed by a later runtime path.
+
+## Example agent session
+
+This is the intended flow for a coding agent connected through MCP, regardless of whether the host is Codex, Claude Code, or another MCP-capable coding environment.
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant Agent
+  participant Hooks as Host hooks
+  participant MB as Mega Brain MCP
+  participant AM as AgentMemory
+  participant CRG as Code Review Graph
+  participant Git
+
+  User->>Agent: "Fix hook documentation and explain orchestration"
+  Hooks->>MB: UserPromptSubmit
+  MB->>AM: remember prompt_submitted
+  Agent->>MB: brain_status({ verbose: true })
+  MB->>AM: health
+  MB->>CRG: detect_changes_tool
+  MB-->>Agent: backend health, graphHead, queueDepth
+  Agent->>MB: brain_recall({ query: "hooks orchestration", intent: "architecture" })
+  MB->>CRG: structural search
+  MB->>AM: remembered decisions
+  MB->>Git: relevant history
+  MB-->>Agent: ranked context pack
+  Agent->>MB: brain_change_context({ target: "README.md" })
+  MB->>CRG: impact, flows, tests
+  MB->>AM: rules, bugs, decisions, risks
+  MB-->>Agent: change context
+  Agent->>Agent: edit files and run verification
+  Hooks->>MB: PostToolUse / Stop
+  MB->>AM: remember tool_succeeded or stopped
+  MB->>CRG: update graph on relevant events
+  Agent->>MB: brain_learn({ statement, type, evidence })
+  MB->>AM: store lesson
+  MB->>Git: read HEAD for provenance
+  User->>Git: commit
+  Git->>MB: post-commit hook
+  MB->>CRG: refresh graph
+  MB->>AM: remember Git commit
+  MB->>MB: mark stale evidence when changed paths invalidate memories
+```
+
+Minimal MCP handshake and tool use:
+
+```json
+{ "jsonrpc": "2.0", "id": 1, "method": "initialize", "params": { "protocolVersion": "2024-11-05", "capabilities": {}, "clientInfo": { "name": "example-agent", "version": "1.0.0" } } }
+```
+
+```json
+{ "jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {} }
+```
+
+Expected tool names:
+
+```json
+[
+  "brain_recall",
+  "brain_learn",
+  "brain_change_context",
+  "brain_history",
+  "brain_validate",
+  "brain_status"
+]
+```
+
+Example orchestration policy for an agent:
+
+```text
+1. Call brain_status at session start or after checkout.
+2. Call brain_recall before answering project-specific questions.
+3. Call brain_change_context before editing a target.
+4. Make the change and run local verification.
+5. Call brain_learn for durable lessons, rules, decisions, or bugs.
+6. Let host and Git hooks capture lifecycle events and keep graph/memory freshness current.
+```
+
 ## Use and verify
 
 Reopen the configured Codex or Claude Code project. The first MCP client starts
@@ -159,10 +729,15 @@ Expensive or external features stay off unless explicitly enabled. See
 
 ## Use an existing remote AgentMemory
 
-Remote mode does not install or start AgentMemory locally. Supply the service URL,
-and the secret token. Interactive setup stores the token in this repository's
-uncommitted `.mega-brain/config.json`; install can read the same token from
-`MEGA_BRAIN_AGENTMEMORY_TOKEN` or that local config file:
+Remote mode does not install or start AgentMemory locally. During
+`mega-brain setup`, paste the actual AgentMemory secret token when prompted.
+Do not pass the name of a shell variable that contains the token. Mega Brain
+validates that token and stores it for this repository only in the repository's
+uncommitted `.mega-brain/config.json`.
+
+For scripted installs outside the interactive setup, `install` can read the
+same token value from `MEGA_BRAIN_AGENTMEMORY_TOKEN` or from that local config
+file:
 
 ```powershell
 $env:MEGA_BRAIN_AGENTMEMORY_MODE = 'remote'
@@ -172,9 +747,11 @@ mega-brain install --repo .
 ```
 
 In remote mode Mega Brain persists the remote URL and token only in the selected
-repository's local `.mega-brain/config.json`. It does not install AgentMemory,
-start AgentMemory or install iii-engine locally. Code Review Graph and
-provenance still remain isolated per project.
+repository's local `.mega-brain/config.json`. The token is used only when this
+repository talks to the configured remote AgentMemory service. It is not written
+to host MCP files, hook files, runtime locks, logs or setup summaries. Mega
+Brain does not install AgentMemory, start AgentMemory or install iii-engine
+locally. Code Review Graph and provenance still remain isolated per project.
 
 Before any file or download is created, install performs a reversible namespace
 A/B probe and confirms cleanup. If validation fails, fix URL/secret and rerun;

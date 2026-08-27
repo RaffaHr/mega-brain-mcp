@@ -10,6 +10,27 @@ interface GitHooksBackup {
   previousResolvedHooksPath: string;
 }
 
+function normalizedHookPath(value: string): string {
+  const normalized = path.resolve(value);
+  return process.platform === 'win32' ? normalized.toLowerCase() : normalized;
+}
+
+async function sanitizeBackup(repository: GitRepository, managed: string, backup: GitHooksBackup): Promise<GitHooksBackup> {
+  const seen = new Set([normalizedHookPath(managed)]);
+  let current = backup;
+  while (true) {
+    const resolved = normalizedHookPath(current.previousResolvedHooksPath);
+    if (seen.has(resolved)) return { previousHooksPath: null, previousResolvedHooksPath: await defaultHooksPath(repository) };
+    seen.add(resolved);
+    try {
+      current = JSON.parse(await readFile(path.join(current.previousResolvedHooksPath, 'installation.json'), 'utf8')) as GitHooksBackup;
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code === 'ENOENT') return current;
+      throw error;
+    }
+  }
+}
+
 async function configuredHooksPath(repository: GitRepository): Promise<string | null> {
   try {
     const value = (await repository.run(['config', '--local', '--get', 'core.hooksPath'])).trim();
@@ -20,7 +41,7 @@ async function configuredHooksPath(repository: GitRepository): Promise<string | 
 }
 
 async function defaultHooksPath(repository: GitRepository): Promise<string> {
-  return path.resolve(repository.root, (await repository.run(['rev-parse', '--git-path', 'hooks'])).trim());
+  return path.join((await repository.run(['rev-parse', '--absolute-git-dir'])).trim(), 'hooks');
 }
 
 export async function installGitHookMultiplexer(input: {
@@ -52,8 +73,9 @@ export async function installGitHookMultiplexer(input: {
     const previousResolvedHooksPath = previousHooksPath
       ? path.resolve(input.repository.root, previousHooksPath)
       : await defaultHooksPath(input.repository);
-    backup = { previousHooksPath, previousResolvedHooksPath };
+    backup = await sanitizeBackup(input.repository, managed, { previousHooksPath, previousResolvedHooksPath });
   }
+  backup = await sanitizeBackup(input.repository, managed, backup);
   await mkdir(managed, { recursive: true });
   await writeFile(backupPath, JSON.stringify(backup), { encoding: 'utf8', mode: 0o600 });
   for (const event of MEGA_BRAIN_GIT_HOOKS) {
