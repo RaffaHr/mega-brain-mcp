@@ -1,0 +1,68 @@
+{
+  "runId": "mega-brain-mcp-p0-memory-dedup-cleanup-mtbmn0l3",
+  "feature": "p0-memory-dedup-cleanup",
+  "agent": "claude",
+  "modo": "sequencial",
+  "paralelizar": null,
+  "modeloForcado": null,
+  "esforcoForcado": null,
+  "geradoEm": "2026-08-27 14:37",
+  "branchTrabalho": "spec/p0-memory-dedup-cleanup",
+  "baseDir": ".spec/features/p0-memory-dedup-cleanup",
+  "specDir": ".spec",
+  "repoName": "mega-brain-mcp",
+  "logsDir": "../onp-worktrees/mega-brain-mcp-p0-memory-dedup-cleanup-logs",
+  "ondas": [],
+  "faixas": [],
+  "sequenciais": [
+    {
+      "id": "T-040",
+      "titulo": "Eliminar criação de memórias sintéticas em reforço e conflito",
+      "modelo": "claude-sonnet-5",
+      "esforco": "medium",
+      "arquivos": [
+        "src/server/application.ts",
+        "src/tools/brain-learn.ts",
+        "test/p0-memory-dedup-cleanup.spec.test.js"
+      ],
+      "refs": [
+        "US-026",
+        "AC-070"
+      ]
+    },
+    {
+      "id": "T-041",
+      "titulo": "Registrar supersessão exclusivamente na proveniência e metadados",
+      "modelo": "claude-sonnet-5",
+      "esforco": "medium",
+      "arquivos": [
+        "src/server/application.ts",
+        "src/tools/brain-learn.ts",
+        "src/provenance/repository.ts",
+        "test/p0-memory-dedup-cleanup.spec.test.js"
+      ],
+      "refs": [
+        "US-026",
+        "AC-071"
+      ]
+    },
+    {
+      "id": "T-042",
+      "titulo": "Implementar truncamento seguro de blocos e deduplicação no Context Builder",
+      "modelo": "claude-sonnet-5",
+      "esforco": "medium",
+      "arquivos": [
+        "src/orchestration/context-builder.ts",
+        "src/orchestration/ranking.ts",
+        "test/p0-memory-dedup-cleanup.spec.test.js"
+      ],
+      "refs": [
+        "US-027",
+        "AC-072",
+        "AC-073"
+      ]
+    }
+  ],
+  "concluidas": [],
+  "avisos": []
+}

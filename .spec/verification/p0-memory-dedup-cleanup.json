@@ -1,0 +1,57 @@
+{
+  "feature": "p0-memory-dedup-cleanup",
+  "timestamp": "2026-08-27T14:44:59.420Z",
+  "gitRev": "ad08077",
+  "command": "npx vitest run --pool=threads --maxWorkers=1 --reporter=json --outputFile=.spec/verification/vitest-results.json",
+  "reporter": "vitest-json",
+  "exitCode": 1,
+  "testsParsed": 183,
+  "results": {
+    "AC-070": {
+      "status": "pass",
+      "testName": "p0-memory-dedup-cleanup AC-070: Reforço de memória sem geração de registro textual duplicado @spec:AC-070 AC-070: Reforço de memória sem geração de registro textual duplicado @spec:AC-070",
+      "method": "vitest-json"
+    },
+    "AC-071": {
+      "status": "pass",
+      "testName": "p0-memory-dedup-cleanup AC-071: Rastreabilidade de supersessão sem poluição do espaço vetorial @spec:AC-071 AC-071: Rastreabilidade de supersessão sem poluição do espaço vetorial @spec:AC-071",
+      "method": "vitest-json"
+    },
+    "AC-072": {
+      "status": "pass",
+      "testName": "p0-memory-dedup-cleanup AC-072: Truncamento seguro de blocos de contexto respeitando limites sintáticos @spec:AC-072 AC-072: Truncamento seguro de blocos de contexto respeitando limites sintáticos @spec:AC-072",
+      "method": "vitest-json"
+    },
+    "AC-073": {
+      "status": "pass",
+      "testName": "p0-memory-dedup-cleanup AC-073: Deduplicação semântica normalizada antes do empacotamento @spec:AC-073 AC-073: Deduplicação semântica normalizada antes do empacotamento @spec:AC-073",
+      "method": "vitest-json"
+    }
+  },
+  "principles": {
+    "P-004": {
+      "status": "pass",
+      "testName": "P-004: tools públicas de consulta não alteram o repositório @principle:P-004 P-004: tools públicas de consulta não alteram o repositório @principle:P-004"
+    },
+    "P-005": {
+      "status": "pass",
+      "testName": "P-005: backends permanecem privados e com privilégio mínimo @principle:P-005 P-005: backends permanecem privados e com privilégio mínimo @principle:P-005"
+    },
+    "P-002": {
+      "status": "pass",
+      "testName": "AC-028: opt-ins encaminham credencial apenas à autenticação REST e nunca à configuração serializada @spec:AC-028 @principle:P-002 AC-028: opt-ins encaminham credencial apenas à autenticação REST e nunca à configuração serializada @spec:AC-028 @principle:P-002"
+    },
+    "P-007": {
+      "status": "pass",
+      "testName": "P-007: egress e consumo de LLM são opt-in @principle:P-007 P-007: egress e consumo de LLM são opt-in @principle:P-007"
+    },
+    "P-003": {
+      "status": "pass",
+      "testName": "P-003: freshness exige evidência atual @principle:P-003 P-003: freshness exige evidência atual @principle:P-003"
+    },
+    "P-006": {
+      "status": "pass",
+      "testName": "host hook dispatcher P-006: hooks preservam integrações e falham de forma aberta @principle:P-006 P-006: hooks preservam integrações e falham de forma aberta @principle:P-006"
+    }
+  }
+}
