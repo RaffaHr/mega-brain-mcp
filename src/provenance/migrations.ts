@@ -66,4 +66,12 @@ export const PROVENANCE_MIGRATIONS = [
       CREATE INDEX IF NOT EXISTS memory_refs_project_state_idx ON memory_refs(project_id, state);
     `,
   },
+  {
+    version: 2,
+    sql: `
+      CREATE UNIQUE INDEX IF NOT EXISTS evidence_with_null_symbol_idx
+      ON evidence(memory_id, path, blob_hash)
+      WHERE symbol IS NULL;
+    `,
+  },
 ] as const;

@@ -95,12 +95,18 @@ export async function handleGitHook(input: {
         markPossiblyStale: async (memoryId, reason) => provenance.updateState(memoryId, 'POSSIBLY_STALE', 0.45, reason),
       },
     }).catch(async (error) => {
+      const sanitizedPayload = redactRecord({
+        event: input.event,
+        head,
+        hookArgs: input.hookArgs ?? [],
+        stdin: input.stdin ?? '',
+      });
       const queued = await queue.enqueue({
         key: `${input.event}:${fingerprint}`,
         host: 'git',
         event: 'git_changed',
         occurredAt: new Date().toISOString(),
-        payload: { event: input.event, head, hookArgs: input.hookArgs ?? [], stdin: input.stdin ?? '' },
+        payload: sanitizedPayload,
       }, error);
       return { duplicate: false, queued };
     });

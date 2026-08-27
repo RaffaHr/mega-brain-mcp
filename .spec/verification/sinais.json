@@ -1013,19 +1013,19 @@
       "codigo": "VERIFY_OBSOLETO",
       "feature": "mega-brain-mcp-v1",
       "ref": "—",
-      "ocorrencias": 8,
+      "ocorrencias": 9,
       "primeiraVez": "2026-08-24T22:59:52.327Z",
-      "ultimaVez": "2026-08-25T17:18:07.626Z",
-      "gitRev": "2c89483"
+      "ultimaVez": "2026-08-27T12:19:17.863Z",
+      "gitRev": "250cb48"
     },
     "VERIFY_OBSOLETO::agentmemory-runtime-config::—": {
       "codigo": "VERIFY_OBSOLETO",
       "feature": "agentmemory-runtime-config",
       "ref": "—",
-      "ocorrencias": 7,
+      "ocorrencias": 8,
       "primeiraVez": "2026-08-24T23:51:10.837Z",
-      "ultimaVez": "2026-08-25T17:18:07.625Z",
-      "gitRev": "2c89483"
+      "ultimaVez": "2026-08-27T12:19:17.862Z",
+      "gitRev": "250cb48"
     },
     "STATUS_INVALIDO::product-lifecycle-hardening::.spec\\features\\product-lifecycle-hardening\\spec.md": {
       "codigo": "STATUS_INVALIDO",
@@ -1157,10 +1157,10 @@
       "codigo": "VERIFY_OBSOLETO",
       "feature": "product-lifecycle-hardening",
       "ref": "—",
-      "ocorrencias": 4,
+      "ocorrencias": 5,
       "primeiraVez": "2026-08-25T01:50:04.323Z",
-      "ultimaVez": "2026-08-25T17:18:07.626Z",
-      "gitRev": "2c89483"
+      "ultimaVez": "2026-08-27T12:19:17.863Z",
+      "gitRev": "250cb48"
     },
     "STATUS_INVALIDO::autonomous-project-runtime::.spec\\features\\autonomous-project-runtime\\spec.md": {
       "codigo": "STATUS_INVALIDO",
@@ -1584,6 +1584,177 @@
       "primeiraVez": "2026-08-25T19:28:09.135Z",
       "ultimaVez": "2026-08-25T19:28:09.135Z",
       "gitRev": "9775206"
+    },
+    "ID_DUPLICADO::mega-brain-mcp-v1::ASM-001": {
+      "codigo": "ID_DUPLICADO",
+      "feature": "mega-brain-mcp-v1",
+      "ref": "ASM-001",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T12:19:17.861Z",
+      "ultimaVez": "2026-08-27T12:19:17.862Z",
+      "gitRev": "250cb48"
+    },
+    "TASK_CONCLUIDA_SEM_PROVA::autonomous-project-runtime::T-031": {
+      "codigo": "TASK_CONCLUIDA_SEM_PROVA",
+      "feature": "autonomous-project-runtime",
+      "ref": "T-031",
+      "ocorrencias": 5,
+      "primeiraVez": "2026-08-27T12:19:17.862Z",
+      "ultimaVez": "2026-08-27T12:19:17.862Z",
+      "gitRev": "250cb48"
+    },
+    "AC_SEM_PROVA::autonomous-project-runtime::AC-057": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-057",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T12:19:17.862Z",
+      "ultimaVez": "2026-08-27T12:19:17.862Z",
+      "gitRev": "250cb48"
+    },
+    "AC_SEM_PROVA::autonomous-project-runtime::AC-058": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-058",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T12:19:17.862Z",
+      "ultimaVez": "2026-08-27T12:19:17.862Z",
+      "gitRev": "250cb48"
+    },
+    "AC_SEM_PROVA::autonomous-project-runtime::AC-059": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-059",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T12:19:17.862Z",
+      "ultimaVez": "2026-08-27T12:19:17.862Z",
+      "gitRev": "250cb48"
+    },
+    "AC_SEM_PROVA::autonomous-project-runtime::AC-060": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-060",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T12:19:17.862Z",
+      "ultimaVez": "2026-08-27T12:19:17.862Z",
+      "gitRev": "250cb48"
+    },
+    "AC_SEM_PROVA::autonomous-project-runtime::AC-061": {
+      "codigo": "AC_SEM_PROVA",
+      "feature": "autonomous-project-runtime",
+      "ref": "AC-061",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T12:19:17.862Z",
+      "ultimaVez": "2026-08-27T12:19:17.863Z",
+      "gitRev": "250cb48"
+    },
+    "VERIFY_OBSOLETO::autonomous-project-runtime::—": {
+      "codigo": "VERIFY_OBSOLETO",
+      "feature": "autonomous-project-runtime",
+      "ref": "—",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T12:19:17.863Z",
+      "ultimaVez": "2026-08-27T12:19:17.863Z",
+      "gitRev": "250cb48"
+    },
+    "ARQUIVO_INEXISTENTE::fase0-hardening::T-001": {
+      "codigo": "ARQUIVO_INEXISTENTE",
+      "feature": "fase0-hardening",
+      "ref": "T-001",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T12:19:17.863Z",
+      "ultimaVez": "2026-08-27T12:19:17.863Z",
+      "gitRev": "250cb48"
+    },
+    "AC_SEM_TESTE::fase0-hardening::AC-062": {
+      "codigo": "AC_SEM_TESTE",
+      "feature": "fase0-hardening",
+      "ref": "AC-062",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T12:19:17.863Z",
+      "ultimaVez": "2026-08-27T12:19:17.863Z",
+      "gitRev": "250cb48"
+    },
+    "ARQUIVO_ORFAO::—::src/cli/host-selection.ts": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "src/cli/host-selection.ts",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T12:19:17.863Z",
+      "ultimaVez": "2026-08-27T12:19:17.863Z",
+      "gitRev": "250cb48"
+    },
+    "ARQUIVO_ORFAO::—::src/types/marked-terminal.d.ts": {
+      "codigo": "ARQUIVO_ORFAO",
+      "feature": "—",
+      "ref": "src/types/marked-terminal.d.ts",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T12:19:17.863Z",
+      "ultimaVez": "2026-08-27T12:19:17.863Z",
+      "gitRev": "250cb48"
+    },
+    "VERIFY_FALHOU::fase0-hardening::AC-063": {
+      "codigo": "VERIFY_FALHOU",
+      "feature": "fase0-hardening",
+      "ref": "AC-063",
+      "ocorrencias": 1,
+      "primeiraVez": "2026-08-27T12:39:49.661Z",
+      "ultimaVez": "2026-08-27T12:39:49.661Z",
+      "gitRev": "250cb48"
+    },
+    "VERIFY_FALHOU::fase0-hardening::AC-064": {
+      "codigo": "VERIFY_FALHOU",
+      "feature": "fase0-hardening",
+      "ref": "AC-064",
+      "ocorrencias": 2,
+      "primeiraVez": "2026-08-27T12:39:49.661Z",
+      "ultimaVez": "2026-08-27T12:50:29.551Z",
+      "gitRev": "250cb48"
+    },
+    "VERIFY_FALHOU::fase0-hardening::AC-065": {
+      "codigo": "VERIFY_FALHOU",
+      "feature": "fase0-hardening",
+      "ref": "AC-065",
+      "ocorrencias": 3,
+      "primeiraVez": "2026-08-27T12:39:49.661Z",
+      "ultimaVez": "2026-08-27T12:54:54.827Z",
+      "gitRev": "250cb48"
+    },
+    "VERIFY_FALHOU::fase0-hardening::AC-066": {
+      "codigo": "VERIFY_FALHOU",
+      "feature": "fase0-hardening",
+      "ref": "AC-066",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-08-27T12:39:49.661Z",
+      "ultimaVez": "2026-08-27T12:59:21.966Z",
+      "gitRev": "250cb48"
+    },
+    "VERIFY_FALHOU::fase0-hardening::AC-067": {
+      "codigo": "VERIFY_FALHOU",
+      "feature": "fase0-hardening",
+      "ref": "AC-067",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-08-27T12:39:49.661Z",
+      "ultimaVez": "2026-08-27T12:59:21.966Z",
+      "gitRev": "250cb48"
+    },
+    "VERIFY_FALHOU::fase0-hardening::AC-068": {
+      "codigo": "VERIFY_FALHOU",
+      "feature": "fase0-hardening",
+      "ref": "AC-068",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-08-27T12:39:49.661Z",
+      "ultimaVez": "2026-08-27T12:59:21.966Z",
+      "gitRev": "250cb48"
+    },
+    "VERIFY_FALHOU::fase0-hardening::AC-069": {
+      "codigo": "VERIFY_FALHOU",
+      "feature": "fase0-hardening",
+      "ref": "AC-069",
+      "ocorrencias": 4,
+      "primeiraVez": "2026-08-27T12:39:49.661Z",
+      "ultimaVez": "2026-08-27T12:59:21.966Z",
+      "gitRev": "250cb48"
     }
   }
 }

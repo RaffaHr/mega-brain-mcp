@@ -1,0 +1,77 @@
+{
+  "feature": "fase0-hardening",
+  "timestamp": "2026-08-27T12:59:21.835Z",
+  "gitRev": "250cb48",
+  "command": "npx vitest run --pool=threads --maxWorkers=1 --reporter=json --outputFile=.spec/verification/vitest-results.json",
+  "reporter": "vitest-json",
+  "exitCode": 1,
+  "testsParsed": 163,
+  "results": {
+    "AC-062": {
+      "status": "pass",
+      "testName": "git hook redaction AC-062: handleGitHook sanitiza payload antes de enfileirar falha @spec:AC-062 AC-062: handleGitHook sanitiza payload antes de enfileirar falha @spec:AC-062",
+      "method": "vitest-json"
+    },
+    "AC-063": {
+      "status": "pass",
+      "testName": "hook queue isolation and replay AC-063: eventos com falha podem ser reprocessados e has() diferencia status @spec:AC-063 AC-063: eventos com falha podem ser reprocessados e has() diferencia status @spec:AC-063",
+      "method": "vitest-json"
+    },
+    "AC-064": {
+      "status": "pass",
+      "testName": "provenance deduplication AC-064: evidências sem símbolo são deduplicadas sem duplicatas infinitas @spec:AC-064 AC-064: evidências sem símbolo são deduplicadas sem duplicatas infinitas @spec:AC-064",
+      "method": "vitest-json"
+    },
+    "AC-065": {
+      "status": "pass",
+      "testName": "database concurrency settings AC-065: busy_timeout configurado para 5000ms nos backends SQLite @spec:AC-065 AC-065: busy_timeout configurado para 5000ms nos backends SQLite @spec:AC-065",
+      "method": "vitest-json"
+    },
+    "AC-066": {
+      "status": "fail",
+      "testName": "AC-066: Eliminação do viés fixo contra AgentMemory em change-context @spec:AC-066 AC-066: Eliminação do viés fixo contra AgentMemory em change-context @spec:AC-066",
+      "method": "vitest-json"
+    },
+    "AC-067": {
+      "status": "fail",
+      "testName": "AC-067: Consulta paralela a fontes com isolamento de falhas em brain-recall @spec:AC-067 AC-067: Consulta paralela a fontes com isolamento de falhas em brain-recall @spec:AC-067",
+      "method": "vitest-json"
+    },
+    "AC-068": {
+      "status": "fail",
+      "testName": "AC-068: Instrumentação de métricas no caminho de recall @spec:AC-068 AC-068: Instrumentação de métricas no caminho de recall @spec:AC-068",
+      "method": "vitest-json"
+    },
+    "AC-069": {
+      "status": "fail",
+      "testName": "AC-069: Suporte a rename no parser de git status @spec:AC-069 AC-069: Suporte a rename no parser de git status @spec:AC-069",
+      "method": "vitest-json"
+    }
+  },
+  "principles": {
+    "P-004": {
+      "status": "pass",
+      "testName": "P-004: tools públicas de consulta não alteram o repositório @principle:P-004 P-004: tools públicas de consulta não alteram o repositório @principle:P-004"
+    },
+    "P-005": {
+      "status": "pass",
+      "testName": "P-005: backends permanecem privados e com privilégio mínimo @principle:P-005 P-005: backends permanecem privados e com privilégio mínimo @principle:P-005"
+    },
+    "P-002": {
+      "status": "pass",
+      "testName": "AC-028: opt-ins encaminham credencial apenas à autenticação REST e nunca à configuração serializada @spec:AC-028 @principle:P-002 AC-028: opt-ins encaminham credencial apenas à autenticação REST e nunca à configuração serializada @spec:AC-028 @principle:P-002"
+    },
+    "P-003": {
+      "status": "pass",
+      "testName": "P-003: freshness exige evidência atual @principle:P-003 P-003: freshness exige evidência atual @principle:P-003"
+    },
+    "P-006": {
+      "status": "pass",
+      "testName": "host hook dispatcher P-006: hooks preservam integrações e falham de forma aberta @principle:P-006 P-006: hooks preservam integrações e falham de forma aberta @principle:P-006"
+    },
+    "P-007": {
+      "status": "pass",
+      "testName": "P-007: egress e consumo de LLM são opt-in @principle:P-007 P-007: egress e consumo de LLM são opt-in @principle:P-007"
+    }
+  }
+}

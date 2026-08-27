@@ -111,6 +111,7 @@ export function openProvenanceDatabase(filePath: string): ProvenanceDatabase {
   if (filePath !== ':memory:') mkdirSync(path.dirname(path.resolve(filePath)), { recursive: true });
   const database = openBetterSqlite(filePath) ?? openNodeSqlite(filePath);
   if (!database) throw new Error('No compatible SQLite backend is available. Install better-sqlite3 with native bindings or use Node.js with node:sqlite.');
+  database.pragma('busy_timeout = 5000');
   database.pragma('foreign_keys = ON');
   database.pragma('journal_mode = WAL');
   const currentVersion = database.pragma('user_version', { simple: true }) as number;

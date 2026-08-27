@@ -1,0 +1,145 @@
+{
+  "runId": "mega-brain-mcp-fase0-hardening-mtbhuvuy",
+  "feature": "fase0-hardening",
+  "agent": "codex",
+  "modo": "sequencial",
+  "paralelizar": null,
+  "modeloForcado": null,
+  "esforcoForcado": null,
+  "geradoEm": "2026-08-27 12:23",
+  "branchTrabalho": "spec/fase0-hardening",
+  "baseDir": ".spec/features/fase0-hardening",
+  "specDir": ".spec",
+  "repoName": "mega-brain-mcp",
+  "logsDir": "../onp-worktrees/mega-brain-mcp-fase0-hardening-logs",
+  "ondas": [],
+  "faixas": [],
+  "sequenciais": [
+    {
+      "id": "T-032",
+      "titulo": "Redação obrigatória em payloads de git hooks",
+      "modelo": "gpt-5.6-terra",
+      "esforco": "medium",
+      "arquivos": [
+        "src/cli/hook.ts",
+        "tests/integration/git-hook-redaction.test.ts"
+      ],
+      "refs": [
+        "US-022",
+        "AC-062"
+      ]
+    },
+    {
+      "id": "T-033",
+      "titulo": "Fila durável com isolamento concorrente e replay",
+      "modelo": "gpt-5.6-terra",
+      "esforco": "high",
+      "arquivos": [
+        "src/hooks/queue.ts",
+        "src/hooks/dispatcher.ts",
+        "tests/integration/hook-queue.test.ts"
+      ],
+      "refs": [
+        "US-022",
+        "AC-063"
+      ]
+    },
+    {
+      "id": "T-034",
+      "titulo": "Deduplicação de evidências com símbolo ausente via migration v2",
+      "modelo": "gpt-5.6-terra",
+      "esforco": "high",
+      "arquivos": [
+        "src/provenance/migrations.ts",
+        "src/provenance/repository.ts",
+        "tests/integration/provenance-dedup.test.ts"
+      ],
+      "refs": [
+        "US-023",
+        "AC-064"
+      ]
+    },
+    {
+      "id": "T-035",
+      "titulo": "Configuração de busy_timeout no SQLite",
+      "modelo": "gpt-5.6-terra",
+      "esforco": "medium",
+      "arquivos": [
+        "src/provenance/database.ts",
+        "tests/integration/database-concurrency.test.ts"
+      ],
+      "refs": [
+        "US-023",
+        "AC-065"
+      ]
+    },
+    {
+      "id": "T-036",
+      "titulo": "Rebalanceamento de scores em change-context",
+      "modelo": "gpt-5.6-terra",
+      "esforco": "medium",
+      "arquivos": [
+        "src/orchestration/change-context.ts",
+        "tests/integration/change-context-ranking.test.ts"
+      ],
+      "refs": [
+        "US-024",
+        "AC-066"
+      ]
+    },
+    {
+      "id": "T-037",
+      "titulo": "Consulta paralela a fontes em brain-recall",
+      "modelo": "gpt-5.6-terra",
+      "esforco": "medium",
+      "arquivos": [
+        "src/tools/brain-recall.ts",
+        "tests/integration/brain-recall-parallel.test.ts"
+      ],
+      "refs": [
+        "US-024",
+        "AC-067"
+      ]
+    },
+    {
+      "id": "T-038",
+      "titulo": "Instrumentação de métricas em recall",
+      "modelo": "gpt-5.6-terra",
+      "esforco": "medium",
+      "arquivos": [
+        "src/tools/brain-recall.ts",
+        "src/orchestration/ranking.ts",
+        "tests/integration/recall-metrics.test.ts"
+      ],
+      "refs": [
+        "US-025",
+        "AC-068"
+      ]
+    },
+    {
+      "id": "T-039",
+      "titulo": "Parse de rename no git status",
+      "modelo": "gpt-5.6-terra",
+      "esforco": "medium",
+      "arquivos": [
+        "src/adapters/git/repository.ts",
+        "tests/integration/git-rename.test.ts"
+      ],
+      "refs": [
+        "US-025",
+        "AC-069"
+      ]
+    }
+  ],
+  "concluidas": [],
+  "avisos": [
+    "T-032: modelo \"claude-sonnet-5\" é do Claude — no codex vai rodar com \"gpt-5.6-terra\"",
+    "T-033: modelo \"claude-sonnet-5\" é do Claude — no codex vai rodar com \"gpt-5.6-terra\"",
+    "T-034: modelo \"claude-sonnet-5\" é do Claude — no codex vai rodar com \"gpt-5.6-terra\"",
+    "T-035: modelo \"claude-sonnet-5\" é do Claude — no codex vai rodar com \"gpt-5.6-terra\"",
+    "T-036: modelo \"claude-sonnet-5\" é do Claude — no codex vai rodar com \"gpt-5.6-terra\"",
+    "T-037: modelo \"claude-sonnet-5\" é do Claude — no codex vai rodar com \"gpt-5.6-terra\"",
+    "T-038: modelo \"claude-sonnet-5\" é do Claude — no codex vai rodar com \"gpt-5.6-terra\"",
+    "T-039: modelo \"claude-sonnet-5\" é do Claude — no codex vai rodar com \"gpt-5.6-terra\""
+  ]
+}
