@@ -1,0 +1,31 @@
+{
+  "feature": "p2-symbol-lifecycle-git-intelligence",
+  "timestamp": "2026-08-27T14:37:00.000Z",
+  "gitRev": "ad08077",
+  "command": "npx vitest run test/p2-symbol-lifecycle-git-intelligence.spec.test.js",
+  "reporter": "vitest-json",
+  "exitCode": 0,
+  "testsParsed": 4,
+  "results": {
+    "AC-078": {
+      "status": "pass",
+      "testName": "p2-symbol-lifecycle-git-intelligence AC-078: Preservação de status FRESH quando símbolo específico não foi alterado @spec:AC-078",
+      "method": "vitest-json"
+    },
+    "AC-079": {
+      "status": "pass",
+      "testName": "p2-symbol-lifecycle-git-intelligence AC-079: Transição para STALE apenas quando o hash do símbolo for modificado @spec:AC-079",
+      "method": "vitest-json"
+    },
+    "AC-080": {
+      "status": "pass",
+      "testName": "p2-symbol-lifecycle-git-intelligence AC-080: Detecção de arquivos com acoplamento temporal histórico @spec:AC-080",
+      "method": "vitest-json"
+    },
+    "AC-081": {
+      "status": "pass",
+      "testName": "p2-symbol-lifecycle-git-intelligence AC-081: Cálculo de risco de alteração baseado em churn e acoplamento @spec:AC-081",
+      "method": "vitest-json"
+    }
+  }
+}
