@@ -651,7 +651,11 @@ function isDirectInvocation(): boolean {
 
 const invoked = isDirectInvocation();
 if (invoked) {
-  main().catch((error) => {
+  main().then(() => {
+    if (process.argv[2] === 'supervisor') {
+      process.exit(0);
+    }
+  }).catch((error) => {
     process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`);
     process.exitCode = 1;
   });
