@@ -256,7 +256,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     return;
   }
   if (command === 'help' || flag(args, '--help')) {
-    output('Usage: mega-brain <setup|mcp|serve|install|start|stop|doctor|upgrade|uninstall> [--repo PATH] [--config FILE] [--transport stdio|http] [--python COMMAND] [--port PORT] [--accept-iii-engine] [--purge] [--json]');
+    output('Usage: mega-brain <setup|mcp|serve|start|stop|doctor|upgrade|uninstall> [--repo PATH] [--config FILE] [--transport stdio|http] [--python COMMAND] [--port PORT] [--accept-iii-engine] [--purge] [--json]');
     return;
   }
   if (command === 'setup') {
@@ -419,72 +419,6 @@ export async function main(args = process.argv.slice(2), output: (value: string)
   if (command === 'stop') {
     await stopManagedRuntime(config.dataDir, identity);
     output(JSON.stringify({ stopped: true }));
-    return;
-  }
-  if (command === 'install') {
-    const hosts = parseHostSelection(option(args, '--hosts')) ?? ['codex', 'claude'];
-    const preflight = await runInstallPreflight({ ...(pythonOption ? { pythonCommand: pythonOption } : {}) });
-    if (config.agentMemory.mode === 'managed' && preflight.managedIiiEngineRequired && !flag(args, '--accept-iii-engine')) {
-      throw new Error('Managed AgentMemory on Windows requires --accept-iii-engine before any download or file change');
-    }
-    const iiiArtifact = config.agentMemory.mode === 'managed' && preflight.managedIiiEngineRequired
-      ? await downloadOfficialIiiEngine({ version: dependencyVersions.iiiEngine })
-      : undefined;
-    const repository = await optionalGitRepository(identity, logger);
-    const backupDir = path.join(layout.projectRoot, 'integration-backups');
-    const managedHooksPath = path.join(layout.projectRoot, 'hooks', 'git');
-    const runtimeSwap = await runtimeSwapForExistingInstall(config, identity, logger);
-    const manifest = await installProjectTransaction({
-      dataDir: config.dataDir,
-      identity,
-      agentMemoryMode: config.agentMemory.mode,
-      pythonCommand: preflight.pythonCommand,
-      preflight: false,
-      platform: preflight.platform,
-      dependencyVersions,
-      codeReviewGraph: config.codeReviewGraph.command === 'code-review-graph'
-        ? { mode: 'managed' }
-        : { mode: 'custom', command: config.codeReviewGraph.command, args: config.codeReviewGraph.args },
-      ...(iiiArtifact ? {
-        iiiEngine: {
-          confirmed: true,
-          expectedSha256: iiiArtifact.sha256,
-          download: async () => iiiArtifact.bytes,
-        },
-      } : {}),
-      ...(config.agentMemory.mode === 'remote' ? {
-        remoteAgentMemory: {
-          baseUrl: config.agentMemory.baseUrl,
-        },
-        remoteIsolationProbe: () => probeRemoteAgentMemoryIsolation(new AgentMemoryClient({
-          baseUrl: config.agentMemory.baseUrl,
-          ...(config.agentMemory.authToken ? { authToken: config.agentMemory.authToken } : {}),
-          timeoutMs: REMOTE_AGENTMEMORY_SETUP_TIMEOUT_MS,
-        }), {
-          projectA: identity.worktreeId,
-          projectB: `${identity.worktreeId}-isolation-control`,
-          sentinel: `mega-brain-install-probe-${randomUUID()}`,
-        }),
-      } : {}),
-      ...runtimeSwap,
-      logger,
-      async configure(transaction) {
-        await snapshotFile(transaction, projectConfigPath(identity.root));
-        await writeProjectConfig(identity.root, config);
-        await installHostMcpFiles({
-          root: identity.root,
-          backupDir,
-          hosts,
-          connection: currentCliStdioConnection(['mcp', '--repo', identity.root]),
-          transaction,
-        });
-        for (const host of hosts) {
-          await installHostHookFiles({ root: identity.root, backupDir, hosts: [host], command: currentCliShellCommand(['hook', 'host', host]), transaction });
-        }
-        if (repository) await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: currentCliArgv(), transaction });
-      },
-    });
-    output(JSON.stringify({ manifest, hosts, installed: true }));
     return;
   }
   if (command === 'upgrade') {
