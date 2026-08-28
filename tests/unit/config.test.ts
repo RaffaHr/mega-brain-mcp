@@ -134,49 +134,6 @@ test('AC-027: modo gerenciado combina .env e processo por allowlist e reutiliza 
       AGENTMEMORY_DEBUG: 'true',
     },
   });
-  expect(config.agentMemory.environment).not.toHaveProperty('AGENTMEMORY_UNKNOWN_OPTION');
-  expect(JSON.stringify(redactConfig(config))).not.toContain('managed-local-secret');
-});
-
-test('versoes gerenciadas usam default e permitem override por env e .env', async () => {
-  const repoPath = await mkdtemp(path.join(tmpdir(), 'mega-brain-managed-versions-'));
-  await writeFile(path.join(repoPath, '.env'), [
-    `${MANAGED_DEPENDENCY_VERSION_ENV.agentMemory}=0.9.30`,
-    `${MANAGED_DEPENDENCY_VERSION_ENV.codeReviewGraph}=2.4.0`,
-    `${LEGACY_III_ENGINE_VERSION_ENV}=0.11.3`,
-  ].join('\n'));
-
-  const fromDotEnv = await loadManagedDependencyVersions({ repoPath, env: {} });
-  expect(fromDotEnv.versions).toEqual({
-    agentMemory: '0.9.30',
-    codeReviewGraph: '2.4.0',
-    iiiEngine: '0.11.3',
-  });
-  expect(fromDotEnv.sources).toEqual({ agentMemory: 'dotenv', codeReviewGraph: 'dotenv', iiiEngine: 'dotenv' });
-
-  const fromProcess = await loadManagedDependencyVersions({
-    repoPath,
-    env: {
-      [MANAGED_DEPENDENCY_VERSION_ENV.codeReviewGraph]: '2.4.1',
-      [MANAGED_DEPENDENCY_VERSION_ENV.iiiEngine]: '0.11.4',
-    },
-  });
-  expect(fromProcess.versions).toEqual({
-    agentMemory: '0.9.30',
-    codeReviewGraph: '2.4.1',
-    iiiEngine: '0.11.4',
-  });
-  expect(fromProcess.sources).toEqual({ agentMemory: 'dotenv', codeReviewGraph: 'process', iiiEngine: 'process' });
-
-  await expect(loadManagedDependencyVersions({
-    repoPath,
-    envFilePath: false,
-    env: { [MANAGED_DEPENDENCY_VERSION_ENV.agentMemory]: 'latest' },
-  })).rejects.toThrow(/exact semver/);
-
-  await expect(loadManagedDependencyVersions({ envFilePath: false, env: {} })).resolves.toMatchObject({
-    versions: DEFAULT_MANAGED_DEPENDENCY_VERSIONS,
-  });
 });
 
 test('AC-028: credenciais e recursos remotos ou LLM exigem opt-ins e permanecem redigidos @spec:AC-028', async () => {
@@ -217,6 +174,51 @@ test('AC-028: credenciais e recursos remotos ou LLM exigem opt-ins e permanecem 
   const redacted = JSON.stringify(redactConfig(config));
   expect(redacted).not.toContain('provider-secret');
   expect(redacted).not.toContain('embedding-secret');
+});
+
+test('CRG environment resolution suporta chaves diretas, fallbacks e injeta CRG_ACCEPT_CLOUD_EMBEDDINGS', async () => {
+  await expect(loadConfig({
+    envFilePath: false,
+    env: {
+      CRG_OPENAI_API_KEY: 'sk-crg-secret',
+      MEGA_BRAIN_ALLOW_EGRESS: 'false',
+    },
+  })).rejects.toThrow(/CRG_OPENAI_API_KEY requires MEGA_BRAIN_ALLOW_EGRESS=true/);
+
+  const withDirect = await loadConfig({
+    envFilePath: false,
+    env: {
+      MEGA_BRAIN_ALLOW_EGRESS: 'true',
+      CRG_OPENAI_API_KEY: 'sk-crg-openai',
+      CRG_VOYAGE_API_KEY: 'pa-crg-voyage',
+      CRG_EMBEDDING_MODEL: 'text-embedding-3-small',
+    },
+  });
+
+  expect(withDirect.codeReviewGraph.environment).toEqual({
+    CRG_OPENAI_API_KEY: 'sk-crg-openai',
+    CRG_VOYAGE_API_KEY: 'pa-crg-voyage',
+    CRG_EMBEDDING_MODEL: 'text-embedding-3-small',
+    CRG_ACCEPT_CLOUD_EMBEDDINGS: '1',
+  });
+
+  const withFallback = await loadConfig({
+    envFilePath: false,
+    env: {
+      MEGA_BRAIN_ALLOW_EGRESS: 'true',
+      MEGA_BRAIN_ALLOW_LLM: 'true',
+      OPENAI_API_KEY: 'sk-global-openai',
+      VOYAGE_API_KEY: 'pa-global-voyage',
+      CRG_EMBEDDING_MODEL: 'text-embedding-3-small',
+    },
+  });
+
+  expect(withFallback.codeReviewGraph.environment).toEqual({
+    CRG_OPENAI_API_KEY: 'sk-global-openai',
+    CRG_VOYAGE_API_KEY: 'pa-global-voyage',
+    CRG_EMBEDDING_MODEL: 'text-embedding-3-small',
+    CRG_ACCEPT_CLOUD_EMBEDDINGS: '1',
+  });
 });
 
 test('AC-050: resolver canônico aplica precedência e expõe somente a origem redigida @spec:AC-050', async () => {

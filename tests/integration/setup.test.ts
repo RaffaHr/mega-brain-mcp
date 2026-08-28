@@ -460,3 +460,44 @@ test('mergeEnvFile escreve e preserva entradas no arquivo .env', async () => {
   expect(content).toContain('GRAPH_EXTRACTION_ENABLED=true');
   expect(content).toContain('CONSOLIDATION_ENABLED=true');
 });
+
+
+test('setup permite configurar embeddings dedicados para Code Review Graph', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-setup-crg-embed-'));
+  directories.push(root);
+  const identity = deriveProjectIdentity({ root, gitDir: '.git', commonGitDir: '.git' });
+  const install = vi.fn(async () => undefined);
+  const prompts = new ScriptedPrompts({
+    repository: [root],
+    hosts: ['codex'],
+    agentMemoryMode: ['managed'],
+    advanced: [false],
+    configureCrg: [true],
+    crgEmbeddingProvider: ['openai'],
+    crgOpenaiApiKey: ['sk-crg-key-789'],
+    crgOpenaiBaseUrl: ['http://127.0.0.1:3000/v1'],
+    crgOpenaiModel: ['text-embedding-3-small'],
+    confirm: [true],
+  });
+
+  const result = await runSetupWizard({
+    prompts,
+    currentDirectory: root,
+    environment: {},
+    defaultDataDir: path.join(root, '.data-root'),
+    preflight: async () => preflight(),
+    discoverIdentity: async () => identity,
+    probeRemote: async () => undefined,
+    install,
+  });
+
+  expect(result.status).toBe('installed');
+  const plan = install.mock.calls[0]![0];
+  expect(plan.config.codeReviewGraph.environment).toEqual({
+    CRG_OPENAI_API_KEY: 'sk-crg-key-789',
+    CRG_OPENAI_BASE_URL: 'http://127.0.0.1:3000/v1',
+    CRG_OPENAI_MODEL: 'text-embedding-3-small',
+    CRG_ACCEPT_CLOUD_EMBEDDINGS: '1',
+  });
+  expect(plan.config.allowEgress).toBe(true);
+});

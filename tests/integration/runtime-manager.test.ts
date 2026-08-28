@@ -71,7 +71,7 @@ test('AC-001: instalação cria runtime isolado e verificável @spec:AC-001', as
 
   expect(commands).toHaveLength(4);
   expect(commands[0]?.args).toContain(`@agentmemory/agentmemory@${DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory}`);
-  expect(commands[2]?.args).toContain(`code-review-graph==${DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph}`);
+  expect(commands[2]?.args).toContain(`code-review-graph[embeddings]==${DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph}`);
   expect(commands[3]?.args).toEqual(['-m', 'code_review_graph', 'build']);
   expect(commands[3]?.options.env).toMatchObject({ CRG_REPO_ROOT: path.resolve(identity.root) });
   expect(path.isAbsolute(commands[3]?.options.env?.CRG_DATA_DIR ?? '')).toBe(true);
@@ -132,7 +132,7 @@ test('versoes gerenciadas customizadas controlam download e manifesto do runtime
   });
 
   expect(commands[0]?.args).toContain(`@agentmemory/agentmemory@${versions.agentMemory}`);
-  expect(commands[2]?.args).toContain(`code-review-graph==${versions.codeReviewGraph}`);
+  expect(commands[2]?.args).toContain(`code-review-graph[embeddings]==${versions.codeReviewGraph}`);
   expect(manifest.versions).toEqual({ megaBrain: '0.1.4-alpha', agentMemory: versions.agentMemory, codeReviewGraph: versions.codeReviewGraph });
   expect(manifest.backends.agentMemory?.environment?.AGENTMEMORY_III_VERSION).toBe(versions.iiiEngine);
 });
@@ -178,7 +178,7 @@ test('AC-026: modo remoto instala somente Code Review Graph e nunca inicia Agent
 
   expect(commands).toHaveLength(3);
   expect(commands.flatMap(({ args }) => args)).not.toContain(`@agentmemory/agentmemory@${DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory}`);
-  expect(commands[1]?.args).toContain(`code-review-graph==${DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph}`);
+  expect(commands[1]?.args).toContain(`code-review-graph[embeddings]==${DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph}`);
   expect(manifest.agentMemoryMode).toBe('remote');
   expect(manifest.backends).not.toHaveProperty('agentMemory');
   expect(inspection.checks).toEqual({ project: true, isolation: true, codeReviewGraph: true });
@@ -267,7 +267,7 @@ test('AC-043: CRG customizado é validado e persistido sem instalar o pacote ger
     codeReviewGraph: { mode: 'custom', command: 'custom-crg', args: ['--profile', 'isolated'] },
   });
 
-  expect(commands.flatMap(({ args }) => args)).not.toContain(`code-review-graph==${DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph}`);
+  expect(commands.flatMap(({ args }) => args)).not.toContain(`code-review-graph[embeddings]==${DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph}`);
   expect(commands).toContainEqual({ command: 'custom-crg', args: ['--profile', 'isolated', 'build'] });
   expect(manifest.backends.codeReviewGraph).toMatchObject({
     command: 'custom-crg',

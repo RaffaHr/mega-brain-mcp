@@ -75,6 +75,19 @@ keys in the JSON map are rejected. The explicit allowlist is:
 variables, shell-control variables, and every non-allowlisted key are rejected
 from explicit backend environment maps.
 
+
+## Code Review Graph variables & embeddings
+
+Code Review Graph (CRG) builds and queries structural code intelligence graphs. Its vector embeddings can run completely local-first or connect to external providers:
+
+- `local` (default): Uses `sentence-transformers` with model `all-MiniLM-L6-v2` (configured via `CRG_EMBEDDING_MODEL`). Zero network egress required.
+- `openai`: OpenAI or OpenAI-compatible gateway (`CRG_OPENAI_API_KEY`, `CRG_OPENAI_BASE_URL`, `CRG_OPENAI_MODEL`). Falls back to `OPENAI_API_KEY` if authorized.
+- `voyage`: Voyage AI (`CRG_VOYAGE_API_KEY` / `VOYAGE_API_KEY`, `CRG_VOYAGE_MODEL`).
+- `google`: Google Gemini (`CRG_GOOGLE_API_KEY` / `GOOGLE_API_KEY` / `GEMINI_API_KEY`).
+- `minimax`: MiniMax (`CRG_MINIMAX_API_KEY` / `MINIMAX_API_KEY`).
+
+Remote CRG providers require `MEGA_BRAIN_ALLOW_EGRESS=true`. When egress is authorized, `CRG_ACCEPT_CLOUD_EMBEDDINGS="1"` is automatically injected into the CRG child process.
+
 ## Egress and LLM opt-ins
 
 The zero-LLM local configuration needs no provider key. The loader refuses

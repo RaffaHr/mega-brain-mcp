@@ -231,7 +231,7 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
       : path.join(venvDir, 'bin', 'python');
     if (codeReviewGraph.mode === 'managed') {
       logInstallStep(options, 'installing Code Review Graph package', { version: dependencyVersions.codeReviewGraph });
-      await runner.run(venvPython, ['-m', 'pip', 'install', `code-review-graph==${dependencyVersions.codeReviewGraph}`], { cwd: staging });
+      await runner.run(venvPython, ['-m', 'pip', 'install', `code-review-graph[embeddings]==${dependencyVersions.codeReviewGraph}`], { cwd: staging });
     }
 
     const finalAgentMemoryDir = path.join(layout.current, 'agentmemory');

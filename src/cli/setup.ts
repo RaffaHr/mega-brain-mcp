@@ -79,6 +79,120 @@ function successChecklist(plan: SetupPlan): { items: CliChecklistItem[]; footer:
   };
 }
 
+
+interface CrgEnvironmentResult {
+  environment: Record<string, string>;
+  envFileEntries: Record<string, string>;
+  provider: string;
+}
+
+async function collectCrgEnvironment(
+  prompts: PromptAdapter,
+  options: { allowEgress: boolean },
+): Promise<CrgEnvironmentResult | null> {
+  const environment: Record<string, string> = {};
+  const envFileEntries: Record<string, string> = {};
+
+  const configureCrg = await prompts.confirm(
+    'configureCrg',
+    'Configure Code Review Graph embeddings?',
+    false,
+  );
+  if (configureCrg === null) return null;
+  if (!configureCrg) {
+    return {
+      environment: { CRG_EMBEDDING_MODEL: 'all-MiniLM-L6-v2' },
+      envFileEntries: {},
+      provider: 'local (all-MiniLM-L6-v2)',
+    };
+  }
+
+  prompts.notify(
+    '### Code Review Graph Embeddings\n\n'
+    + 'Configure vector embedding model for structural code graph nodes.\n'
+    + 'See https://github.com/tirth8205/code-review-graph#environment-variables',
+  );
+
+  const provider = await prompts.select(
+    'crgEmbeddingProvider',
+    'Select Code Review Graph embedding provider:',
+    [
+      { value: 'local', label: 'Local sentence-transformers (all-MiniLM-L6-v2, no API key)' },
+      { value: 'openai', label: 'OpenAI / OpenAI-compatible (CRG_OPENAI_*)' },
+      { value: 'voyage', label: 'Voyage AI (voyage-code-3)' },
+      { value: 'google', label: 'Google Gemini' },
+      { value: 'minimax', label: 'MiniMax' },
+    ] as const,
+    'local',
+  );
+  if (provider === null) return null;
+
+  if (provider === 'local') {
+    environment.CRG_EMBEDDING_MODEL = 'all-MiniLM-L6-v2';
+  } else if (provider === 'openai') {
+    const key = await prompts.input('crgOpenaiApiKey', 'CRG_OPENAI_API_KEY (leave blank to reuse OPENAI_API_KEY)');
+    if (key === null) return null;
+    if (key.trim()) {
+      environment.CRG_OPENAI_API_KEY = key.trim();
+      envFileEntries.CRG_OPENAI_API_KEY = key.trim();
+    }
+    const baseUrl = await prompts.input('crgOpenaiBaseUrl', 'CRG_OPENAI_BASE_URL (optional endpoint, e.g. http://127.0.0.1:3000/v1)');
+    if (baseUrl === null) return null;
+    if (baseUrl.trim()) {
+      environment.CRG_OPENAI_BASE_URL = baseUrl.trim();
+      envFileEntries.CRG_OPENAI_BASE_URL = baseUrl.trim();
+    }
+    const model = await prompts.input('crgOpenaiModel', 'CRG_OPENAI_MODEL', 'text-embedding-3-small');
+    if (model === null) return null;
+    if (model.trim()) {
+      environment.CRG_OPENAI_MODEL = model.trim();
+      envFileEntries.CRG_OPENAI_MODEL = model.trim();
+    }
+    options.allowEgress = true;
+  } else if (provider === 'voyage') {
+    const key = await prompts.input('crgVoyageApiKey', 'VOYAGE_API_KEY (or CRG_VOYAGE_API_KEY)');
+    if (key === null) return null;
+    if (key.trim()) {
+      environment.CRG_VOYAGE_API_KEY = key.trim();
+      envFileEntries.CRG_VOYAGE_API_KEY = key.trim();
+    }
+    const model = await prompts.input('crgVoyageModel', 'CRG_VOYAGE_MODEL', 'voyage-code-3');
+    if (model === null) return null;
+    if (model.trim()) {
+      environment.CRG_VOYAGE_MODEL = model.trim();
+      envFileEntries.CRG_VOYAGE_MODEL = model.trim();
+    }
+    options.allowEgress = true;
+  } else if (provider === 'google') {
+    const key = await prompts.input('crgGoogleApiKey', 'GOOGLE_API_KEY (or CRG_GOOGLE_API_KEY)');
+    if (key === null) return null;
+    if (key.trim()) {
+      environment.CRG_GOOGLE_API_KEY = key.trim();
+      envFileEntries.CRG_GOOGLE_API_KEY = key.trim();
+    }
+    options.allowEgress = true;
+  } else if (provider === 'minimax') {
+    const key = await prompts.input('crgMinimaxApiKey', 'MINIMAX_API_KEY (or CRG_MINIMAX_API_KEY)');
+    if (key === null) return null;
+    if (key.trim()) {
+      environment.CRG_MINIMAX_API_KEY = key.trim();
+      envFileEntries.CRG_MINIMAX_API_KEY = key.trim();
+    }
+    options.allowEgress = true;
+  }
+
+  if (provider !== 'local') {
+    environment.CRG_ACCEPT_CLOUD_EMBEDDINGS = '1';
+    envFileEntries.CRG_ACCEPT_CLOUD_EMBEDDINGS = '1';
+  }
+
+  return {
+    environment,
+    envFileEntries,
+    provider: provider === 'local' ? 'local (all-MiniLM-L6-v2)' : provider,
+  };
+}
+
 interface ManagedEnvironmentResult {
   environment: Record<string, string>;
   envFileEntries: Record<string, string>;
@@ -548,7 +662,12 @@ export async function runSetupWizard(dependencies: SetupDependencies): Promise<S
       if (!selectedCommand.trim()) { prompts.notify('Code Review Graph command cannot be empty'); return { status: 'cancelled' }; }
       crgCommand = selectedCommand;
     }
-    allowEgress = await prompts.confirm('allowEgress', 'Allow network egress?', false) ?? false;
+    prompts.notify(
+      '### Network & Privacy\n\n'
+      + '• **Network Egress**: Allows Mega Brain adapters to make outbound HTTPS calls to external LLM & embedding providers (OpenAI, Voyage, Google, Cohere, Anthropic, MiniMax).\n'
+      + '• **If Disabled**: Mega Brain runs 100% offline/local-first using local fastembed/sentence-transformers and rejects external cloud API calls.',
+    );
+    allowEgress = await prompts.confirm('allowEgress', 'Allow network egress for external providers?', false) ?? false;
     allowLlm = allowEgress && (await prompts.confirm('allowLlm', 'Allow LLM providers?', false) ?? false);
   }
 
@@ -567,6 +686,18 @@ export async function runSetupWizard(dependencies: SetupDependencies): Promise<S
     allowLlm = mutableOpts.allowLlm;
   }
 
+
+  let crgEnvResult: CrgEnvironmentResult = {
+    environment: { CRG_EMBEDDING_MODEL: 'all-MiniLM-L6-v2' },
+    envFileEntries: {},
+    provider: 'local (all-MiniLM-L6-v2)',
+  };
+  const crgMutableOpts = { allowEgress };
+  const crgResult = await collectCrgEnvironment(prompts, crgMutableOpts);
+  if (crgResult === null) return { status: 'cancelled' };
+  crgEnvResult = crgResult;
+  allowEgress = crgMutableOpts.allowEgress || allowEgress;
+
   const isolation = createRuntimeIsolation(runtimeLayout(dataDir, identity), identity.worktreeId);
   const config: ProjectConfig = {
     dataDir,
@@ -581,7 +712,7 @@ export async function runSetupWizard(dependencies: SetupDependencies): Promise<S
       ports: isolation.ports,
       environment: managedEnvResult.environment,
     },
-    codeReviewGraph: { command: crgCommand, args: [], dataDir: isolation.paths.codeReviewGraph, environment: {} },
+    codeReviewGraph: { command: crgCommand, args: [], dataDir: isolation.paths.codeReviewGraph, environment: crgEnvResult.environment },
     projects: {},
   };
   const iiiEngineConfirmed = preflight.managedIiiEngineRequired && agentMemory.mode === 'managed'
@@ -603,6 +734,7 @@ export async function runSetupWizard(dependencies: SetupDependencies): Promise<S
       ...(managedEnvResult.featuresSummary ? { agentMemoryFeatures: managedEnvResult.featuresSummary } : {}),
     } : {}),
     codeReviewGraph: crgCommand === 'code-review-graph' ? 'managed' : 'custom',
+    crgEmbeddingProvider: crgEnvResult.provider,
     dataDir,
     strictIsolation: true,
     allowEgress,
@@ -624,7 +756,7 @@ export async function runSetupWizard(dependencies: SetupDependencies): Promise<S
     dependencyVersions,
     summary,
     reopenHost: true,
-    envFileEntries: managedEnvResult.envFileEntries,
+    envFileEntries: { ...managedEnvResult.envFileEntries, ...crgEnvResult.envFileEntries },
   };
   try {
     await runSetupTask(prompts, 'Installing Mega Brain runtime, MCP files, and hooks', () => dependencies.install(plan));

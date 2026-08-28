@@ -131,18 +131,20 @@ function parseJsonRecord(raw: string | undefined, variable: string): Record<stri
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
-  } catch {
-    throw new Error(`${variable} must contain a JSON object of string values`);
+  } catch (error) {
+    throw new Error(`${variable} must contain valid JSON: ${error instanceof Error ? error.message : String(error)}`);
   }
-  if (parsed === null || Array.isArray(parsed) || typeof parsed !== 'object') {
-    throw new Error(`${variable} must contain a JSON object of string values`);
+  if (parsed === null || typeof parsed !== 'object' || Array.isArray(parsed)) {
+    throw new Error(`${variable} must contain a JSON object`);
   }
-
-  const entries = Object.entries(parsed);
-  if (entries.some(([, value]) => typeof value !== 'string')) {
-    throw new Error(`${variable} must contain a JSON object of string values`);
+  const result: Record<string, string> = {};
+  for (const [key, value] of Object.entries(parsed)) {
+    if (typeof value !== 'string') {
+      throw new Error(`${variable}.${key} must be a string`);
+    }
+    result[key] = value;
   }
-  return Object.fromEntries(entries) as Record<string, string>;
+  return result;
 }
 
 function parseJsonArray(raw: string | undefined, variable: string): string[] | undefined {
@@ -150,10 +152,10 @@ function parseJsonArray(raw: string | undefined, variable: string): string[] | u
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
-  } catch {
-    throw new Error(`${variable} must contain a JSON array of strings`);
+  } catch (error) {
+    throw new Error(`${variable} must contain valid JSON: ${error instanceof Error ? error.message : String(error)}`);
   }
-  if (!Array.isArray(parsed) || parsed.some((value) => typeof value !== 'string')) {
+  if (!Array.isArray(parsed) || !parsed.every((item) => typeof item === 'string')) {
     throw new Error(`${variable} must contain a JSON array of strings`);
   }
   return parsed;
@@ -210,26 +212,29 @@ function resolveAgainstRepo(repoPath: string, value: string): string {
   return path.isAbsolute(value) ? path.normalize(value) : path.resolve(repoPath, value);
 }
 
-function parseDotEnv(raw: string, filePath: string): Record<string, string> {
-  const values: Record<string, string> = {};
-  for (const [index, line] of raw.split(/\r?\n/u).entries()) {
+function parseDotEnv(content: string): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const line of content.split(/\r?\n/u)) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
     const match = /^([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(.*)$/u.exec(trimmed);
-    if (!match) throw new Error(`${filePath}:${index + 1} must use KEY=value syntax without export`);
-    const key = match[1];
-    let value = match[2] ?? '';
-    if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+    if (!match?.[1]) continue;
+    const [, key, rawValue = ''] = match;
+    let value = rawValue.trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"'))
+      || (value.startsWith("'") && value.endsWith("'"))
+    ) {
       value = value.slice(1, -1);
     }
-    if (key) values[key] = value;
+    result[key] = value;
   }
-  return values;
+  return result;
 }
 
 async function loadDotEnv(filePath: string): Promise<Record<string, string>> {
   try {
-    return parseDotEnv(await readFile(filePath, 'utf8'), filePath);
+    return parseDotEnv(await readFile(filePath, 'utf8'));
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return {};
     throw error;
@@ -240,6 +245,21 @@ function directAgentMemoryEnvironment(env: NodeJS.ProcessEnv): Record<string, st
   return Object.fromEntries([...AGENTMEMORY_ENV_ALLOWLIST]
     .map((key) => [key, nonEmpty(env[key])] as const)
     .filter((entry): entry is readonly [string, string] => entry[1] !== undefined));
+}
+
+function directCrgEnvironment(env: NodeJS.ProcessEnv): Record<string, string> {
+  const result: Record<string, string> = {};
+  for (const [rawKey, rawValue] of Object.entries(env)) {
+    const key = rawKey.toUpperCase();
+    const value = nonEmpty(rawValue);
+    if (value === undefined) continue;
+    if (BACKEND_ENV_PATTERNS.codeReviewGraph.test(key)) {
+      if (!EXECUTION_CONTROL_KEYS.has(key)) {
+        result[key] = value;
+      }
+    }
+  }
+  return result;
 }
 
 const LLM_CREDENTIALS = new Set([
@@ -294,6 +314,65 @@ function validateAgentMemoryOptIns(
   }
 }
 
+const CRG_REMOTE_KEYS = [
+  'CRG_OPENAI_API_KEY',
+  'CRG_VOYAGE_API_KEY',
+  'CRG_GOOGLE_API_KEY',
+  'CRG_MINIMAX_API_KEY',
+];
+
+function resolveAndValidateCrgEnvironment(
+  rawEnvironment: Record<string, string>,
+  options: { allowEgress: boolean; allowLlm: boolean },
+  fallbackEnv: Record<string, string | undefined>,
+): Record<string, string> {
+  const env: Record<string, string> = { ...rawEnvironment };
+
+  if (!env.CRG_OPENAI_API_KEY && fallbackEnv.CRG_OPENAI_API_KEY) {
+    env.CRG_OPENAI_API_KEY = fallbackEnv.CRG_OPENAI_API_KEY;
+  } else if (!env.CRG_OPENAI_API_KEY && fallbackEnv.OPENAI_API_KEY && options.allowEgress) {
+    env.CRG_OPENAI_API_KEY = fallbackEnv.OPENAI_API_KEY;
+  }
+
+  if (!env.CRG_VOYAGE_API_KEY && fallbackEnv.CRG_VOYAGE_API_KEY) {
+    env.CRG_VOYAGE_API_KEY = fallbackEnv.CRG_VOYAGE_API_KEY;
+  } else if (!env.CRG_VOYAGE_API_KEY && (fallbackEnv.VOYAGE_API_KEY || fallbackEnv.CRG_VOYAGE_KEY) && options.allowEgress) {
+    env.CRG_VOYAGE_API_KEY = (fallbackEnv.VOYAGE_API_KEY ?? fallbackEnv.CRG_VOYAGE_KEY)!;
+  }
+
+  if (!env.CRG_GOOGLE_API_KEY && fallbackEnv.CRG_GOOGLE_API_KEY) {
+    env.CRG_GOOGLE_API_KEY = fallbackEnv.CRG_GOOGLE_API_KEY;
+  } else if (!env.CRG_GOOGLE_API_KEY && (fallbackEnv.GOOGLE_API_KEY || fallbackEnv.GEMINI_API_KEY) && options.allowEgress) {
+    env.CRG_GOOGLE_API_KEY = (fallbackEnv.GOOGLE_API_KEY || fallbackEnv.GEMINI_API_KEY)!;
+  }
+
+  if (!env.CRG_MINIMAX_API_KEY && fallbackEnv.CRG_MINIMAX_API_KEY) {
+    env.CRG_MINIMAX_API_KEY = fallbackEnv.CRG_MINIMAX_API_KEY;
+  } else if (!env.CRG_MINIMAX_API_KEY && fallbackEnv.MINIMAX_API_KEY && options.allowEgress) {
+    env.CRG_MINIMAX_API_KEY = fallbackEnv.MINIMAX_API_KEY;
+  }
+
+  for (const key of CRG_REMOTE_KEYS) {
+    if (env[key] && !options.allowEgress) {
+      throw new Error(`${key} requires MEGA_BRAIN_ALLOW_EGRESS=true`);
+    }
+  }
+
+  const hasCloudKey = Boolean(
+    env.CRG_OPENAI_API_KEY
+    || env.CRG_VOYAGE_API_KEY
+    || env.CRG_GOOGLE_API_KEY
+    || env.CRG_MINIMAX_API_KEY
+    || (env.CRG_OPENAI_BASE_URL && !/(?:127\.0\.0\.1|localhost|0\.0\.0\.0|::1)/iu.test(env.CRG_OPENAI_BASE_URL))
+  );
+
+  if (hasCloudKey && options.allowEgress && !env.CRG_ACCEPT_CLOUD_EMBEDDINGS) {
+    env.CRG_ACCEPT_CLOUD_EMBEDDINGS = '1';
+  }
+
+  return env;
+}
+
 function compact<T extends Record<string, unknown>>(value: T): Partial<T> {
   return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as Partial<T>;
 }
@@ -302,32 +381,31 @@ export interface LoadConfigOptions {
   env?: NodeJS.ProcessEnv;
   repoPath?: string;
   envFilePath?: string | false;
-  filePath?: string;
+  filePath?: string | false;
   fileConfig?: Partial<MegaBrainConfigInput>;
   flags?: ConfigFlags;
 }
 
 export async function loadConfigWithSources(options: LoadConfigOptions = {}): Promise<LoadedConfigWithSources> {
+  const flags = options.flags ?? {};
   const repoPath = path.resolve(options.repoPath ?? process.cwd());
   const envFilePath = options.envFilePath === false
     ? undefined
     : resolveAgainstRepo(repoPath, options.envFilePath ?? '.env');
   const envFromFile = envFilePath ? await loadDotEnv(envFilePath) : {};
   const processEnvironment = options.env ?? process.env;
-  const env: NodeJS.ProcessEnv = { ...envFromFile, ...processEnvironment };
-  let fileConfig = options.fileConfig ?? {};
-  if (options.filePath) {
-    const filePath = resolveAgainstRepo(repoPath, options.filePath);
-    fileConfig = JSON.parse(await readFile(filePath, 'utf8')) as Partial<MegaBrainConfigInput>;
-  } else if (!options.fileConfig) {
+  let fileConfig: Partial<MegaBrainConfigInput> = options.fileConfig ?? {};
+  if (!options.fileConfig && options.filePath !== false) {
+    const configPath = resolveAgainstRepo(repoPath, options.filePath ?? path.join('.mega-brain', 'config.json'));
     try {
-      fileConfig = JSON.parse(await readFile(path.join(repoPath, '.mega-brain', 'config.json'), 'utf8')) as Partial<MegaBrainConfigInput>;
+      fileConfig = JSON.parse(await readFile(configPath, 'utf8')) as Partial<MegaBrainConfigInput>;
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     }
   }
 
-  const flags = options.flags ?? {};
+  const env = { ...envFromFile, ...processEnvironment };
+
   const sourceEnv = (key: string): { value: string | undefined; source: ConfigSource | undefined } => {
     const processValue = nonEmpty(processEnvironment[key]);
     if (processValue !== undefined) return { value: processValue, source: 'process' };
@@ -385,20 +463,21 @@ export async function loadConfigWithSources(options: LoadConfigOptions = {}): Pr
     [fileConfig.allowLlm, 'config'],
     [defaults.allowLlm, 'default'],
   ]);
-  const allowEgress = allowEgressResolved.value;
-  const allowLlm = allowLlmResolved.value;
+  const allowEgress = Boolean(allowEgressResolved.value);
+  const allowLlm = Boolean(allowLlmResolved.value);
 
   const agentMemoryModeEnv = sourceEnv('MEGA_BRAIN_AGENTMEMORY_MODE');
-  const agentMemoryMode = firstDefined<string>([
-    [nonEmpty(flags.agentMemoryMode), 'flag'],
-    [agentMemoryModeEnv.value, agentMemoryModeEnv.source ?? 'process'],
+  const agentMemoryMode = firstDefined<MegaBrainConfig['agentMemory']['mode']>([
+    [flags.agentMemoryMode as MegaBrainConfig['agentMemory']['mode'], 'flag'],
+    [agentMemoryModeEnv.value as MegaBrainConfig['agentMemory']['mode'], agentMemoryModeEnv.source ?? 'process'],
     [fileConfig.agentMemory?.mode, 'config'],
     [defaults.agentMemory?.mode, 'default'],
   ]);
-  const agentMemoryUrlEnv = sourceEnv('MEGA_BRAIN_AGENTMEMORY_URL');
+
+  const agentMemoryBaseUrlEnv = sourceEnv('MEGA_BRAIN_AGENTMEMORY_URL');
   const agentMemoryBaseUrl = firstDefined<string>([
     [nonEmpty(flags.agentMemoryBaseUrl), 'flag'],
-    [agentMemoryUrlEnv.value, agentMemoryUrlEnv.source ?? 'process'],
+    [agentMemoryBaseUrlEnv.value, agentMemoryBaseUrlEnv.source ?? 'process'],
     [fileConfig.agentMemory?.baseUrl, 'config'],
     [defaults.agentMemory?.baseUrl, 'default'],
   ]);
@@ -475,6 +554,20 @@ export async function loadConfigWithSources(options: LoadConfigOptions = {}): Pr
     [null, 'default'],
   ]);
 
+  const rawCrgEnvironment = {
+    ...filterBackendEnvironment('codeReviewGraph', fileConfig.codeReviewGraph?.environment ?? {}),
+    ...dotEnvCrgEnvironment,
+    ...directCrgEnvironment(envFromFile),
+    ...processCrgEnvironment,
+    ...directCrgEnvironment(processEnvironment),
+  };
+
+  const effectiveCrgEnvironment = resolveAndValidateCrgEnvironment(
+    rawCrgEnvironment,
+    { allowEgress, allowLlm },
+    env,
+  );
+
   const merged = {
     ...defaults,
     ...fileConfig,
@@ -498,11 +591,7 @@ export async function loadConfigWithSources(options: LoadConfigOptions = {}): Pr
         args: parseJsonArray(env.MEGA_BRAIN_CRG_ARGS_JSON, 'MEGA_BRAIN_CRG_ARGS_JSON'),
         dataDir: crgDataDir.value === null ? undefined : resolveAgainstRepo(repoPath, crgDataDir.value),
       }),
-      environment: {
-        ...filterBackendEnvironment('codeReviewGraph', fileConfig.codeReviewGraph?.environment ?? {}),
-        ...dotEnvCrgEnvironment,
-        ...processCrgEnvironment,
-      },
+      environment: effectiveCrgEnvironment,
     },
   };
 
