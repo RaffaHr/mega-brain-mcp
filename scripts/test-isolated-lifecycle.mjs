@@ -52,7 +52,7 @@ npm install --global /artifact/package.tgz --no-audit --no-fund >/dev/null
 `;
 
 const waitForAutonomousShutdown = `
-for attempt in $(seq 1 30); do
+for attempt in $(seq 1 60); do
   remaining="$(find /tmp/mega-data/projects -path '*/runtime-state.json' -o -path '*/supervisor/manifest.json')"
   test -z "$remaining" && break
   sleep 1
