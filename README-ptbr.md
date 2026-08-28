@@ -913,6 +913,19 @@ Recursos caros ou externos permanecem desativados, a menos que sejam habilitados
 
 `MEGA_BRAIN_ALLOW_LLM` e a allowlist de variáveis de ambiente do AgentMemory.
 
+
+## Provedores e Embeddings do Code Review Graph
+
+Durante o `mega-brain setup`, é possível configurar os embeddings do Code Review Graph de forma independente do AgentMemory:
+
+- **Local (padrão)**: Utiliza `sentence-transformers` com modelo `all-MiniLM-L6-v2` (via `CRG_EMBEDDING_MODEL`). Totalmente offline, zero egress de rede.
+- **OpenAI / OpenAI-compatível**: Conecta à OpenAI ou qualquer gateway compatível via `CRG_OPENAI_API_KEY`, `CRG_OPENAI_BASE_URL` e `CRG_OPENAI_MODEL`. Aplica fallback para `OPENAI_API_KEY` quando disponível e com egress autorizado.
+- **Voyage AI**: Utiliza `CRG_VOYAGE_API_KEY` (ou `VOYAGE_API_KEY`) com modelo `CRG_VOYAGE_MODEL` (padrão: `voyage-code-3`).
+- **Google Gemini**: Utiliza `CRG_GOOGLE_API_KEY` (ou `GOOGLE_API_KEY` / `GEMINI_API_KEY`).
+- **MiniMax**: Utiliza `CRG_MINIMAX_API_KEY` (ou `MINIMAX_API_KEY`).
+
+Provedores externos exigem `MEGA_BRAIN_ALLOW_EGRESS=true`. Quando o egress está autorizado, `CRG_ACCEPT_CLOUD_EMBEDDINGS="1"` é injetado automaticamente no processo filho do CRG. O setup garante automaticamente a inclusão de `.mega-brain/` e `.env` no `.gitignore` do repositório.
+
 ## Usar um AgentMemory remoto existente
 
 O modo remoto não instala nem inicia o AgentMemory localmente. Durante o
