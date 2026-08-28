@@ -49,11 +49,12 @@ export async function terminateProcessTree(
       }
     }
   } else {
+    const signal = options.force ? 'SIGKILL' : 'SIGTERM';
     try {
-      process.kill(-pid, 'SIGTERM');
+      process.kill(-pid, signal);
     } catch {
       try {
-        process.kill(pid, 'SIGTERM');
+        process.kill(pid, signal);
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
       }

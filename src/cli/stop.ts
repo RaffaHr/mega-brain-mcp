@@ -2,7 +2,7 @@ import { rm } from 'node:fs/promises';
 
 import type { ProjectIdentity } from '../projects/identity.js';
 import { runtimeLayout } from '../runtime/layout.js';
-import { processTreeStopper, sweepRuntimeProcesses } from '../runtime/process-tree.js';
+import { processTreeStopper, sweepRuntimeProcesses, terminateProcessTree } from '../runtime/process-tree.js';
 import { readRuntimeState } from '../runtime/supervisor.js';
 
 export interface ProcessStopper {
@@ -39,6 +39,21 @@ async function waitForStopped(pids: number[], options: StopManagedRuntimeOptions
     if (stillRunning.length === 0) return;
     await new Promise((resolve) => setTimeout(resolve, options.pollIntervalMs ?? 100));
   } while (Date.now() < deadline);
+
+  // Force kill any remaining processes before giving up
+  for (const pid of stillRunning) {
+    await terminateProcessTree(pid, { force: true }).catch(() => undefined);
+  }
+  const graceDeadline = Date.now() + 1_500;
+  do {
+    const alive = [];
+    for (const pid of stillRunning) {
+      if (await processExists(pid)) alive.push(pid);
+    }
+    if (alive.length === 0) return;
+    await new Promise((resolve) => setTimeout(resolve, options.pollIntervalMs ?? 100));
+  } while (Date.now() < graceDeadline);
+
   throw new Error(`Runtime processes did not stop within ${options.waitTimeoutMs ?? 5_000}ms: ${stillRunning.join(', ')}`);
 }
 
@@ -61,10 +76,13 @@ export async function stopManagedRuntime(
     throw error;
   }
   const pids = Object.values(state.processes);
-  await Promise.allSettled(pids.map((pid) => stopper.stop(pid)));
-  await waitForStopped(pids, options);
-  if (options.sweep !== false) {
-    await sweepRuntimeProcesses(layout.runtimeRoot).catch(() => []);
+  try {
+    await Promise.allSettled(pids.map((pid) => stopper.stop(pid)));
+    await waitForStopped(pids, options);
+  } finally {
+    if (options.sweep !== false) {
+      await sweepRuntimeProcesses(layout.runtimeRoot).catch(() => []);
+    }
+    await rm(layout.stateFile, { force: true });
   }
-  await rm(layout.stateFile, { force: true });
 }
