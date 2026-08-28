@@ -652,7 +652,7 @@ function isDirectInvocation(): boolean {
 const invoked = isDirectInvocation();
 if (invoked) {
   main().then(() => {
-    if (process.argv[2] === 'supervisor') {
+    if (process.argv[2] === 'supervisor' || process.argv[2] === 'mcp') {
       process.exit(0);
     }
   }).catch((error) => {
