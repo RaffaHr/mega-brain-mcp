@@ -11,3 +11,7 @@ Default five canonical triage roles (`needs-triage`, `needs-info`, `ready-for-ag
 ### Domain docs
 
 Single-context layout (`CONTEXT.md` + `docs/adr/`). See `docs/agents/domain.md`.
+
+### Language preferences
+
+Interact with the user with the same language they speak

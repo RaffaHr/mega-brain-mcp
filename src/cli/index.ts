@@ -27,7 +27,8 @@ import { installGitHookMultiplexer, restoreGitHooks } from '../hooks/git/install
 import type { MegaBrainGitHook } from '../hooks/git/multiplexer.js';
 import { createApplicationHandlers } from '../server/application.js';
 import { createMegaBrainServer, listenMegaBrainServer } from '../server/index.js';
-import { formatDoctorReport, managedDoctorDependencies, runDoctor } from './doctor.js';
+import { formatDoctorReport, managedDoctorDependencies, runDoctor, runDoctorFix } from './doctor.js';
+import { drainPendingDeletes } from '../runtime/pending-deletes.js';
 import { handleGitHook, handleHostHook } from './hook.js';
 import { installHostMcpFiles, restoreHostMcpFiles } from './host-integration.js';
 import { installHostHookFiles, restoreHostHookFiles } from './host-hooks.js';
@@ -192,6 +193,7 @@ async function projectContext(args: string[], logger?: LocalLogger) {
     project: identity.worktreeId,
     gitBacked: identity.gitBacked,
   });
+  await drainPendingDeletes(config.dataDir).catch(() => undefined);
   return { repo, config, identity, dependencyVersions };
 }
 
@@ -420,6 +422,11 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     return;
   }
   if (command === 'upgrade') {
+    const init = flag(args, '--init');
+    const runtimeInstalled = await isRuntimeInstalled(config.dataDir, identity);
+    if (!runtimeInstalled && !init) {
+      throw new Error('Mega Brain is not installed in this project. Run "mega-brain setup" first, or pass "--init" to initialize during upgrade.');
+    }
     const jsonOutput = flag(args, '--json');
     const prompts = createTerminalPrompts();
     const progress = createOperationProgress({
@@ -565,17 +572,29 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     return;
   }
   if (command === 'doctor') {
-    const inspection = await inspectManagedRuntime(config.dataDir, identity);
+    const fix = flag(args, '--fix');
+    if (fix) {
+      const fixed = await runDoctorFix({ dataDir: config.dataDir, identity, layout });
+      if (!flag(args, '--json')) {
+        output(`Doctor fix complete: ${fixed.purged.length} pending delete paths purged, ${fixed.swept.length} orphan processes terminated.`);
+      }
+    }
+    let inspection: Awaited<ReturnType<typeof inspectManagedRuntime>> | undefined;
+    try {
+      inspection = await inspectManagedRuntime(config.dataDir, identity);
+    } catch {
+      inspection = undefined;
+    }
     const repository = await optionalGitRepository(identity, logger);
-    const agentMemory = createAgentMemoryClient(config, undefined, inspection.manifest);
-    const crgCommand = inspection.manifest.backends.codeReviewGraph;
-    const crgDataDir = crgCommand.environment?.CRG_DATA_DIR ?? config.codeReviewGraph.dataDir;
+    const agentMemory = createAgentMemoryClient(config, undefined, inspection?.manifest);
+    const crgCommand = inspection?.manifest?.backends?.codeReviewGraph;
+    const crgDataDir = crgCommand?.environment?.CRG_DATA_DIR ?? config.codeReviewGraph.dataDir;
     const codeReviewGraph = new CodeReviewGraphClient({
-      command: crgCommand.command,
-      args: crgCommand.args,
-      cwd: crgCommand.cwd,
-      environment: { ...crgCommand.environment, ...config.codeReviewGraph.environment },
-      repoRoot: crgCommand.environment?.CRG_REPO_ROOT ?? identity.root,
+      command: crgCommand?.command ?? config.codeReviewGraph.command,
+      args: crgCommand?.args ?? config.codeReviewGraph.args,
+      cwd: crgCommand?.cwd ?? identity.root,
+      environment: { ...(crgCommand?.environment ?? {}), ...config.codeReviewGraph.environment },
+      repoRoot: crgCommand?.environment?.CRG_REPO_ROOT ?? identity.root,
       ...(crgDataDir ? { dataDir: crgDataDir } : {}),
     });
     try {

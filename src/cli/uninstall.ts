@@ -6,6 +6,8 @@ import type { LocalLogger } from '../observability/logger.js';
 import type { ProjectIdentity } from '../projects/identity.js';
 import { SupervisorIpcClient } from '../runtime/ipc.js';
 import { runtimeLayout } from '../runtime/layout.js';
+import { queuePendingDelete, safeRemoveDirectory } from '../runtime/pending-deletes.js';
+import { sweepRuntimeProcesses, terminateProcessTree } from '../runtime/process-tree.js';
 import { readSupervisorManifest, removeSupervisorManifest } from '../runtime/supervisor-manifest.js';
 import { retryRename, snapshotFile, withRuntimeTransaction } from '../runtime/transaction.js';
 import { stopManagedRuntime } from './stop.js';
@@ -37,6 +39,7 @@ export async function drainProjectSupervisor(input: {
   catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
       await (input.stopRuntime ?? (() => stopManagedRuntime(input.dataDir, input.identity)))();
+      await sweepRuntimeProcesses(layout.runtimeRoot).catch(() => []);
       return;
     }
     throw error;
@@ -54,13 +57,11 @@ export async function drainProjectSupervisor(input: {
     if (!['ECONNREFUSED', 'ENOENT', 'EPIPE'].includes(code ?? '')) throw error;
   }
   await (input.stopProcess ?? (async (pid) => {
-    try { process.kill(pid, 'SIGTERM'); }
-    catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
-    }
+    await terminateProcessTree(pid);
   }))(manifest.pid);
   await (input.stopRuntime ?? (() => stopManagedRuntime(input.dataDir, input.identity)))();
   await removeSupervisorManifest(layout);
+  await sweepRuntimeProcesses(layout.runtimeRoot).catch(() => []);
 }
 
 export async function uninstallMegaBrain(input: {
@@ -76,10 +77,13 @@ export async function uninstallMegaBrain(input: {
   const quarantinedRuntime = path.join(layout.runtimeRoot, `.uninstall-${Date.now()}-${process.pid}`);
   const drain = input.drain ?? (() => drainProjectSupervisor({ dataDir: input.dataDir, identity: input.identity }));
   let drainAttempted = false;
+
   try {
     drainAttempted = true;
     logUninstallStep(input, 'draining project runtime');
     await drain();
+    await sweepRuntimeProcesses(layout.runtimeRoot).catch(() => []);
+
     await withRuntimeTransaction(async (transaction) => {
       logUninstallStep(input, 'restoring host integrations');
       for (const participant of input.participants ?? []) {
@@ -88,9 +92,22 @@ export async function uninstallMegaBrain(input: {
       }
       if (await exists(layout.current)) {
         logUninstallStep(input, 'quarantining runtime', { runtime: layout.current });
-        await retryRename(layout.current, quarantinedRuntime, 'Quarantining current runtime for uninstall');
-        transaction.addRollback(() => retryRename(quarantinedRuntime, layout.current, 'Restoring current runtime after uninstall rollback'));
-        transaction.addCommit(() => rm(quarantinedRuntime, { recursive: true, force: true }));
+        let quarantined = false;
+        try {
+          await retryRename(layout.current, quarantinedRuntime, 'Quarantining current runtime for uninstall', { timeoutMs: 5_000 });
+          quarantined = true;
+          transaction.addRollback(() => retryRename(quarantinedRuntime, layout.current, 'Restoring current runtime after uninstall rollback'));
+          transaction.addCommit(async () => {
+            const removed = await safeRemoveDirectory(quarantinedRuntime);
+            if (!removed) await queuePendingDelete(input.dataDir, quarantinedRuntime);
+          });
+        } catch {
+          // If rename failed (e.g. anti-virus or handle holding the directory), try safe direct deletion
+          const removed = await safeRemoveDirectory(layout.current);
+          if (!removed) {
+            await queuePendingDelete(input.dataDir, layout.current);
+          }
+        }
       }
       logUninstallStep(input, 'removing runtime state and project config');
       await snapshotFile(transaction, layout.stateFile);
@@ -109,9 +126,14 @@ export async function uninstallMegaBrain(input: {
     }
     throw error;
   }
+
   if (input.purge) {
     logUninstallStep(input, 'purging project data', { projectRoot: layout.projectRoot });
-    await rm(layout.projectRoot, { recursive: true, force: true });
+    const removed = await safeRemoveDirectory(layout.projectRoot);
+    if (!removed) {
+      await queuePendingDelete(input.dataDir, layout.projectRoot);
+    }
   }
+
   return { dataPreserved: !input.purge };
 }

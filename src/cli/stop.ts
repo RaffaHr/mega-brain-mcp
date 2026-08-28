@@ -2,6 +2,7 @@ import { rm } from 'node:fs/promises';
 
 import type { ProjectIdentity } from '../projects/identity.js';
 import { runtimeLayout } from '../runtime/layout.js';
+import { processTreeStopper, sweepRuntimeProcesses } from '../runtime/process-tree.js';
 import { readRuntimeState } from '../runtime/supervisor.js';
 
 export interface ProcessStopper {
@@ -12,16 +13,10 @@ export interface StopManagedRuntimeOptions {
   processExists?: (pid: number) => boolean | Promise<boolean>;
   waitTimeoutMs?: number;
   pollIntervalMs?: number;
+  sweep?: boolean;
 }
 
-export const systemProcessStopper: ProcessStopper = {
-  async stop(pid) {
-    try { process.kill(pid, 'SIGTERM'); }
-    catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
-    }
-  },
-};
+export const systemProcessStopper: ProcessStopper = processTreeStopper();
 
 async function defaultProcessExists(pid: number): Promise<boolean> {
   try {
@@ -57,11 +52,19 @@ export async function stopManagedRuntime(
   let state;
   try { state = await readRuntimeState(layout); }
   catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      if (options.sweep !== false) {
+        await sweepRuntimeProcesses(layout.runtimeRoot).catch(() => []);
+      }
+      return;
+    }
     throw error;
   }
   const pids = Object.values(state.processes);
   await Promise.allSettled(pids.map((pid) => stopper.stop(pid)));
   await waitForStopped(pids, options);
+  if (options.sweep !== false) {
+    await sweepRuntimeProcesses(layout.runtimeRoot).catch(() => []);
+  }
   await rm(layout.stateFile, { force: true });
 }

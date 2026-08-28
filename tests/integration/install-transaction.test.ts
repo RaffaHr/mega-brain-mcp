@@ -237,3 +237,19 @@ test('AC-045: uninstall preserva dados por default e só remove o namespace com 
   expect(await uninstallMegaBrain({ dataDir, identity, drain: async () => undefined, purge: true })).toEqual({ dataPreserved: false });
   await expect(readFile(memory, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
 });
+
+
+test('AC-062: uninstall succeeds and cleans project data even when workspace config is missing @spec:AC-062', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-uninstall-missing-config-'));
+  temporaryDirectories.push(dataDir);
+  const repo = path.join(dataDir, 'repo');
+  const identity = deriveProjectIdentity({ root: repo, gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  await mkdir(layout.current, { recursive: true });
+  await writeFile(path.join(layout.current, 'runtime-lock.json'), '{}');
+
+  // No .mega-brain/config.json exists in workspace
+  const result = await uninstallMegaBrain({ dataDir, identity, drain: async () => undefined, purge: true });
+  expect(result.dataPreserved).toBe(false);
+  await expect(readdir(layout.projectRoot)).rejects.toMatchObject({ code: 'ENOENT' });
+});

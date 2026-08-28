@@ -1,10 +1,17 @@
+import { mkdtemp, mkdir, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { expect, test } from 'vitest';
+import { afterEach, expect, test } from 'vitest';
 
 import { DEFAULT_MANAGED_DEPENDENCY_VERSIONS } from '../../src/runtime/dependency-versions.js';
+import { formatDoctorReport, runDoctor, runDoctorFix } from '../../src/cli/doctor.js';
+import { queuePendingDelete } from '../../src/runtime/pending-deletes.js';
+import { deriveProjectIdentity } from '../../src/projects/identity.js';
+import { runtimeLayout } from '../../src/runtime/layout.js';
 
-import { formatDoctorReport, runDoctor } from '../../src/cli/doctor.js';
+const temporaryDirectories: string[] = [];
+afterEach(async () => Promise.all(temporaryDirectories.splice(0).map((d) => rm(d, { recursive: true, force: true }))));
 
 function stripAnsi(value: string): string {
   return value.replace(/\x1b\[[0-9;]*m/gu, '');
@@ -94,3 +101,17 @@ test('doctor report highlights degraded checks and warnings', async () => {
   expect(report).toContain('× hook installation is unhealthy');
 });
 
+test('runDoctorFix purges pending delete queues and sweeps runtime', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-doctor-fix-'));
+  temporaryDirectories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  const targetDir = path.join(dataDir, 'pending-folder');
+  await mkdir(targetDir, { recursive: true });
+  await writeFile(path.join(targetDir, 'temp.log'), 'test');
+
+  await queuePendingDelete(dataDir, targetDir);
+  const fixResult = await runDoctorFix({ dataDir, identity, layout });
+
+  expect(fixResult.purged).toContain(path.resolve(targetDir));
+});
