@@ -492,6 +492,27 @@ export async function main(args = process.argv.slice(2), output: (value: string)
         } : {}),
         ...runtimeSwap,
         logger: progressLogger,
+        async configure(transaction) {
+          const hosts = parseHostSelection(option(args, '--hosts'));
+          if (hosts && hosts.length > 0) {
+            const backupDir = path.join(layout.projectRoot, 'integration-backups');
+            const managedHooksPath = path.join(layout.projectRoot, 'hooks', 'git');
+            const repository = await optionalGitRepository(identity, logger);
+            await snapshotFile(transaction, projectConfigPath(identity.root));
+            await writeProjectConfig(identity.root, config);
+            await installHostMcpFiles({
+              root: identity.root,
+              backupDir,
+              hosts,
+              connection: currentCliStdioConnection(['mcp', '--repo', identity.root]),
+              transaction,
+            });
+            for (const host of hosts) {
+              await installHostHookFiles({ root: identity.root, backupDir, hosts: [host], command: currentCliShellCommand(['hook', 'host', host]), transaction });
+            }
+            if (repository) await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: currentCliArgv(), transaction });
+          }
+        },
       });
       progress.completeOpenSteps();
       progress.close();
