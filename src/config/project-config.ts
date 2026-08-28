@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { chmod, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 import { z } from 'zod';
@@ -95,8 +95,4 @@ export async function writeProjectConfig(repositoryRoot: string, input: ProjectC
   }
   if (process.platform !== 'win32') await chmod(target, 0o600);
   return target;
-}
-
-export async function readProjectConfig(repositoryRoot: string): Promise<ProjectConfig> {
-  return projectConfigSchema.parse(JSON.parse(await readFile(projectConfigPath(repositoryRoot), 'utf8')));
 }

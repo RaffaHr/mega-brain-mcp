@@ -4,6 +4,8 @@ import path from 'node:path';
 
 import { z } from 'zod';
 
+import { managedDependencyVersionSchema } from './dependency-versions.js';
+
 export const runtimeCommandSchema = z.object({
   command: z.string().min(1),
   args: z.array(z.string()),
@@ -60,9 +62,9 @@ export const runtimeLockManifestSchema = z.object({
   project: z.object({ repositoryId: z.string(), checkoutId: z.string(), worktreeId: z.string() }),
   versions: z.object({
     megaBrain: z.string(),
-    agentMemory: z.literal('0.9.29'),
-    codeReviewGraph: z.literal('2.3.7'),
-    iiiEngine: z.literal('0.11.2').optional(),
+    agentMemory: managedDependencyVersionSchema,
+    codeReviewGraph: managedDependencyVersionSchema,
+    iiiEngine: managedDependencyVersionSchema.optional(),
   }),
   backends: z.object({
     agentMemory: runtimeCommandSchema.optional(),

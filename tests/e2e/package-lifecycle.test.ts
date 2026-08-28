@@ -5,6 +5,8 @@ import path from 'node:path';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { afterEach, expect, test, vi } from 'vitest';
+
+import { DEFAULT_MANAGED_DEPENDENCY_VERSIONS } from '../../src/runtime/dependency-versions.js';
 import { stopManagedRuntime } from '../../src/cli/stop.js';
 import { waitForService } from '../../src/cli/start.js';
 import { deriveProjectIdentity } from '../../src/projects/identity.js';
@@ -35,7 +37,7 @@ test('AC-034: supervisor confirms spawn, enforces readiness and rolls back failu
   const manifest: RuntimeLockManifest = {
     schemaVersion: 1, installedAt: new Date().toISOString(), agentMemoryMode: 'managed',
     project: { repositoryId: identity.repositoryId, checkoutId: identity.checkoutId, worktreeId: identity.worktreeId },
-    versions: { megaBrain: '0.1.4-alpha', agentMemory: '0.9.29', codeReviewGraph: '2.3.7' },
+    versions: { megaBrain: '0.1.4-alpha', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
     backends: { agentMemory: command, codeReviewGraph: { ...command, lifecycle: 'on-demand' } },
   };
   await expect(startRuntime(layout, manifest, systemProcessController, { ready: async () => { throw new Error('not ready'); } })).rejects.toThrow('not ready');

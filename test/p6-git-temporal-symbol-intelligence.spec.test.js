@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_MANAGED_DEPENDENCY_VERSIONS } from '../src/runtime/dependency-versions.js';
 import { gitSymbolHistory } from '../src/adapters/git/history.js';
 import { createApplicationHandlers } from '../src/server/application.js';
 import { openProvenanceDatabase } from '../src/provenance/database.js';
@@ -47,7 +48,7 @@ describe('P6 Git temporal symbol intelligence (@spec:p6-git-temporal-symbol-inte
     const mockCRG = {
       call: async () => ({ structuredContent: {} }),
       start: async () => {},
-      serverVersion: () => '2.3.7',
+      serverVersion: () => DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph,
     };
 
     const handlers = createApplicationHandlers({
@@ -95,7 +96,7 @@ describe('P6 Git temporal symbol intelligence (@spec:p6-git-temporal-symbol-inte
         return { content: [] };
       },
       start: async () => {},
-      serverVersion: () => '2.3.7',
+      serverVersion: () => DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph,
     };
 
     const mockAgentMemory = {

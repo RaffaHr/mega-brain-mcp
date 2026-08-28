@@ -4,6 +4,8 @@ import path from 'node:path';
 
 import { expect, test } from 'vitest';
 
+import { DEFAULT_MANAGED_DEPENDENCY_VERSIONS } from '../../src/runtime/dependency-versions.js';
+
 import type { AgentMemoryClient } from '../../src/adapters/agentmemory/client.js';
 import type { CodeReviewGraphClient } from '../../src/adapters/code-review-graph/client.js';
 import { NO_GIT_HEAD, type GitRepository } from '../../src/adapters/git/repository.js';
@@ -38,7 +40,7 @@ test('composition root conecta as seis tools a handlers operacionais', async () 
   const database = openProvenanceDatabase(':memory:');
   const config = testConfig(dataDir);
   const agentMemory = {
-    health: async () => ({ healthy: true, version: '0.9.29' }),
+    health: async () => ({ healthy: true, version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory }),
     smartSearch: async () => ({ results: [] }),
   } as unknown as AgentMemoryClient;
   const crgCalls: Array<{ name: string; input: Record<string, unknown> }> = [];
@@ -48,7 +50,7 @@ test('composition root conecta as seis tools a handlers operacionais', async () 
       crgCalls.push({ name, input });
       return { content: [], structuredContent: { graphHead: 'abc' } };
     },
-    serverVersion: () => '2.3.7',
+    serverVersion: () => DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph,
   } as unknown as CodeReviewGraphClient;
   const git = { head: async () => 'abc' } as unknown as GitRepository;
   const handlers = createApplicationHandlers({
@@ -72,13 +74,13 @@ test('AC-057: handlers operam status sem exigir Git ate uma tool precisar dele @
   const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.mega-brain/non-git-project', commonGitDir: '.mega-brain/non-git-project', gitBacked: false });
   const database = openProvenanceDatabase(':memory:');
   const agentMemory = {
-    health: async () => ({ healthy: true, version: '0.9.29' }),
+    health: async () => ({ healthy: true, version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory }),
     smartSearch: async () => ({ results: [] }),
   } as unknown as AgentMemoryClient;
   const codeReviewGraph = {
     start: async () => undefined,
     call: async () => ({ content: [], structuredContent: {} }),
-    serverVersion: () => '2.3.7',
+    serverVersion: () => DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph,
   } as unknown as CodeReviewGraphClient;
 
   const handlers = createApplicationHandlers({
@@ -102,13 +104,13 @@ test('handlers degradam quando Git existe mas ainda nao tem HEAD', async () => {
   const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
   const database = openProvenanceDatabase(':memory:');
   const agentMemory = {
-    health: async () => ({ healthy: true, version: '0.9.29' }),
+    health: async () => ({ healthy: true, version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory }),
     smartSearch: async () => ({ results: [] }),
   } as unknown as AgentMemoryClient;
   const codeReviewGraph = {
     start: async () => undefined,
     call: async () => ({ content: [], structuredContent: { graphHead: 'abc' } }),
-    serverVersion: () => '2.3.7',
+    serverVersion: () => DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph,
   } as unknown as CodeReviewGraphClient;
   const git = { head: async () => NO_GIT_HEAD } as unknown as GitRepository;
   const handlers = createApplicationHandlers({

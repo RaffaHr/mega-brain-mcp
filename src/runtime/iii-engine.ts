@@ -3,7 +3,9 @@ import { chmod, mkdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { inflateRawSync } from 'node:zlib';
 
-export const III_ENGINE_VERSION = '0.11.2' as const;
+import { DEFAULT_MANAGED_DEPENDENCY_VERSIONS, parseManagedDependencyVersion } from './dependency-versions.js';
+
+export const III_ENGINE_VERSION = DEFAULT_MANAGED_DEPENDENCY_VERSIONS.iiiEngine;
 
 export function sha256Artifact(value: Uint8Array): string {
   return createHash('sha256').update(value).digest('hex');
@@ -40,19 +42,23 @@ export interface OfficialIiiEngineArtifact {
   bytes: Uint8Array;
   sha256: string;
   sourceUrl: string;
+  version: string;
 }
 
 export async function downloadOfficialIiiEngine(input: {
   architecture?: NodeJS.Architecture;
   fetch?: typeof globalThis.fetch;
+  version?: string;
 } = {}): Promise<OfficialIiiEngineArtifact> {
   const architecture = input.architecture ?? process.arch;
+  const version = parseManagedDependencyVersion(input.version ?? III_ENGINE_VERSION, 'iii-engine version');
   const target = architecture === 'x64'
     ? 'x86_64-pc-windows-msvc'
     : architecture === 'arm64' ? 'aarch64-pc-windows-msvc' : null;
-  if (!target) throw new Error(`iii-engine 0.11.2 has no supported Windows artifact for ${architecture}`);
+  if (!target) throw new Error(`iii-engine ${version} has no supported Windows artifact for ${architecture}`);
   const filename = `iii-${target}.zip`;
-  const releaseRoot = 'https://github.com/iii-hq/iii/releases/download/iii%2Fv0.11.2';
+  const releaseTag = `iii/v${version}`;
+  const releaseRoot = `https://github.com/iii-hq/iii/releases/download/${encodeURIComponent(releaseTag)}`;
   const sourceUrl = `${releaseRoot}/${filename}`;
   const fetch = input.fetch ?? globalThis.fetch;
   const [checksumResponse, archiveResponse] = await Promise.all([
@@ -60,7 +66,7 @@ export async function downloadOfficialIiiEngine(input: {
     fetch(sourceUrl),
   ]);
   if (!checksumResponse.ok || !archiveResponse.ok) {
-    throw new Error(`Could not download the official iii-engine ${III_ENGINE_VERSION} artifact and checksum`);
+    throw new Error(`Could not download the official iii-engine ${version} artifact and checksum`);
   }
   const checksumText = await checksumResponse.text();
   const expectedArchiveSha = checksumText.match(/\b[a-f0-9]{64}\b/iu)?.[0]?.toLowerCase();
@@ -68,12 +74,12 @@ export async function downloadOfficialIiiEngine(input: {
   const archive = new Uint8Array(await archiveResponse.arrayBuffer());
   if (sha256Artifact(archive) !== expectedArchiveSha) throw new Error('Official iii-engine archive checksum mismatch');
   const bytes = extractZipEntry(archive, 'iii.exe');
-  return { bytes, sha256: sha256Artifact(bytes), sourceUrl };
+  return { bytes, sha256: sha256Artifact(bytes), sourceUrl, version };
 }
 
 export async function installIiiEngineArtifact(input: {
   destination: string;
-  version: typeof III_ENGINE_VERSION;
+  version: string;
   confirmed: boolean;
   expectedSha256: string;
   download(): Promise<Uint8Array>;

@@ -1,5 +1,7 @@
 import { describe, expect, test, vi } from 'vitest';
 
+import { DEFAULT_MANAGED_DEPENDENCY_VERSIONS } from '../../src/runtime/dependency-versions.js';
+
 import { AgentMemoryClient, AgentMemoryError } from '../../src/adapters/agentmemory/client.js';
 import { probeAgentMemory, probeRemoteAgentMemoryIsolation } from '../../src/adapters/agentmemory/capabilities.js';
 
@@ -13,7 +15,7 @@ describe('AgentMemory REST adapter', () => {
       const url = String(request);
       expect(new Headers(init?.headers).get('Authorization')).toBe('Bearer secret-value');
       if (url.endsWith('/livez')) return jsonResponse({ status: 'ok' });
-      if (url.endsWith('/health')) return jsonResponse({ status: 'healthy', version: '0.9.29' });
+      if (url.endsWith('/health')) return jsonResponse({ status: 'healthy', version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory });
       if (url.endsWith('/smart-search')) {
         const body = init?.body ? JSON.parse(String(init.body)) as Record<string, unknown> : {};
         if (Array.isArray(body.expandIds)) return jsonResponse({ mode: 'expanded', results: [] });
@@ -33,7 +35,7 @@ describe('AgentMemory REST adapter', () => {
     });
     const client = new AgentMemoryClient({ baseUrl: 'http://127.0.0.1:3111', authToken: 'secret-value', fetch });
 
-    expect(await probeAgentMemory(client)).toMatchObject({ healthy: true, version: '0.9.29' });
+    expect(await probeAgentMemory(client)).toMatchObject({ healthy: true, version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory });
     expect((await client.smartSearch({ query: 'jwt', limit: 5 })).results[0]?.id).toBe('7');
     expect(await client.remember({ content: 'lesson', concepts: ['auth'] })).toMatchObject({ id: 'memory-1' });
     expect((await client.memories({ project: 'worktree-a' })).memories).toEqual([

@@ -1,5 +1,6 @@
 // Testes de spec da feature p3-context-engine-auto-learning
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_MANAGED_DEPENDENCY_VERSIONS } from '../src/runtime/dependency-versions.js';
 import { extractLearningFromCommit } from '../src/lifecycle/commit-handler.js';
 import { promoteCandidateMemories } from '../src/learning/promotion.js';
 import { brainStatus } from '../src/tools/brain-status.js';
@@ -61,8 +62,8 @@ describe('p3-context-engine-auto-learning', () => {
       project: 'proj-1',
       head: 'head-1',
       backends: [
-        { name: 'agentmemory', healthy: true, version: '0.9.29' },
-        { name: 'code_review_graph', healthy: true, version: '2.3.7' },
+        { name: 'agentmemory', healthy: true, version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory },
+        { name: 'code_review_graph', healthy: true, version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
       ],
       hooksHealthy: true,
       queueDepth: 0,
@@ -94,8 +95,8 @@ describe('p3-context-engine-auto-learning', () => {
       project: 'proj-1',
       head: 'head-1',
       backends: [
-        { name: 'agentmemory', healthy: true, version: '0.9.29' },
-        { name: 'code_review_graph', healthy: true, version: '2.3.7' },
+        { name: 'agentmemory', healthy: true, version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory },
+        { name: 'code_review_graph', healthy: true, version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
       ],
       hooksHealthy: true,
       queueDepth: 0,
@@ -117,8 +118,8 @@ describe('p3-context-engine-auto-learning', () => {
       project: 'proj-1',
       head: 'head-1',
       backends: [
-        { name: 'agentmemory', healthy: true, version: '0.9.29' },
-        { name: 'code_review_graph', healthy: true, version: '2.3.7' },
+        { name: 'agentmemory', healthy: true, version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory },
+        { name: 'code_review_graph', healthy: true, version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
       ],
       hooksHealthy: true,
       queueDepth: 8,

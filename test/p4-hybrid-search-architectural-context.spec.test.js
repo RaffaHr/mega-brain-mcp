@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { DEFAULT_MANAGED_DEPENDENCY_VERSIONS } from '../src/runtime/dependency-versions.js';
 import { openProvenanceDatabase } from '../src/provenance/database.js';
 import { ProvenanceRepository } from '../src/provenance/repository.js';
 import { createApplicationHandlers } from '../src/server/application.js';
@@ -71,7 +72,7 @@ describe('P4 Hybrid search & architectural context (@spec:p4-hybrid-search-archi
 
     const mockAgentMemory = {
       smartSearch: async () => ({ results: [{ id: 'mem-remote-1', content: 'General tokenization concept', score: 0.75 }] }),
-      health: async () => ({ status: 'healthy', version: '0.9.29' }),
+      health: async () => ({ status: 'healthy', version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory }),
       remember: async () => ({ id: 'mem-1' }),
       memories: async () => ({ results: [] }),
       sessions: async () => ({ results: [] }),
@@ -83,7 +84,7 @@ describe('P4 Hybrid search & architectural context (@spec:p4-hybrid-search-archi
         return { content: [] };
       },
       start: async () => {},
-      serverVersion: () => '2.3.7',
+      serverVersion: () => DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph,
     };
 
     const mockGit = {
@@ -134,7 +135,7 @@ describe('P4 Hybrid search & architectural context (@spec:p4-hybrid-search-archi
         return { content: [] };
       },
       start: async () => {},
-      serverVersion: () => '2.3.7',
+      serverVersion: () => DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph,
     };
 
     const handlers = createApplicationHandlers({

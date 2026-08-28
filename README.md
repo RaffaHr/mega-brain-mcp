@@ -30,7 +30,7 @@ The public MCP surface is exactly `brain_recall`, `brain_learn`, `brain_change_c
 
 A directory does not need to be initialized as a Git repository just to start the CLI. When `.git` is absent, Mega Brain derives a stable directory identity, configures MCP/runtime pieces that do not require Git, and reports Git-backed hooks, history, and commit evidence as unavailable until the project is initialized.
 
-`mega-brain install` checks required runtime prerequisites before it creates runtime files, downloads backends, or changes host configuration. Missing Git is reported as unavailable rather than blocking startup. Managed mode then installs AgentMemory `0.9.29` and Code Review Graph `2.3.7` into a project-isolated runtime; global backend installations are not required.
+`mega-brain setup` checks required runtime prerequisites before it creates runtime files, downloads backends, or changes host configuration. Missing Git is reported as unavailable rather than blocking startup. Managed mode then installs the default managed AgentMemory, Code Review Graph, and Windows iii-engine versions, unless overridden by `MEGA_BRAIN_AGENTMEMORY_VERSION`, `MEGA_BRAIN_CODE_REVIEW_GRAPH_VERSION`, or `MEGA_BRAIN_III_ENGINE_VERSION`, into a project-isolated runtime; global backend installations are not required.
 
 ## Install the package
 
@@ -82,21 +82,21 @@ mega-brain mcp --repo .
 ```
 
 No manual `mega-brain start` or `mega-brain serve` is needed for normal Codex or
-Claude Code use. The `mcp` command writes lifecycle logs to `stderr`; `stdout` remains reserved for MCP JSON-RPC messages.
+Claude Code use. The `mcp` command keeps `stdout` reserved for MCP JSON-RPC messages. Lifecycle diagnostics are written to `stderr` only when `MEGA_BRAIN_LOG_LEVEL=debug` or `MEGA_BRAIN_DEBUG=1` is set.
 
 To install into an already configured project without rerunning the full setup,
 use `install`. It opens the same host picker used by setup; choose Codex, Claude
 Code, or both:
 
 ```powershell
-mega-brain install --repo .
+mega-brain setup --repo .
 ```
 
 On Windows, managed AgentMemory also requires explicit acceptance of the pinned,
 checksummed iii-engine artifact in the project runtime:
 
 ```powershell
-mega-brain install --repo . --accept-iii-engine
+mega-brain setup --repo .
 ```
 
 The interactive setup asks for this confirmation directly.
@@ -718,20 +718,28 @@ the private project supervisor and backends automatically; the last client to
 disconnect releases its lease and the runtime shuts down after the grace period.
 No manual `start` or `serve` is needed.
 
-Use `doctor` to inspect the effective project identity, paths, ports, backend health, logs, and Git availability:
+Use `doctor` to inspect the effective project identity, paths, ports, backend health, logs, and Git availability. It prints a formatted terminal report by default; pass `--json` when automation needs the raw envelope:
 
 ```powershell
 mega-brain doctor --repo .
+mega-brain doctor --repo . --json
 ```
+
+`upgrade`, and `uninstall` render live progress checks and final component tables by default. Use `mega-brain upgrade --json` or `mega-brain uninstall --json` only when a script needs the raw structured envelope.
+
 
 `start`, `stop`, and `serve` remain available as advanced
 diagnostic and compatibility commands.
 
 ## Managed local AgentMemory
 
-Managed mode is the default. Mega Brain installs and starts the pinned
-AgentMemory `0.9.29` runtime for the selected project, and installs Code Review
-Graph `2.3.7` into the same isolated runtime namespace.
+Managed mode is the default. Mega Brain installs and starts the default managed
+AgentMemory runtime for the selected project, installs the default managed Code
+Review Graph package, and on Windows downloads the default managed iii-engine
+artifact into the same isolated runtime namespace. Those defaults are defined in
+Mega Brain and can be overridden per install, setup, or upgrade with
+`MEGA_BRAIN_AGENTMEMORY_VERSION`, `MEGA_BRAIN_CODE_REVIEW_GRAPH_VERSION`, and
+`MEGA_BRAIN_III_ENGINE_VERSION`.
 
 Managed mode does not require a global AgentMemory install. Backend settings are
 passed only to the child runtime. Secrets and provider keys must come from the
@@ -758,7 +766,7 @@ file:
 $env:MEGA_BRAIN_AGENTMEMORY_MODE = 'remote'
 $env:MEGA_BRAIN_AGENTMEMORY_URL = 'https://memory.example.com'
 $env:MEGA_BRAIN_AGENTMEMORY_TOKEN = '<secret>'
-mega-brain install --repo .
+mega-brain setup --repo .
 ```
 
 In remote mode Mega Brain persists the remote URL and token only in the selected
@@ -792,7 +800,7 @@ Upgrade, stop, and uninstall are safe to repeat.
 ## Configuration precedence
 
 All commands resolve configuration for the repository selected by `--repo`. The
-same resolver is used by `setup`, `install`, `mcp`, `serve`, `doctor`, `upgrade`
+same resolver is used by `setup`, `mcp`, `serve`, `doctor`, `upgrade`
 and `uninstall`.
 
 Precedence is:

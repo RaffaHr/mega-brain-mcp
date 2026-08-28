@@ -27,6 +27,8 @@ wins. Neither value belongs in a committed file or a runtime lock manifest.
 |---|---|---|
 | `MEGA_BRAIN_DATA_DIR` | Runtime, metadata, logs, and queues | user data directory |
 | `MEGA_BRAIN_PORT` | HTTP MCP port | `3000` |
+| `MEGA_BRAIN_LOG_LEVEL` | Local JSON diagnostics; logs are emitted only when set to `debug` | `info` (silent) |
+| `MEGA_BRAIN_DEBUG` | Shortcut for local debug diagnostics when set to `1`, `true`, `yes`, `on`, or `debug` | unset |
 | `MEGA_BRAIN_AGENTMEMORY_MODE` | `managed` or `remote` ownership profile | `managed` |
 | `MEGA_BRAIN_AGENTMEMORY_URL` | AgentMemory REST base URL | `http://127.0.0.1:3111` |
 | `MEGA_BRAIN_AGENTMEMORY_TOKEN` | Bearer token for AgentMemory | unset |
@@ -34,6 +36,9 @@ wins. Neither value belongs in a committed file or a runtime lock manifest.
 | `MEGA_BRAIN_CRG_COMMAND` | Code Review Graph executable override | managed executable |
 | `MEGA_BRAIN_CRG_ARGS_JSON` | JSON array of CRG arguments | managed arguments |
 | `MEGA_BRAIN_CRG_ENV_JSON` | Allowlisted environment passed to CRG | `{}` |
+| `MEGA_BRAIN_AGENTMEMORY_VERSION` | Managed AgentMemory package version for setup/install/upgrade | bundled default |
+| `MEGA_BRAIN_CODE_REVIEW_GRAPH_VERSION` | Managed Code Review Graph package version for setup/install/upgrade | bundled default |
+| `MEGA_BRAIN_III_ENGINE_VERSION` | Managed iii-engine release version for Windows setup/install/upgrade | bundled default |
 | `MEGA_BRAIN_ALLOW_EGRESS` | Permit non-loopback network access and remote providers | `false` |
 | `MEGA_BRAIN_ALLOW_LLM` | Permit LLM consumption; also requires egress | `false` |
 
@@ -59,7 +64,7 @@ keys in the JSON map are rejected. The explicit allowlist is:
   `AGENTMEMORY_VIEWER_URL`.
 - Runtime setup: `AGENTMEMORY_DOCKER_GID`,
   `AGENTMEMORY_DOCKER_SKIP_CHOWN`, `AGENTMEMORY_DOCKER_UID`,
-  `AGENTMEMORY_III_CONFIG`, `AGENTMEMORY_III_VERSION`, and
+  `AGENTMEMORY_III_CONFIG`, and
   `AGENTMEMORY_USE_DOCKER`.
 - Authentication and providers: `AGENTMEMORY_SECRET`, `ANTHROPIC_API_KEY`,
   `OPENAI_API_KEY`, `VOYAGE_API_KEY`, and `COHERE_API_KEY`.
@@ -90,15 +95,13 @@ The remote AgentMemory token is allowed only in the repository-local
 command automation; it is never written to runtime locks, host files, logs, or
 setup summaries.
 
-Each Git checkout/worktree, or plain directory when Git is not initialized yet, receives separate AgentMemory data, iii-engine, CRG
-data, provenance, IPC and four backend ports in managed mode. Git-backed hooks, history, and commit evidence remain unavailable for plain directories. Remote AgentMemory
+Each Git checkout/worktree, or plain directory when Git is not initialized yet, receives separate AgentMemory data, iii-engine, CRG data, provenance, IPC and four backend ports in managed mode. Managed dependency versions resolve from process environment, then project `.env`, then Mega Brain's bundled defaults; they are recorded in the runtime lock after install. Git-backed hooks, history, and commit evidence remain unavailable for plain directories. Remote AgentMemory
 is accepted only after its namespace A/B probe proves that one worktree cannot
 read another and confirms sentinel cleanup.
 
 ## Host integration files
 
-`mega-brain setup` guides full interactive configuration. `mega-brain install`
-opens a host picker for an already configured project; choose Codex, Claude Code,
+`mega-brain setup` guides full interactive configuration; choose Codex, Claude Code,
 or both. Choosing Codex merges the public server into `.codex/config.toml` and
 native lifecycle hooks into `.codex/hooks.json`. Choosing Claude Code merges the
 same public server into `.mcp.json` and hooks into

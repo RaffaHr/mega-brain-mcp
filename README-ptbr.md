@@ -44,7 +44,7 @@ A interface MCP pública é composta exatamente por `brain_recall`, `brain_learn
 
 Um diretório não precisa estar inicializado como repositório Git apenas para iniciar a CLI. Quando `.git` não existe, o Mega Brain deriva uma identidade estável para o diretório, configura os componentes de MCP/runtime que não dependem do Git e informa hooks, histórico e evidências de commit baseados em Git como indisponíveis até que o projeto seja inicializado.
 
-`mega-brain install` verifica os pré-requisitos obrigatórios do runtime antes de criar arquivos de runtime, baixar backends ou alterar a configuração do host. A ausência do Git é informada como indisponibilidade, em vez de bloquear a inicialização. Em seguida, o modo gerenciado instala AgentMemory `0.9.29` e Code Review Graph `2.3.7` em um runtime isolado por projeto; instalações globais dos backends não são necessárias.
+`mega-brain setup` verifica os pré-requisitos obrigatórios do runtime antes de criar arquivos de runtime, baixar backends ou alterar a configuração do host. A ausência do Git é informada como indisponibilidade, em vez de bloquear a inicialização. Em seguida, o modo gerenciado instala as versões gerenciadas padrão do AgentMemory, do Code Review Graph e, no Windows, do iii-engine, exceto quando sobrescritas por `MEGA_BRAIN_AGENTMEMORY_VERSION`, `MEGA_BRAIN_CODE_REVIEW_GRAPH_VERSION` ou `MEGA_BRAIN_III_ENGINE_VERSION`, em um runtime isolado por projeto; instalações globais dos backends não são necessárias.
 
 ## Instalar o pacote
 
@@ -128,7 +128,7 @@ Code ou ambos:
 
 ```powershell
 
-mega-brain install --repo .
+mega-brain setup --repo .
 
 ```
 
@@ -138,7 +138,7 @@ com checksum verificado, dentro do runtime do projeto:
 
 ```powershell
 
-mega-brain install --repo . --accept-iii-engine
+mega-brain setup --repo .
 
 ```
 
@@ -891,11 +891,13 @@ de diagnóstico e compatibilidade.
 
 ## AgentMemory local gerenciado
 
-O modo gerenciado é o padrão. O Mega Brain instala e inicia o runtime fixado do
-
-AgentMemory `0.9.29` para o projeto selecionado e instala o Code Review
-
-Graph `2.3.7` no mesmo namespace de runtime isolado.
+O modo gerenciado é o padrão. O Mega Brain instala e inicia o runtime
+gerenciado padrão do AgentMemory para o projeto selecionado, instala o pacote
+gerenciado padrão do Code Review Graph e, no Windows, baixa o artefato
+gerenciado padrão do iii-engine no mesmo namespace de runtime isolado. Esses
+defaults são definidos no Mega Brain e podem ser sobrescritos por instalação,
+setup ou upgrade com `MEGA_BRAIN_AGENTMEMORY_VERSION`,
+`MEGA_BRAIN_CODE_REVIEW_GRAPH_VERSION` e `MEGA_BRAIN_III_ENGINE_VERSION`.
 
 O modo gerenciado não exige uma instalação global do AgentMemory. As configurações dos backends são
 
@@ -937,7 +939,7 @@ $env:MEGA_BRAIN_AGENTMEMORY_URL = 'https://memory.example.com'
 
 $env:MEGA_BRAIN_AGENTMEMORY_TOKEN = '<secret>'
 
-mega-brain install --repo .
+mega-brain setup --repo .
 
 ```
 
@@ -987,7 +989,7 @@ Upgrade, stop e uninstall podem ser repetidos com segurança.
 
 Todos os comandos resolvem a configuração para o repositório selecionado por `--repo`. O
 
-mesmo resolvedor é usado por `setup`, `install`, `mcp`, `serve`, `doctor`, `upgrade`
+mesmo resolvedor é usado por `setup`, `mcp`, `serve`, `doctor`, `upgrade`
 
 e `uninstall`.
 

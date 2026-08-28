@@ -9,6 +9,11 @@ export const HOST_SELECTION_CHOICES = [
   { value: 'claude', label: 'Claude Code' },
 ] as const satisfies readonly PromptChoice<HostSelection>[];
 
+export const HOST_MULTI_SELECTION_CHOICES = [
+  { value: 'codex', label: 'Codex' },
+  { value: 'claude', label: 'Claude Code' },
+] as const satisfies readonly PromptChoice<SupportedHost>[];
+
 export function expandHostSelection(value: HostSelection): SupportedHost[] {
   return value === 'both' ? ['codex', 'claude'] : [value];
 }
@@ -27,6 +32,9 @@ export async function promptForHosts(
   prompts: PromptAdapter,
   message = 'Configure which hosts?',
 ): Promise<SupportedHost[] | null> {
+  if (prompts.checkbox) {
+    return prompts.checkbox('hosts', message, HOST_MULTI_SELECTION_CHOICES, ['codex', 'claude']);
+  }
   const selected = await prompts.select('hosts', message, HOST_SELECTION_CHOICES, 'both');
   return selected === null ? null : expandHostSelection(selected);
 }

@@ -3,6 +3,7 @@ import type { PromptAdapter, PromptChoice } from '../../src/cli/prompts.js';
 export class ScriptedPrompts implements PromptAdapter {
   readonly interactive = true;
   readonly messages: string[] = [];
+  readonly prompts: Array<{ id: string; message: string }> = [];
 
   constructor(private readonly answers: Record<string, unknown[]>) {}
 
@@ -12,15 +13,18 @@ export class ScriptedPrompts implements PromptAdapter {
     return (answer === undefined || answer === '' ? fallback : answer) as T;
   }
 
-  input(id: string, _message: string, defaultValue = ''): Promise<string | null> {
+  input(id: string, message: string, defaultValue = ''): Promise<string | null> {
+    this.prompts.push({ id, message });
     return Promise.resolve(this.next(id, defaultValue));
   }
 
-  select<T extends string>(id: string, _message: string, _choices: readonly PromptChoice<T>[], defaultValue: T): Promise<T | null> {
+  select<T extends string>(id: string, message: string, _choices: readonly PromptChoice<T>[], defaultValue: T): Promise<T | null> {
+    this.prompts.push({ id, message });
     return Promise.resolve(this.next(id, defaultValue));
   }
 
-  confirm(id: string, _message: string, defaultValue: boolean): Promise<boolean | null> {
+  confirm(id: string, message: string, defaultValue: boolean): Promise<boolean | null> {
+    this.prompts.push({ id, message });
     return Promise.resolve(this.next(id, defaultValue));
   }
 

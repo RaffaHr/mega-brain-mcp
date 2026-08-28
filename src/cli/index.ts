@@ -13,7 +13,7 @@ import { probeRemoteAgentMemoryIsolation } from '../adapters/agentmemory/capabil
 import { CodeReviewGraphClient } from '../adapters/code-review-graph/client.js';
 import { GitRepository, NO_GIT_HEAD } from '../adapters/git/repository.js';
 import { createLocalLogger, type LocalLogger } from '../observability/logger.js';
-import { loadConfig } from '../config/load.js';
+import { loadConfig, loadManagedDependencyVersions } from '../config/load.js';
 import type { MegaBrainConfig } from '../config/schema.js';
 import { discoverProjectIdentity } from '../projects/identity.js';
 import { openProvenanceDatabase } from '../provenance/database.js';
@@ -27,13 +27,24 @@ import { installGitHookMultiplexer, restoreGitHooks } from '../hooks/git/install
 import type { MegaBrainGitHook } from '../hooks/git/multiplexer.js';
 import { createApplicationHandlers } from '../server/application.js';
 import { createMegaBrainServer, listenMegaBrainServer } from '../server/index.js';
-import { managedDoctorDependencies, runDoctor } from './doctor.js';
+import { formatDoctorReport, managedDoctorDependencies, runDoctor } from './doctor.js';
 import { handleGitHook, handleHostHook } from './hook.js';
 import { installHostMcpFiles, restoreHostMcpFiles } from './host-integration.js';
 import { installHostHookFiles, restoreHostHookFiles } from './host-hooks.js';
 import { parseHostSelection, promptForHosts } from './host-selection.js';
 import { installProjectTransaction, inspectManagedRuntime } from './install.js';
 import { runMcpCommand } from './mcp.js';
+import {
+  createOperationProgress,
+  formatUninstallFailureReport,
+  formatUninstallReport,
+  formatUpgradeFailureReport,
+  formatUpgradeReport,
+  uninstallLogMatches,
+  uninstallSteps,
+  upgradeLogMatches,
+  upgradeSteps,
+} from './operation-progress.js';
 import { runInstallPreflight } from './preflight.js';
 import { createTerminalPrompts } from './prompts.js';
 import { runSetupWizard } from './setup.js';
@@ -174,13 +185,14 @@ async function projectContext(args: string[], logger?: LocalLogger) {
   const configPath = option(args, '--config');
   logger?.log('info', 'cli: resolving project context', { repo, ...(configPath ? { configPath: path.resolve(configPath) } : {}) });
   const config = await loadConfig({ repoPath: repo, ...(configPath ? { filePath: configPath } : {}) });
+  const dependencyVersions = (await loadManagedDependencyVersions({ repoPath: repo })).versions;
   const identity = await discoverProjectIdentity(repo);
   logger?.log('info', identity.gitBacked ? 'cli: Git project identity discovered' : 'cli: directory project identity discovered', {
     repo: identity.root,
     project: identity.worktreeId,
     gitBacked: identity.gitBacked,
   });
-  return { repo, config, identity };
+  return { repo, config, identity, dependencyVersions };
 }
 
 export function createAgentMemoryClient(
@@ -242,7 +254,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     return;
   }
   if (command === 'help' || flag(args, '--help')) {
-    output('Usage: mega-brain <setup|mcp|serve|install|start|stop|doctor|upgrade|uninstall> [--repo PATH] [--config FILE] [--transport stdio|http] [--python COMMAND] [--port PORT] [--accept-iii-engine] [--purge]');
+    output('Usage: mega-brain <setup|mcp|serve|install|start|stop|doctor|upgrade|uninstall> [--repo PATH] [--config FILE] [--transport stdio|http] [--python COMMAND] [--port PORT] [--accept-iii-engine] [--purge] [--json]');
     return;
   }
   if (command === 'setup') {
@@ -270,19 +282,20 @@ export async function main(args = process.argv.slice(2), output: (value: string)
         },
       ),
       async install(plan) {
-        const iiiArtifact = plan.iiiEngineConfirmed ? await downloadOfficialIiiEngine() : undefined;
+        const iiiArtifact = plan.iiiEngineConfirmed ? await downloadOfficialIiiEngine({ version: plan.dependencyVersions.iiiEngine }) : undefined;
         const repository = await optionalGitRepository(plan.identity, logger);
         const layout = runtimeLayout(plan.config.dataDir, plan.identity);
         const backupDir = path.join(layout.projectRoot, 'integration-backups');
         const managedHooksPath = path.join(layout.projectRoot, 'hooks', 'git');
         const runtimeSwap = await runtimeSwapForExistingInstall(plan.config, plan.identity, logger);
-        const manifest = await installProjectTransaction({
+        await installProjectTransaction({
           dataDir: plan.config.dataDir,
           identity: plan.identity,
           agentMemoryMode: plan.config.agentMemory.mode,
           pythonCommand: plan.preflight.pythonCommand,
           preflight: false,
           platform: plan.preflight.platform,
+          dependencyVersions: plan.dependencyVersions,
           codeReviewGraph: plan.codeReviewGraphMode === 'managed'
             ? { mode: 'managed' }
             : { mode: 'custom', command: plan.config.codeReviewGraph.command, args: plan.config.codeReviewGraph.args },
@@ -325,20 +338,16 @@ export async function main(args = process.argv.slice(2), output: (value: string)
             if (repository) await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: currentCliArgv(), transaction });
           },
         });
-        prompts.notify(`Setup complete for ${manifest.project.worktreeId}. Reopen ${plan.hosts.join(' and ')} to start Mega Brain automatically.`);
       },
     });
     if (result.status === 'cancelled') prompts.notify('Setup cancelled; no changes were applied.');
     return;
   }
   const pythonOption = option(args, '--python');
-  const installPreflight = command === 'install' || command === 'upgrade'
-    ? await runInstallPreflight({ ...(pythonOption ? { pythonCommand: pythonOption } : {}) })
-    : null;
-  const { config, identity } = await projectContext(args, logger);
+  const { config, identity, dependencyVersions } = await projectContext(args, logger);
   const layout = runtimeLayout(config.dataDir, identity);
-  if ((command === 'install' || command === 'upgrade') && !identity.gitBacked && config.codeReviewGraph.command === 'code-review-graph') {
-    throw new Error('Managed Code Review Graph requires a Git repository. Run git init in this project, or use mega-brain setup to initialize Git interactively before install continues.');
+  if (command === 'upgrade' && !identity.gitBacked && config.codeReviewGraph.command === 'code-review-graph') {
+    throw new Error('Managed Code Review Graph requires a Git repository. Run git init in this project, or use mega-brain setup to initialize Git interactively before upgrade continues.');
   }
   if (command === 'mcp') {
     await runMcpCommand({ config, identity, logger });
@@ -391,70 +400,6 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     }
     throw new Error('Usage: mega-brain hook <host codex|host claude|git EVENT>');
   }
-  if (command === 'install') {
-    const prompts = createTerminalPrompts();
-    const hosts = parseHostSelection(option(args, '--hosts')) ?? await promptForHosts(prompts);
-    if (hosts === null) { prompts.notify('Install cancelled; no changes were applied.'); return; }
-    const repository = await optionalGitRepository(identity, logger);
-    const transport = option(args, '--transport') ?? 'stdio';
-    if (transport !== 'stdio' && transport !== 'http') throw new Error('Invalid --transport; expected stdio or http');
-    const configPath = option(args, '--config');
-    const connection = transport === 'http'
-      ? { transport: 'http' as const, url: mcpEndpoint(args) }
-      : currentCliStdioConnection(['mcp', '--repo', identity.root, ...(configPath ? ['--config', path.resolve(configPath)] : [])]);
-    const managedHooksPath = path.join(layout.projectRoot, 'hooks', 'git');
-    const hostBackupDir = path.join(layout.projectRoot, 'integration-backups');
-    if (config.agentMemory.mode === 'managed' && installPreflight!.managedIiiEngineRequired && !flag(args, '--accept-iii-engine')) {
-      throw new Error('Managed AgentMemory on Windows requires --accept-iii-engine before any download or file change');
-    }
-    const iiiArtifact = config.agentMemory.mode === 'managed' && installPreflight!.managedIiiEngineRequired
-      ? await downloadOfficialIiiEngine()
-      : undefined;
-    const runtimeSwap = await runtimeSwapForExistingInstall(config, identity, logger);
-    const manifest = await installProjectTransaction({
-      dataDir: config.dataDir,
-      identity,
-      agentMemoryMode: config.agentMemory.mode,
-      pythonCommand: installPreflight!.pythonCommand,
-      preflight: false,
-      platform: installPreflight!.platform,
-      codeReviewGraph: config.codeReviewGraph.command === 'code-review-graph'
-        ? { mode: 'managed' }
-        : { mode: 'custom', command: config.codeReviewGraph.command, args: config.codeReviewGraph.args },
-      ...(iiiArtifact ? {
-        iiiEngine: {
-          confirmed: true,
-          expectedSha256: iiiArtifact.sha256,
-          download: async () => iiiArtifact.bytes,
-        },
-      } : {}),
-      ...(config.agentMemory.mode === 'remote' ? {
-        remoteAgentMemory: {
-          baseUrl: config.agentMemory.baseUrl,
-        },
-        remoteIsolationProbe: () => probeRemoteAgentMemoryIsolation(new AgentMemoryClient({
-          baseUrl: config.agentMemory.baseUrl,
-          ...(config.agentMemory.authToken ? { authToken: config.agentMemory.authToken } : {}),
-          timeoutMs: REMOTE_AGENTMEMORY_SETUP_TIMEOUT_MS,
-        }), {
-          projectA: identity.worktreeId,
-          projectB: `${identity.worktreeId}-isolation-control`,
-          sentinel: `mega-brain-install-probe-${randomUUID()}`,
-        }),
-      } : {}),
-      ...runtimeSwap,
-      logger,
-      async configure(transaction) {
-        await installHostMcpFiles({ root: identity.root, backupDir: hostBackupDir, hosts, connection, transaction });
-        for (const host of hosts) {
-          await installHostHookFiles({ root: identity.root, backupDir: hostBackupDir, hosts: [host], command: currentCliShellCommand(['hook', 'host', host]), transaction });
-        }
-        if (repository) await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: currentCliArgv(), transaction });
-      },
-    });
-    output(JSON.stringify({ manifest, hosts, connection, hooksInstalled: Boolean(repository), mcpConfigured: true }));
-    return;
-  }
   if (command === 'start') {
     const inspection = await inspectManagedRuntime(config.dataDir, identity);
     output(JSON.stringify(await startManagedRuntime(config.dataDir, identity, {
@@ -475,47 +420,82 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     return;
   }
   if (command === 'upgrade') {
-    if (config.agentMemory.mode === 'managed' && installPreflight!.managedIiiEngineRequired && !flag(args, '--accept-iii-engine')) {
-      throw new Error('Managed AgentMemory on Windows requires --accept-iii-engine before any download or file change');
+    const jsonOutput = flag(args, '--json');
+    const prompts = createTerminalPrompts();
+    const progress = createOperationProgress({
+      title: 'Mega Brain upgrade',
+      steps: upgradeSteps({
+        agentMemoryMode: config.agentMemory.mode,
+        managedIiiEngineRequired: config.agentMemory.mode === 'managed' && process.platform === 'win32',
+        managedCodeReviewGraph: config.codeReviewGraph.command === 'code-review-graph',
+      }),
+      enabled: !jsonOutput,
+    });
+    const progressLogger = progress.logger(upgradeLogMatches, logger);
+    try {
+      const upgradePreflight = await progress.run('preflight', () => runInstallPreflight({ ...(pythonOption ? { pythonCommand: pythonOption } : {}) }));
+      if (config.agentMemory.mode === 'managed' && upgradePreflight.managedIiiEngineRequired && !flag(args, '--accept-iii-engine')) {
+        if (!prompts.interactive || jsonOutput) {
+          throw new Error('Managed AgentMemory on Windows requires --accept-iii-engine before any download or file change');
+        }
+        const confirmed = await prompts.confirm('iiiEngine', `Download and verify iii-engine ${dependencyVersions.iiiEngine} inside this project runtime?`, true);
+        if (!confirmed) {
+          const error = new Error('iii-engine confirmation is required for managed AgentMemory on Windows');
+          progress.fail('iii-engine', error);
+          progress.close();
+          output(formatUpgradeFailureReport({ error, steps: progress.snapshot() }));
+          return;
+        }
+      }
+      const iiiArtifact = config.agentMemory.mode === 'managed' && upgradePreflight.managedIiiEngineRequired
+        ? await progress.run('iii-engine', () => downloadOfficialIiiEngine({ version: dependencyVersions.iiiEngine }), 'download official artifact')
+        : undefined;
+      const runtimeSwap = await runtimeSwapForExistingInstall(config, identity, progressLogger);
+      const inspection = await upgradeManagedRuntime({
+        dataDir: config.dataDir,
+        identity,
+        agentMemoryMode: config.agentMemory.mode,
+        pythonCommand: upgradePreflight.pythonCommand,
+        preflight: false,
+        platform: upgradePreflight.platform,
+        dependencyVersions,
+        codeReviewGraph: config.codeReviewGraph.command === 'code-review-graph'
+          ? { mode: 'managed' }
+          : { mode: 'custom', command: config.codeReviewGraph.command, args: config.codeReviewGraph.args },
+        ...(iiiArtifact ? {
+          iiiEngine: {
+            confirmed: true,
+            expectedSha256: iiiArtifact.sha256,
+            download: async () => iiiArtifact.bytes,
+          },
+        } : {}),
+        ...(config.agentMemory.mode === 'remote' ? {
+          remoteAgentMemory: {
+            baseUrl: config.agentMemory.baseUrl,
+          },
+          remoteIsolationProbe: () => probeRemoteAgentMemoryIsolation(new AgentMemoryClient({
+            baseUrl: config.agentMemory.baseUrl,
+            ...(config.agentMemory.authToken ? { authToken: config.agentMemory.authToken } : {}),
+            timeoutMs: REMOTE_AGENTMEMORY_SETUP_TIMEOUT_MS,
+          }), {
+            projectA: identity.worktreeId,
+            projectB: `${identity.worktreeId}-isolation-control`,
+            sentinel: `mega-brain-upgrade-probe-${randomUUID()}`,
+          }),
+        } : {}),
+        ...runtimeSwap,
+        logger: progressLogger,
+      });
+      progress.completeOpenSteps();
+      progress.close();
+      output(jsonOutput ? JSON.stringify(inspection) : formatUpgradeReport({ identity, inspection, steps: progress.snapshot() }));
+    } catch (error) {
+      const runningStep = progress.snapshot().find((step) => step.status === 'running')?.id ?? 'inspect-runtime';
+      progress.fail(runningStep, error);
+      progress.close();
+      if (!jsonOutput) output(formatUpgradeFailureReport({ error, steps: progress.snapshot() }));
+      throw error;
     }
-    const iiiArtifact = config.agentMemory.mode === 'managed' && installPreflight!.managedIiiEngineRequired
-      ? await downloadOfficialIiiEngine()
-      : undefined;
-    const runtimeSwap = await runtimeSwapForExistingInstall(config, identity, logger);
-    output(JSON.stringify(await upgradeManagedRuntime({
-      dataDir: config.dataDir,
-      identity,
-      agentMemoryMode: config.agentMemory.mode,
-      pythonCommand: installPreflight!.pythonCommand,
-      preflight: false,
-      platform: installPreflight!.platform,
-      codeReviewGraph: config.codeReviewGraph.command === 'code-review-graph'
-        ? { mode: 'managed' }
-        : { mode: 'custom', command: config.codeReviewGraph.command, args: config.codeReviewGraph.args },
-      ...(iiiArtifact ? {
-        iiiEngine: {
-          confirmed: true,
-          expectedSha256: iiiArtifact.sha256,
-          download: async () => iiiArtifact.bytes,
-        },
-      } : {}),
-      ...(config.agentMemory.mode === 'remote' ? {
-        remoteAgentMemory: {
-          baseUrl: config.agentMemory.baseUrl,
-        },
-        remoteIsolationProbe: () => probeRemoteAgentMemoryIsolation(new AgentMemoryClient({
-          baseUrl: config.agentMemory.baseUrl,
-          ...(config.agentMemory.authToken ? { authToken: config.agentMemory.authToken } : {}),
-          timeoutMs: REMOTE_AGENTMEMORY_SETUP_TIMEOUT_MS,
-        }), {
-          projectA: identity.worktreeId,
-          projectB: `${identity.worktreeId}-isolation-control`,
-          sentinel: `mega-brain-upgrade-probe-${randomUUID()}`,
-        }),
-      } : {}),
-      ...runtimeSwap,
-      logger,
-    })));
     return;
   }
   if (command === 'uninstall') {
@@ -531,38 +511,57 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     const repository = await optionalGitRepository(identity, logger);
     const managedHooksPath = path.join(layout.projectRoot, 'hooks', 'git');
     const hostBackupDir = path.join(layout.projectRoot, 'integration-backups');
-    const runtimeWasActive = await isRuntimeActive(config.dataDir, identity);
-    output(JSON.stringify(await uninstallMegaBrain({
-      dataDir: config.dataDir,
-      identity,
-      purge: flag(args, '--purge'),
-      logger,
-      drain: () => drainProjectSupervisor({ dataDir: config.dataDir, identity }),
-      ...(runtimeWasActive ? {
-        resume: () => startManagedRuntime(config.dataDir, identity, {
-          agentMemoryMode: config.agentMemory.mode,
-          agentMemoryEnvironment: config.agentMemory.environment,
-        }).then(() => undefined),
-      } : {}),
-      participants: [
-        {
-          apply: async () => {
-            await restoreHostHookFiles(hostBackupDir, hosts);
-            await restoreHostMcpFiles(hostBackupDir, hosts);
+    const purge = flag(args, '--purge');
+    const jsonOutput = flag(args, '--json');
+    const progress = createOperationProgress({
+      title: 'Mega Brain uninstall',
+      steps: uninstallSteps({ repository: Boolean(repository), purge }),
+      enabled: !jsonOutput,
+    });
+    const progressLogger = progress.logger(uninstallLogMatches, logger);
+    try {
+      const runtimeWasActive = await progress.run('runtime-active', () => isRuntimeActive(config.dataDir, identity));
+      const result = await uninstallMegaBrain({
+        dataDir: config.dataDir,
+        identity,
+        purge,
+        logger: progressLogger,
+        drain: () => progress.run('runtime-drain', () => drainProjectSupervisor({ dataDir: config.dataDir, identity })),
+        ...(runtimeWasActive ? {
+          resume: () => startManagedRuntime(config.dataDir, identity, {
+            agentMemoryMode: config.agentMemory.mode,
+            agentMemoryEnvironment: config.agentMemory.environment,
+          }).then(() => undefined),
+        } : {}),
+        participants: [
+          {
+            apply: async () => {
+              await progress.run('host-hooks', () => restoreHostHookFiles({ root: identity.root, backupDir: hostBackupDir, hosts }));
+              await progress.run('mcp-files', () => restoreHostMcpFiles({ root: identity.root, backupDir: hostBackupDir, hosts }));
+            },
+            rollback: async () => {
+              await installHostMcpFiles({ root: identity.root, backupDir: hostBackupDir, hosts, connection });
+              for (const host of hosts) {
+                await installHostHookFiles({ root: identity.root, backupDir: hostBackupDir, hosts: [host], command: currentCliShellCommand(['hook', 'host', host]) });
+              }
+            },
           },
-          rollback: async () => {
-            await installHostMcpFiles({ root: identity.root, backupDir: hostBackupDir, hosts, connection });
-            for (const host of hosts) {
-              await installHostHookFiles({ root: identity.root, backupDir: hostBackupDir, hosts: [host], command: currentCliShellCommand(['hook', 'host', host]) });
-            }
-          },
-        },
-        ...(repository ? [{
-          apply: () => restoreGitHooks(repository, managedHooksPath),
-          rollback: () => installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: currentCliArgv() }).then(() => undefined),
-        }] : []),
-      ],
-    })));
+          ...(repository ? [{
+            apply: () => progress.run('git-hooks', () => restoreGitHooks(repository, managedHooksPath)),
+            rollback: () => installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: currentCliArgv() }).then(() => undefined),
+          }] : []),
+        ],
+      });
+      progress.completeOpenSteps();
+      progress.close();
+      output(jsonOutput ? JSON.stringify(result) : formatUninstallReport({ hosts, purge, result, steps: progress.snapshot() }));
+    } catch (error) {
+      const runningStep = progress.snapshot().find((step) => step.status === 'running')?.id ?? 'project-config';
+      progress.fail(runningStep, error);
+      progress.close();
+      if (!jsonOutput) output(formatUninstallFailureReport({ error, steps: progress.snapshot() }));
+      throw error;
+    }
     return;
   }
   if (command === 'doctor') {
@@ -592,7 +591,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
         codeReviewGraph,
         gitHead: () => repository ? repository.head() : Promise.resolve(NO_GIT_HEAD),
       }));
-      output(JSON.stringify(result));
+      output(flag(args, '--json') ? JSON.stringify(result) : formatDoctorReport(result));
     } finally {
       await codeReviewGraph.stop().catch(() => undefined);
     }

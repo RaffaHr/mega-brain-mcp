@@ -77,7 +77,7 @@ export async function startRuntime(
   const processes: Record<string, number> = {};
   const agentMemoryMode = options.agentMemoryMode ?? manifest.agentMemoryMode;
   if (agentMemoryMode === 'managed' && !manifest.backends.agentMemory) {
-    throw new Error('AgentMemory managed runtime is not installed; run mega-brain install or upgrade in managed mode');
+    throw new Error('AgentMemory managed runtime is not installed; run mega-brain setup or upgrade in managed mode');
   }
   try {
     for (const [name, command] of Object.entries(manifest.backends)) {

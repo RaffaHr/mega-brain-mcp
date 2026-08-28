@@ -30,6 +30,47 @@ async function atomicWrite(target: string, content: string): Promise<void> {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function hasMegaBrainCommand(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  const command = value.command;
+  return typeof command === 'string' && /\bmega-brain\b.*\bhook\b.*\bhost\b/u.test(command);
+}
+
+function isMegaBrainHookRegistration(value: unknown): boolean {
+  if (!isRecord(value)) return false;
+  if (value._megaBrain === true) return true;
+  const hooks = value.hooks;
+  return Array.isArray(hooks) && hooks.some(hasMegaBrainCommand);
+}
+
+function removeMegaBrainHostHooks(content: string): string {
+  const config = content.trim() ? JSON.parse(content) as HostHookConfig : {};
+  if (!isRecord(config.hooks)) return `${JSON.stringify(config, null, 2)}\n`;
+  const hooks: Record<string, unknown> = { ...config.hooks };
+  for (const [event, registrations] of Object.entries(hooks)) {
+    if (!Array.isArray(registrations)) continue;
+    const kept = registrations.filter((entry) => !isMegaBrainHookRegistration(entry));
+    if (kept.length > 0) hooks[event] = kept;
+    else delete hooks[event];
+  }
+  if (Object.keys(hooks).length > 0) config.hooks = hooks as Record<string, Array<Record<string, unknown>>>;
+  else delete config.hooks;
+  return `${JSON.stringify(config, null, 2)}\n`;
+}
+
+function normalizedRestoreHostHookInput(
+  inputOrBackupDir: string | { root?: string; backupDir: string; hosts: SupportedHost[] },
+  maybeHosts?: SupportedHost[],
+): { root?: string; backupDir: string; hosts: SupportedHost[] } {
+  return typeof inputOrBackupDir === 'string'
+    ? { backupDir: inputOrBackupDir, hosts: maybeHosts ?? [] }
+    : inputOrBackupDir;
+}
+
 async function readOptional(target: string): Promise<{ existed: boolean; content: string }> {
   try { return { existed: true, content: await readFile(target, 'utf8') }; }
   catch (error) {
@@ -69,16 +110,38 @@ export async function installHostHookFiles(input: {
   }
 }
 
-export async function restoreHostHookFiles(backupDir: string, hosts: SupportedHost[]): Promise<void> {
-  for (const host of hosts) {
-    const backupPath = path.join(backupDir, `${host}.json`);
-    let backup: HostFileBackup;
+export async function restoreHostHookFiles(backupDir: string, hosts: SupportedHost[]): Promise<void>;
+export async function restoreHostHookFiles(input: { root?: string; backupDir: string; hosts: SupportedHost[] }): Promise<void>;
+export async function restoreHostHookFiles(
+  inputOrBackupDir: string | { root?: string; backupDir: string; hosts: SupportedHost[] },
+  maybeHosts?: SupportedHost[],
+): Promise<void> {
+  if (typeof inputOrBackupDir === 'string') {
+    for (const host of maybeHosts ?? []) {
+      const backupPath = path.join(inputOrBackupDir, `${host}.json`);
+      let backup: HostFileBackup;
+      try { backup = JSON.parse(await readFile(backupPath, 'utf8')) as HostFileBackup; }
+      catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
+        throw error;
+      }
+      if (backup.existed) await atomicWrite(backup.target, backup.content);
+      else await rm(backup.target, { force: true });
+    }
+    return;
+  }
+  const input = normalizedRestoreHostHookInput(inputOrBackupDir, maybeHosts);
+  for (const host of input.hosts) {
+    const backupPath = path.join(input.backupDir, `${host}.json`);
+    let backup: HostFileBackup | undefined;
     try { backup = JSON.parse(await readFile(backupPath, 'utf8')) as HostFileBackup; }
     catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
-      throw error;
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     }
-    if (backup.existed) await atomicWrite(backup.target, backup.content);
-    else await rm(backup.target, { force: true });
+    const target = backup?.target ?? (input.root ? hostTarget(input.root, host) : undefined);
+    if (!target) continue;
+    const current = await readOptional(target);
+    if (!current.existed) continue;
+    await atomicWrite(target, removeMegaBrainHostHooks(current.content));
   }
 }

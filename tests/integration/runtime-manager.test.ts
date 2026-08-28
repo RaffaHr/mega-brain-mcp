@@ -7,6 +7,7 @@ import { afterEach, expect, test } from 'vitest';
 import { installManagedRuntime, inspectManagedRuntime, type CommandRunner } from '../../src/cli/install.js';
 import { startManagedRuntime } from '../../src/cli/start.js';
 import { deriveProjectIdentity } from '../../src/projects/identity.js';
+import { DEFAULT_MANAGED_DEPENDENCY_VERSIONS, type ManagedDependencyVersions } from '../../src/runtime/dependency-versions.js';
 import { runtimeLayout } from '../../src/runtime/layout.js';
 import type { ProcessController } from '../../src/runtime/supervisor.js';
 
@@ -69,14 +70,18 @@ test('AC-001: instalação cria runtime isolado e verificável @spec:AC-001', as
   const inspection = await inspectManagedRuntime(dataDir, identity);
 
   expect(commands).toHaveLength(4);
-  expect(commands[0]?.args).toContain('@agentmemory/agentmemory@0.9.29');
-  expect(commands[2]?.args).toContain('code-review-graph==2.3.7');
+  expect(commands[0]?.args).toContain(`@agentmemory/agentmemory@${DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory}`);
+  expect(commands[2]?.args).toContain(`code-review-graph==${DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph}`);
   expect(commands[3]?.args).toEqual(['-m', 'code_review_graph', 'build']);
   expect(commands[3]?.options.env).toMatchObject({ CRG_REPO_ROOT: path.resolve(identity.root) });
   expect(path.isAbsolute(commands[3]?.options.env?.CRG_DATA_DIR ?? '')).toBe(true);
   expect(commands[3]?.options.env?.CRG_DATA_DIR).toContain(path.join('runtime', '.staging-'));
   expect(manifest.backends.codeReviewGraph.environment?.CRG_DATA_DIR).toBe(manifest.isolation!.paths.codeReviewGraph);
-  expect(manifest.versions).toEqual({ megaBrain: '0.1.4-alpha', agentMemory: '0.9.29', codeReviewGraph: '2.3.7' });
+  expect(manifest.versions).toEqual({
+    megaBrain: '0.1.4-alpha',
+    agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory,
+    codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph,
+  });
   expect(inspection.healthy).toBe(true);
   expect(inspection.checks).toEqual({ project: true, isolation: true, agentMemory: true, codeReviewGraph: true });
   expect(manifest.backends.codeReviewGraph.lifecycle).toBe('on-demand');
@@ -90,6 +95,7 @@ test('AC-001: instalação cria runtime isolado e verificável @spec:AC-001', as
   ]));
   expect(manifest.backends.agentMemory?.environment).toEqual({
     AGENTMEMORY_III_CONFIG: path.join(manifest.backends.agentMemory!.cwd, 'iii-config.yaml'),
+    AGENTMEMORY_III_VERSION: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.iiiEngine,
     HOME: manifest.isolation!.paths.iiiEngine,
     III_ENGINE_PORT: String(manifest.isolation!.ports.engine),
     III_ENGINE_URL: `ws://127.0.0.1:${manifest.isolation!.ports.engine}`,
@@ -103,6 +109,32 @@ test('AC-001: instalação cria runtime isolado e verificável @spec:AC-001', as
   expect(iiiConfig).toContain(`port: ${manifest.isolation!.ports.streams}`);
   expect(iiiConfig).toContain('name: iii-worker-manager');
   expect(iiiConfig).toContain(`port: ${manifest.isolation!.ports.engine}`);
+});
+
+test('versoes gerenciadas customizadas controlam download e manifesto do runtime', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-runtime-versions-'));
+  temporaryDirectories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const versions: ManagedDependencyVersions = {
+    agentMemory: '0.9.30',
+    codeReviewGraph: '2.4.1',
+    iiiEngine: '0.11.4',
+  };
+  const commands: Array<{ command: string; args: string[] }> = [];
+
+  const manifest = await installManagedRuntime({
+    dataDir,
+    identity,
+    runner: { async run(command, args) { commands.push({ command, args }); } },
+    preflight: false,
+    now: new Date('2026-08-24T12:00:00.000Z'),
+    dependencyVersions: versions,
+  });
+
+  expect(commands[0]?.args).toContain(`@agentmemory/agentmemory@${versions.agentMemory}`);
+  expect(commands[2]?.args).toContain(`code-review-graph==${versions.codeReviewGraph}`);
+  expect(manifest.versions).toEqual({ megaBrain: '0.1.4-alpha', agentMemory: versions.agentMemory, codeReviewGraph: versions.codeReviewGraph });
+  expect(manifest.backends.agentMemory?.environment?.AGENTMEMORY_III_VERSION).toBe(versions.iiiEngine);
 });
 
 test('AC-026: modo remoto instala somente Code Review Graph e nunca inicia AgentMemory local @spec:AC-026', async () => {
@@ -145,8 +177,8 @@ test('AC-026: modo remoto instala somente Code Review Graph e nunca inicia Agent
   });
 
   expect(commands).toHaveLength(3);
-  expect(commands.flatMap(({ args }) => args)).not.toContain('@agentmemory/agentmemory@0.9.29');
-  expect(commands[1]?.args).toContain('code-review-graph==2.3.7');
+  expect(commands.flatMap(({ args }) => args)).not.toContain(`@agentmemory/agentmemory@${DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory}`);
+  expect(commands[1]?.args).toContain(`code-review-graph==${DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph}`);
   expect(manifest.agentMemoryMode).toBe('remote');
   expect(manifest.backends).not.toHaveProperty('agentMemory');
   expect(inspection.checks).toEqual({ project: true, isolation: true, codeReviewGraph: true });
@@ -235,7 +267,7 @@ test('AC-043: CRG customizado é validado e persistido sem instalar o pacote ger
     codeReviewGraph: { mode: 'custom', command: 'custom-crg', args: ['--profile', 'isolated'] },
   });
 
-  expect(commands.flatMap(({ args }) => args)).not.toContain('code-review-graph==2.3.7');
+  expect(commands.flatMap(({ args }) => args)).not.toContain(`code-review-graph==${DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph}`);
   expect(commands).toContainEqual({ command: 'custom-crg', args: ['--profile', 'isolated', 'build'] });
   expect(manifest.backends.codeReviewGraph).toMatchObject({
     command: 'custom-crg',

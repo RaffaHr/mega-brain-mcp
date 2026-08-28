@@ -2,7 +2,14 @@ import { readFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import path from 'node:path';
 
-import { megaBrainConfigSchema, type MegaBrainConfig, type MegaBrainConfigInput } from './schema.js';
+import { DEFAULT_CONFIG, megaBrainConfigSchema, type MegaBrainConfig, type MegaBrainConfigInput } from './schema.js';
+import {
+  DEFAULT_MANAGED_DEPENDENCY_VERSIONS,
+  LEGACY_III_ENGINE_VERSION_ENV,
+  MANAGED_DEPENDENCY_VERSION_ENV,
+  parseManagedDependencyVersion,
+  type ManagedDependencyVersions,
+} from '../runtime/dependency-versions.js';
 import { redactValue } from '../security/redaction.js';
 
 const EXECUTION_CONTROL_KEYS = new Set([
@@ -26,6 +33,12 @@ const EXECUTION_CONTROL_KEYS = new Set([
 ]);
 
 export const AGENTMEMORY_ENV_ALLOWLIST = new Set([
+  'AGENTMEMORY_CHEAP_MODEL',
+  'AGENTMEMORY_CLAUDE_CODE_BRIDGE',
+  'AGENTMEMORY_CLINE_BRIDGE',
+  'AGENTMEMORY_CURSOR_BRIDGE',
+  'AGENTMEMORY_MODEL',
+  'AGENTMEMORY_WINDSURF_BRIDGE',
   'AGENTMEMORY_AGENT_SCOPE',
   'AGENTMEMORY_ALLOW_AGENT_SDK',
   'AGENTMEMORY_AUTO_COMPRESS',
@@ -41,7 +54,6 @@ export const AGENTMEMORY_ENV_ALLOWLIST = new Set([
   'AGENTMEMORY_FORCE_PROXY',
   'AGENTMEMORY_GRAPH_WEIGHT',
   'AGENTMEMORY_III_CONFIG',
-  'AGENTMEMORY_III_VERSION',
   'AGENTMEMORY_IMAGE_EMBEDDINGS',
   'AGENTMEMORY_IMAGE_STORE_MAX_BYTES',
   'AGENTMEMORY_INJECT_CONTEXT',
@@ -63,9 +75,15 @@ export const AGENTMEMORY_ENV_ALLOWLIST = new Set([
   'ANTHROPIC_API_KEY',
   'COHERE_API_KEY',
   'CONSOLIDATION_ENABLED',
+  'EMBEDDING_MODEL',
   'EMBEDDING_PROVIDER',
+  'GEMINI_API_KEY',
+  'GOOGLE_API_KEY',
   'GRAPH_EXTRACTION_ENABLED',
+  'MINIMAX_API_KEY',
+  'OLLAMA_HOST',
   'OPENAI_API_KEY',
+  'OPENROUTER_API_KEY',
   'SNAPSHOT_ENABLED',
   'VOYAGE_API_KEY',
 ]);
@@ -94,6 +112,11 @@ export interface ConfigFlags {
 export interface LoadedConfigWithSources {
   config: MegaBrainConfig;
   sources: Record<string, ConfigSource>;
+}
+
+export interface LoadedManagedDependencyVersions {
+  versions: ManagedDependencyVersions;
+  sources: Record<keyof ManagedDependencyVersions, ConfigSource>;
 }
 
 export class UnsafeEnvironmentVariableError extends Error {
@@ -219,8 +242,21 @@ function directAgentMemoryEnvironment(env: NodeJS.ProcessEnv): Record<string, st
     .filter((entry): entry is readonly [string, string] => entry[1] !== undefined));
 }
 
-const LLM_CREDENTIALS = new Set(['ANTHROPIC_API_KEY', 'OPENAI_API_KEY']);
-const REMOTE_EMBEDDING_CREDENTIALS = new Set(['COHERE_API_KEY', 'VOYAGE_API_KEY']);
+const LLM_CREDENTIALS = new Set([
+  'ANTHROPIC_API_KEY',
+  'GEMINI_API_KEY',
+  'GOOGLE_API_KEY',
+  'MINIMAX_API_KEY',
+  'OPENAI_API_KEY',
+  'OPENROUTER_API_KEY',
+]);
+const REMOTE_EMBEDDING_CREDENTIALS = new Set([
+  'COHERE_API_KEY',
+  'GEMINI_API_KEY',
+  'GOOGLE_API_KEY',
+  'OPENAI_API_KEY',
+  'VOYAGE_API_KEY',
+]);
 const LLM_FEATURE_FLAGS = new Set([
   'AGENTMEMORY_AUTO_COMPRESS',
   'AGENTMEMORY_INJECT_CONTEXT',
@@ -311,18 +347,7 @@ export async function loadConfigWithSources(options: LoadConfigOptions = {}): Pr
 
   const defaults: MegaBrainConfigInput = {
     dataDir: path.join(homedir(), '.mega-brain'),
-    port: 3000,
-    logLevel: 'info',
-    allowEgress: false,
-    allowLlm: false,
-    agentMemory: {
-      mode: 'managed',
-      baseUrl: 'http://127.0.0.1:3111',
-      ports: { rest: 3111, streams: 3112, viewer: 3113, engine: 3114 },
-      environment: {},
-    },
-    codeReviewGraph: { command: 'code-review-graph', args: [], environment: {} },
-    projects: {},
+    ...DEFAULT_CONFIG,
   };
 
   const dataDirEnv = sourceEnv('MEGA_BRAIN_DATA_DIR');
@@ -501,10 +526,56 @@ export async function loadConfigWithSources(options: LoadConfigOptions = {}): Pr
   return { config, sources };
 }
 
+export async function loadManagedDependencyVersions(
+  options: Pick<LoadConfigOptions, 'env' | 'repoPath' | 'envFilePath'> = {},
+): Promise<LoadedManagedDependencyVersions> {
+  const repoPath = path.resolve(options.repoPath ?? process.cwd());
+  const envFilePath = options.envFilePath === false
+    ? undefined
+    : resolveAgainstRepo(repoPath, options.envFilePath ?? '.env');
+  const envFromFile = envFilePath ? await loadDotEnv(envFilePath) : {};
+  const processEnvironment = options.env ?? process.env;
+  const sourceEnv = (key: string): { value: string | undefined; source: ConfigSource | undefined } => {
+    const processValue = nonEmpty(processEnvironment[key]);
+    if (processValue !== undefined) return { value: processValue, source: 'process' };
+    const dotEnvValue = nonEmpty(envFromFile[key]);
+    if (dotEnvValue !== undefined) return { value: dotEnvValue, source: 'dotenv' };
+    return { value: undefined, source: undefined };
+  };
+  const resolveVersion = (
+    key: keyof ManagedDependencyVersions,
+    environmentKey: string,
+    fallbackEnvironmentKey?: string,
+  ): { value: string; source: ConfigSource } => {
+    const primary = sourceEnv(environmentKey);
+    const fallback = fallbackEnvironmentKey ? sourceEnv(fallbackEnvironmentKey) : { value: undefined, source: undefined };
+    const resolved = firstDefined<string>([
+      [primary.value ? parseManagedDependencyVersion(primary.value, environmentKey) : undefined, primary.source ?? 'process'],
+      [fallback.value ? parseManagedDependencyVersion(fallback.value, fallbackEnvironmentKey!) : undefined, fallback.source ?? 'process'],
+      [DEFAULT_MANAGED_DEPENDENCY_VERSIONS[key], 'default'],
+    ]);
+    return { value: resolved.value, source: resolved.source };
+  };
+  const agentMemory = resolveVersion('agentMemory', MANAGED_DEPENDENCY_VERSION_ENV.agentMemory);
+  const codeReviewGraph = resolveVersion('codeReviewGraph', MANAGED_DEPENDENCY_VERSION_ENV.codeReviewGraph);
+  const iiiEngine = resolveVersion('iiiEngine', MANAGED_DEPENDENCY_VERSION_ENV.iiiEngine, LEGACY_III_ENGINE_VERSION_ENV);
+  return {
+    versions: {
+      agentMemory: agentMemory.value,
+      codeReviewGraph: codeReviewGraph.value,
+      iiiEngine: iiiEngine.value,
+    },
+    sources: {
+      agentMemory: agentMemory.source,
+      codeReviewGraph: codeReviewGraph.source,
+      iiiEngine: iiiEngine.source,
+    },
+  };
+}
+
 export async function loadConfig(options: LoadConfigOptions = {}): Promise<MegaBrainConfig> {
   return (await loadConfigWithSources(options)).config;
 }
-
 export function redactConfig(config: MegaBrainConfig): Record<string, unknown> {
   return redactValue(config) as Record<string, unknown>;
 }

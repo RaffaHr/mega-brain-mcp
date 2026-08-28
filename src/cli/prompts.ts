@@ -1,9 +1,10 @@
 import { createInterface } from 'node:readline/promises';
 import type { Readable, Writable } from 'node:stream';
 
-import { confirm as confirmPrompt, input as inputPrompt, select as selectPrompt } from '@inquirer/prompts';
+import { checkbox as checkboxPrompt, confirm as confirmPrompt, input as inputPrompt, select as selectPrompt } from '@inquirer/prompts';
 
-import { cliLabel, cliMuted, renderTerminalMarkdown } from './ui.js';
+import { playMegaBrainLogo } from './brand.js';
+import { cliLabel, cliMuted, cliPromptTheme, renderTerminalMarkdown, withTerminalSpinner } from './ui.js';
 
 export interface PromptChoice<T extends string> {
   value: T;
@@ -12,10 +13,13 @@ export interface PromptChoice<T extends string> {
 
 export interface PromptAdapter {
   readonly interactive: boolean;
+  intro?(): Promise<void>;
   input(id: string, message: string, defaultValue?: string): Promise<string | null>;
   select<T extends string>(id: string, message: string, choices: readonly PromptChoice<T>[], defaultValue: T): Promise<T | null>;
+  checkbox?<T extends string>(id: string, message: string, choices: readonly PromptChoice<T>[], defaultValues: readonly T[]): Promise<T[] | null>;
   confirm(id: string, message: string, defaultValue: boolean): Promise<boolean | null>;
   notify(message: string): void;
+  withSpinner?<T>(message: string, run: () => Promise<T>): Promise<T>;
 }
 
 export function createTerminalPrompts(input: Readable = process.stdin, output: Writable = process.stderr): PromptAdapter {
@@ -29,10 +33,13 @@ export function createTerminalPrompts(input: Readable = process.stdin, output: W
   };
   return {
     interactive,
-    async input(_id, message, defaultValue = '') {
+    async intro() {
+      if (interactive) await playMegaBrainLogo(output as NodeJS.WriteStream);
+    },
+    async input(id, message, defaultValue = '') {
       if (interactive) {
         try {
-          return await inputPrompt({ message: cliLabel(message), default: defaultValue }, context);
+          return await inputPrompt({ message: cliLabel(message), default: defaultValue, theme: cliPromptTheme(id) }, context);
         } catch {
           return null;
         }
@@ -40,7 +47,7 @@ export function createTerminalPrompts(input: Readable = process.stdin, output: W
       const answer = await ask(`${message}${defaultValue ? ` [${defaultValue}]` : ''}: `);
       return answer === null ? null : answer.trim() || defaultValue;
     },
-    async select(_id, message, choices, defaultValue) {
+    async select(id, message, choices, defaultValue) {
       if (interactive) {
         try {
           return await selectPrompt({
@@ -50,6 +57,7 @@ export function createTerminalPrompts(input: Readable = process.stdin, output: W
               name: choice.value === defaultValue ? `${choice.label} ${cliMuted('(default)')}` : choice.label,
             })),
             default: defaultValue,
+            theme: cliPromptTheme(id),
           }, context);
         } catch {
           return null;
@@ -62,10 +70,39 @@ export function createTerminalPrompts(input: Readable = process.stdin, output: W
       const index = Number(answer) - 1;
       return choices[index]?.value ?? choices.find(({ value }) => value === answer.trim())?.value ?? defaultValue;
     },
-    async confirm(_id, message, defaultValue) {
+    async checkbox(id, message, choices, defaultValues) {
       if (interactive) {
         try {
-          return await confirmPrompt({ message: cliLabel(message), default: defaultValue }, context);
+          return await checkboxPrompt({
+            message: cliLabel(message),
+            choices: choices.map((choice) => ({
+              value: choice.value,
+              name: choice.label,
+              checked: defaultValues.includes(choice.value),
+            })),
+            required: true,
+            theme: cliPromptTheme(id),
+          }, context);
+        } catch {
+          return null;
+        }
+      }
+      output.write(`${message}\n${choices.map((choice, index) => `  ${index + 1}. [${defaultValues.includes(choice.value) ? 'x' : ' '}] ${choice.label}`).join('\n')}\n`);
+      const answer = await ask('Choices: ');
+      if (answer === null) return null;
+      if (!answer.trim()) return [...defaultValues];
+      const selected = answer.split(',').map((item) => item.trim()).filter(Boolean);
+      const values = selected.flatMap((item) => {
+        const index = Number(item) - 1;
+        const choice = choices[index] ?? choices.find(({ value }) => value === item);
+        return choice ? [choice.value] : [];
+      });
+      return values.length > 0 ? [...new Set(values)] : [...defaultValues];
+    },
+    async confirm(id, message, defaultValue) {
+      if (interactive) {
+        try {
+          return await confirmPrompt({ message: cliLabel(message), default: defaultValue, theme: cliPromptTheme(id) }, context);
         } catch {
           return null;
         }
@@ -76,5 +113,6 @@ export function createTerminalPrompts(input: Readable = process.stdin, output: W
       return /^(?:y|yes|s|sim)$/iu.test(answer.trim());
     },
     notify(message) { output.write(`${renderTerminalMarkdown(message, output as NodeJS.WriteStream)}\n`); },
+    withSpinner(message, run) { return withTerminalSpinner(output as NodeJS.WriteStream, message, run); },
   };
 }

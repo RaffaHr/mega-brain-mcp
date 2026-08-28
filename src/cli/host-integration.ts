@@ -60,6 +60,29 @@ function removeCodexMegaBrainSection(content: string): string {
   return kept.join('\n').trimEnd();
 }
 
+function removeClaudeMegaBrainMcpConfig(content: string): string {
+  const config = content.trim() ? JSON.parse(content) as Record<string, unknown> : {};
+  const current = config.mcpServers;
+  if (current === undefined) return `${JSON.stringify(config, null, 2)}\n`;
+  if (current === null || Array.isArray(current) || typeof current !== 'object') {
+    throw new Error('Claude .mcp.json mcpServers must be an object');
+  }
+  const mcpServers = { ...(current as Record<string, unknown>) };
+  delete mcpServers['mega-brain'];
+  if (Object.keys(mcpServers).length > 0) config.mcpServers = mcpServers;
+  else delete config.mcpServers;
+  return `${JSON.stringify(config, null, 2)}\n`;
+}
+
+function normalizedRestoreHostMcpInput(
+  inputOrBackupDir: string | { root?: string; backupDir: string; hosts: SupportedHost[] },
+  maybeHosts?: SupportedHost[],
+): { root?: string; backupDir: string; hosts: SupportedHost[] } {
+  return typeof inputOrBackupDir === 'string'
+    ? { backupDir: inputOrBackupDir, hosts: maybeHosts ?? [] }
+    : inputOrBackupDir;
+}
+
 function validatedConnection(connection: HostMcpConnection): HostMcpConnection {
   if (connection.transport === 'stdio') {
     if (!connection.command.trim()) throw new Error('MCP stdio command is required');
@@ -127,16 +150,41 @@ export async function installHostMcpFiles(input: {
   }
 }
 
-export async function restoreHostMcpFiles(backupDir: string, hosts: SupportedHost[]): Promise<void> {
-  for (const host of hosts) {
-    const backupPath = path.join(backupDir, `${host}-mcp.json`);
-    let backup: HostFileBackup;
+export async function restoreHostMcpFiles(backupDir: string, hosts: SupportedHost[]): Promise<void>;
+export async function restoreHostMcpFiles(input: { root?: string; backupDir: string; hosts: SupportedHost[] }): Promise<void>;
+export async function restoreHostMcpFiles(
+  inputOrBackupDir: string | { root?: string; backupDir: string; hosts: SupportedHost[] },
+  maybeHosts?: SupportedHost[],
+): Promise<void> {
+  if (typeof inputOrBackupDir === 'string') {
+    for (const host of maybeHosts ?? []) {
+      const backupPath = path.join(inputOrBackupDir, `${host}-mcp.json`);
+      let backup: HostFileBackup;
+      try { backup = JSON.parse(await readFile(backupPath, 'utf8')) as HostFileBackup; }
+      catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
+        throw error;
+      }
+      if (backup.existed) await atomicWrite(backup.target, backup.content);
+      else await rm(backup.target, { force: true });
+    }
+    return;
+  }
+  const input = normalizedRestoreHostMcpInput(inputOrBackupDir, maybeHosts);
+  for (const host of input.hosts) {
+    const backupPath = path.join(input.backupDir, `${host}-mcp.json`);
+    let backup: HostFileBackup | undefined;
     try { backup = JSON.parse(await readFile(backupPath, 'utf8')) as HostFileBackup; }
     catch (error) {
-      if ((error as NodeJS.ErrnoException).code === 'ENOENT') continue;
-      throw error;
+      if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     }
-    if (backup.existed) await atomicWrite(backup.target, backup.content);
-    else await rm(backup.target, { force: true });
+    const target = backup?.target ?? (input.root ? targetFor(input.root, host) : undefined);
+    if (!target) continue;
+    const current = await readOptional(target);
+    if (!current.existed) continue;
+    const cleaned = host === 'codex'
+      ? removeCodexMegaBrainSection(current.content)
+      : removeClaudeMegaBrainMcpConfig(current.content);
+    await atomicWrite(target, host === 'codex' ? (cleaned ? `${cleaned}\n` : '') : cleaned);
   }
 }

@@ -5,7 +5,7 @@ import path from 'node:path';
 import { afterEach, expect, test } from 'vitest';
 
 import { deriveProjectIdentity } from '../../src/projects/identity.js';
-import { installIiiEngineArtifact, sha256Artifact } from '../../src/runtime/iii-engine.js';
+import { III_ENGINE_VERSION, installIiiEngineArtifact, sha256Artifact } from '../../src/runtime/iii-engine.js';
 import { runtimeLayout } from '../../src/runtime/layout.js';
 import { createRuntimeIsolation } from '../../src/runtime/lock-manifest.js';
 import { installManagedRuntime } from '../../src/cli/install.js';
@@ -36,7 +36,7 @@ test('AC-044: iii-engine pinado só é instalado após confirmação e checksum 
 
   await expect(installIiiEngineArtifact({
     destination,
-    version: '0.11.2',
+    version: III_ENGINE_VERSION,
     confirmed: false,
     expectedSha256: sha256Artifact(artifact),
     download: async () => artifact,
@@ -44,7 +44,7 @@ test('AC-044: iii-engine pinado só é instalado após confirmação e checksum 
 
   await expect(installIiiEngineArtifact({
     destination,
-    version: '0.11.2',
+    version: III_ENGINE_VERSION,
     confirmed: true,
     expectedSha256: '0'.repeat(64),
     download: async () => artifact,
@@ -52,7 +52,7 @@ test('AC-044: iii-engine pinado só é instalado após confirmação e checksum 
 
   await installIiiEngineArtifact({
     destination,
-    version: '0.11.2',
+    version: III_ENGINE_VERSION,
     confirmed: true,
     expectedSha256: sha256Artifact(artifact),
     download: async () => artifact,
@@ -78,7 +78,7 @@ test('AC-044: install gerenciado no Windows mantém iii-engine no namespace do p
     },
   });
 
-  expect(manifest.versions.iiiEngine).toBe('0.11.2');
+  expect(manifest.versions.iiiEngine).toBe(III_ENGINE_VERSION);
   expect(await readFile(path.join(manifest.isolation!.paths.iiiEngine, 'iii.exe'))).toEqual(artifact);
   expect(manifest.isolation!.paths.iiiEngine).toContain(identity.worktreeId);
 });

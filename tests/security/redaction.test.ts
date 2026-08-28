@@ -19,8 +19,12 @@ test('P-002: segredos nunca são persistidos nem expostos @principle:P-002', () 
     expect(serialized).not.toContain(secret);
   }
   expect(serialized).toContain('0123456789abcdef0123456789abcdef01234567');
-  const lines: string[] = [];
-  createLocalLogger((line) => lines.push(line)).log('info', 'request', input);
-  expect(lines[0]).not.toContain('direct-secret');
+  const infoLines: string[] = [];
+  createLocalLogger((line) => infoLines.push(line), { environment: { MEGA_BRAIN_LOG_LEVEL: 'info' } }).log('info', 'request', input);
+  expect(infoLines).toEqual([]);
+
+  const debugLines: string[] = [];
+  createLocalLogger((line) => debugLines.push(line), { environment: { MEGA_BRAIN_LOG_LEVEL: 'debug' } }).log('info', 'request', input);
+  expect(debugLines[0]).not.toContain('direct-secret');
   expect(redactText('API_KEY=very-secret-value')).toBe('API_KEY=[REDACTED]');
 });

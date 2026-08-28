@@ -4,6 +4,8 @@ import path from 'node:path';
 
 import { expect, test, vi } from 'vitest';
 
+import { DEFAULT_MANAGED_DEPENDENCY_VERSIONS } from '../../src/runtime/dependency-versions.js';
+
 import { loadConfig } from '../../src/config/load.js';
 import { createAgentMemoryClient } from '../../src/cli/index.js';
 import { runDoctor } from '../../src/cli/doctor.js';
@@ -24,7 +26,7 @@ test('AC-016: status mostra saúde sem expor secrets @spec:AC-016', async () => 
     inspect: async () => ({ healthy: true, checks: { project: true }, manifest: {
       schemaVersion: 1, installedAt: '2026-08-24T12:00:00.000Z',
       project: { repositoryId: 'r', checkoutId: 'c', worktreeId: 'w' },
-      versions: { megaBrain: '0.1.4-alpha', agentMemory: '0.9.29', codeReviewGraph: '2.3.7' },
+      versions: { megaBrain: '0.1.4-alpha', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
       backends: {
         agentMemory: { command: 'node', args: [], cwd: '.', lifecycle: 'daemon' },
         codeReviewGraph: { command: 'python', args: [], cwd: '.', lifecycle: 'on-demand' },
@@ -40,8 +42,8 @@ test('AC-016: status mostra saúde sem expor secrets @spec:AC-016', async () => 
         },
       },
     } }),
-    probeAgentMemory: async () => ({ healthy: true, version: '0.9.29', endpoints: ['health'] }),
-    probeCodeReviewGraph: async () => ({ healthy: true, version: '2.3.7', graphHead: 'head', tools: ['query_graph_tool'] }),
+    probeAgentMemory: async () => ({ healthy: true, version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, endpoints: ['health'] }),
+    probeCodeReviewGraph: async () => ({ healthy: true, version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph, graphHead: 'head', tools: ['query_graph_tool'] }),
     gitHead: async () => 'head',
   });
   expect(response.status).toBe('ok');
@@ -61,15 +63,15 @@ test('AC-022: doctor comprova o ciclo real dos backends @spec:AC-022', async () 
       healthy: true, checks: { project: true, agentMemory: true, codeReviewGraph: true },
       manifest: {
         schemaVersion: 1, installedAt: '2026-08-24T12:00:00.000Z', project: { repositoryId: 'r', checkoutId: 'c', worktreeId: 'w' },
-        versions: { megaBrain: '0.1.4-alpha', agentMemory: '0.9.29', codeReviewGraph: '2.3.7' },
+        versions: { megaBrain: '0.1.4-alpha', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
         backends: {
           agentMemory: { command: 'node', args: [], cwd: '.', lifecycle: 'daemon' },
           codeReviewGraph: { command: 'python', args: [], cwd: '.', lifecycle: 'on-demand' },
         },
       },
     }; },
-    probeAgentMemory: async () => { calls.push('rest-health-auth-schema'); return { healthy: true, version: '0.9.29', endpoints: ['health'] }; },
-    probeCodeReviewGraph: async () => { calls.push('mcp-handshake-tools-schema'); return { healthy: true, version: '2.3.7', graphHead: 'old', tools: ['query_graph_tool'] }; },
+    probeAgentMemory: async () => { calls.push('rest-health-auth-schema'); return { healthy: true, version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, endpoints: ['health'] }; },
+    probeCodeReviewGraph: async () => { calls.push('mcp-handshake-tools-schema'); return { healthy: true, version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph, graphHead: 'old', tools: ['query_graph_tool'] }; },
     gitHead: async () => { calls.push('git-head'); return 'new'; },
   });
   expect(calls.sort()).toEqual(['git-head', 'mcp-handshake-tools-schema', 'rest-health-auth-schema', 'runtime'].sort());

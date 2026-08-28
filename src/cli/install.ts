@@ -13,16 +13,13 @@ import {
   swapStagedPath,
   withRuntimeTransaction,
 } from '../runtime/transaction.js';
-import { III_ENGINE_VERSION, installIiiEngineArtifact } from '../runtime/iii-engine.js';
+import { installIiiEngineArtifact } from '../runtime/iii-engine.js';
+import { DEFAULT_MANAGED_DEPENDENCY_VERSIONS, managedDependencyVersionsSchema, type ManagedDependencyVersions } from '../runtime/dependency-versions.js';
 import type { AgentMemoryMode } from '../runtime/types.js';
 import { npmInvocation, runInstallPreflight, type InstallPreflightOptions } from './preflight.js';
 
 const execFileAsync = promisify(execFile);
 
-export const MANAGED_VERSIONS = {
-  agentMemory: '0.9.29',
-  codeReviewGraph: '2.3.7',
-} as const;
 
 function isolatedAgentMemoryIiiConfig(ports: { rest: number; streams: number; viewer: number; engine: number }): string {
   const allowedOrigins = [
@@ -118,6 +115,7 @@ export interface InstallRuntimeOptions {
   remoteAgentMemory?: { baseUrl: string };
   remoteIsolationProbe?: () => Promise<unknown>;
   platform?: NodeJS.Platform;
+  dependencyVersions?: ManagedDependencyVersions;
   iiiEngine?: {
     confirmed: boolean;
     expectedSha256: string;
@@ -176,6 +174,7 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
     : await runInstallPreflight({ ...options.preflight, ...(options.pythonCommand ? { pythonCommand: options.pythonCommand } : {}) });
   const layout = runtimeLayout(options.dataDir, options.identity);
   const isolation = createRuntimeIsolation(layout, options.identity.worktreeId);
+  const dependencyVersions = managedDependencyVersionsSchema.parse(options.dependencyVersions ?? DEFAULT_MANAGED_DEPENDENCY_VERSIONS);
   const platform = options.platform ?? preflight?.platform ?? (options.preflight === false ? undefined : process.platform);
   const runtimePlatform = platform ?? process.platform;
   if (agentMemoryMode === 'managed' && platform === 'win32' && !options.iiiEngine) {
@@ -208,18 +207,18 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
   await mkdir(crgDir, { recursive: true });
   await mkdir(stagedCrgData, { recursive: true });
     if (installIiiEngine) {
-      logInstallStep(options, 'installing iii-engine artifact', { version: III_ENGINE_VERSION });
+      logInstallStep(options, 'installing iii-engine artifact', { version: dependencyVersions.iiiEngine });
       await installIiiEngineArtifact({
         destination: path.join(stagedIiiEngine, 'iii.exe'),
-        version: III_ENGINE_VERSION,
+        version: dependencyVersions.iiiEngine,
         ...installIiiEngine,
       });
     }
     if (agentMemoryMode === 'managed') {
-      logInstallStep(options, 'installing AgentMemory packages', { version: MANAGED_VERSIONS.agentMemory });
+      logInstallStep(options, 'installing AgentMemory packages', { version: dependencyVersions.agentMemory });
       await runner.run(
         npm.command,
-        [...npm.args, 'install', '--ignore-scripts', '--no-audit', '--no-fund', '--prefix', agentMemoryDir, `@agentmemory/agentmemory@${MANAGED_VERSIONS.agentMemory}`, `@agentmemory/mcp@${MANAGED_VERSIONS.agentMemory}`],
+        [...npm.args, 'install', '--ignore-scripts', '--no-audit', '--no-fund', '--prefix', agentMemoryDir, `@agentmemory/agentmemory@${dependencyVersions.agentMemory}`, `@agentmemory/mcp@${dependencyVersions.agentMemory}`],
         { cwd: staging },
       );
     }
@@ -231,8 +230,8 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
       ? path.join(venvDir, 'Scripts', 'python.exe')
       : path.join(venvDir, 'bin', 'python');
     if (codeReviewGraph.mode === 'managed') {
-      logInstallStep(options, 'installing Code Review Graph package', { version: MANAGED_VERSIONS.codeReviewGraph });
-      await runner.run(venvPython, ['-m', 'pip', 'install', `code-review-graph==${MANAGED_VERSIONS.codeReviewGraph}`], { cwd: staging });
+      logInstallStep(options, 'installing Code Review Graph package', { version: dependencyVersions.codeReviewGraph });
+      await runner.run(venvPython, ['-m', 'pip', 'install', `code-review-graph==${dependencyVersions.codeReviewGraph}`], { cwd: staging });
     }
 
     const finalAgentMemoryDir = path.join(layout.current, 'agentmemory');
@@ -283,8 +282,9 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
       },
       versions: {
         megaBrain: '0.1.4-alpha',
-        ...MANAGED_VERSIONS,
-        ...(installIiiEngine ? { iiiEngine: III_ENGINE_VERSION } : {}),
+        agentMemory: dependencyVersions.agentMemory,
+        codeReviewGraph: dependencyVersions.codeReviewGraph,
+        ...(installIiiEngine ? { iiiEngine: dependencyVersions.iiiEngine } : {}),
       },
       backends: {
         ...(agentMemoryMode === 'managed' ? {
@@ -295,6 +295,7 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
             lifecycle: 'daemon' as const,
             environment: {
               AGENTMEMORY_III_CONFIG: finalAgentMemoryIiiConfig,
+              AGENTMEMORY_III_VERSION: dependencyVersions.iiiEngine,
               HOME: isolation.paths.iiiEngine,
               III_ENGINE_PORT: String(isolation.ports.engine),
               III_ENGINE_URL: `ws://127.0.0.1:${isolation.ports.engine}`,
@@ -326,9 +327,9 @@ export async function installManagedRuntime(options: InstallRuntimeOptions): Pro
     }
     await writeRuntimeLock(path.join(staging, 'runtime-lock.json'), manifest);
     if (agentMemoryMode === 'managed') {
-      await writeFile(path.join(agentMemoryDir, '.installed'), MANAGED_VERSIONS.agentMemory, 'utf8');
+      await writeFile(path.join(agentMemoryDir, '.installed'), dependencyVersions.agentMemory, 'utf8');
     }
-    await writeFile(path.join(crgDir, '.installed'), codeReviewGraph.mode === 'managed' ? MANAGED_VERSIONS.codeReviewGraph : 'custom', 'utf8');
+    await writeFile(path.join(crgDir, '.installed'), codeReviewGraph.mode === 'managed' ? dependencyVersions.codeReviewGraph : 'custom', 'utf8');
 
     logInstallStep(options, 'activating staged runtime');
     await options.beforeSwap?.(transaction);

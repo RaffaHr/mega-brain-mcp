@@ -56,4 +56,4 @@ export const DEFAULT_CONFIG = {
     environment: {},
   },
   projects: {},
-} as const;
+} satisfies Omit<MegaBrainConfigInput, 'dataDir'>;

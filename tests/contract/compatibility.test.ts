@@ -5,20 +5,23 @@ import { describe, expect, test } from 'vitest';
 
 import { loadCompatibilityManifest } from '../../src/compatibility/manifest.js';
 import { CompatibilityError, negotiateCompatibility } from '../../src/compatibility/negotiate.js';
+import { DEFAULT_MANAGED_DEPENDENCY_VERSIONS } from '../../src/runtime/dependency-versions.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const agentMemoryManifestFile = `agentmemory-${DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory}.json`;
+const codeReviewGraphManifestFile = `crg-${DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph}.json`;
 
 describe('pinned backend contracts', () => {
   test.each([
-    ['agentmemory-0.9.29.json', 'agentmemory', '0.9.29'],
-    ['crg-2.3.7.json', 'code-review-graph', '2.3.7'],
+    [agentMemoryManifestFile, 'agentmemory', DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory],
+    [codeReviewGraphManifestFile, 'code-review-graph', DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph],
   ])('loads and verifies %s', async (file, backend, version) => {
     const manifest = await loadCompatibilityManifest(path.join(root, 'compatibility', file));
     expect(manifest).toMatchObject({ backend, version });
   });
 
   test('accepts only an exact, schema-compatible observation', async () => {
-    const manifest = await loadCompatibilityManifest(path.join(root, 'compatibility', 'crg-2.3.7.json'));
+    const manifest = await loadCompatibilityManifest(path.join(root, 'compatibility', codeReviewGraphManifestFile));
     const observation = {
       distribution: manifest.distribution,
       version: manifest.version,
@@ -44,8 +47,8 @@ describe('pinned backend contracts', () => {
   });
 
   test('AC-049/AC-052: contracts declare namespace and storage isolation @spec:AC-049 @spec:AC-052', async () => {
-    const agentMemory = await loadCompatibilityManifest(path.join(root, 'compatibility', 'agentmemory-0.9.29.json'));
-    const crg = await loadCompatibilityManifest(path.join(root, 'compatibility', 'crg-2.3.7.json'));
+    const agentMemory = await loadCompatibilityManifest(path.join(root, 'compatibility', agentMemoryManifestFile));
+    const crg = await loadCompatibilityManifest(path.join(root, 'compatibility', codeReviewGraphManifestFile));
 
     expect(agentMemory.isolation?.namespaceField).toBe('project');
     expect(crg.isolation?.requiredEnvironment).toEqual(['CRG_DATA_DIR', 'CRG_REPO_ROOT']);

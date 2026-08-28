@@ -7,10 +7,16 @@ import { expect, test } from 'vitest';
 import {
   filterBackendEnvironment,
   loadConfig,
+  loadManagedDependencyVersions,
   redactConfig,
   UnsafeEnvironmentVariableError,
 } from '../../src/config/load.js';
 import { resolveProjectConfig } from '../../src/config/project-config.js';
+import {
+  DEFAULT_MANAGED_DEPENDENCY_VERSIONS,
+  LEGACY_III_ENGINE_VERSION_ENV,
+  MANAGED_DEPENDENCY_VERSION_ENV,
+} from '../../src/runtime/dependency-versions.js';
 
 test('AC-003: configuração dos backends é encaminhada com segurança @spec:AC-003', async () => {
   const config = await loadConfig({
@@ -95,7 +101,7 @@ test('AC-027: modo gerenciado combina .env e processo por allowlist e reutiliza 
     'MEGA_BRAIN_AGENTMEMORY_URL=http://127.0.0.1:4111',
     'AGENTMEMORY_SECRET=managed-local-secret',
     'AGENTMEMORY_TOOLS=core',
-    'AGENTMEMORY_III_VERSION=0.11.2',
+    `${LEGACY_III_ENGINE_VERSION_ENV}=${DEFAULT_MANAGED_DEPENDENCY_VERSIONS.iiiEngine}`,
     'AGENTMEMORY_UNKNOWN_OPTION=not-forwarded',
     'MEGA_BRAIN_AGENTMEMORY_ENV_JSON={"AGENTMEMORY_TOOLS":"all","SNAPSHOT_ENABLED":"false"}',
   ].join('\n'));
@@ -125,12 +131,52 @@ test('AC-027: modo gerenciado combina .env e processo por allowlist e reutiliza 
       AGENTMEMORY_TOOLS: 'all',
       SNAPSHOT_ENABLED: 'false',
       AGENTMEMORY_SECRET: 'managed-local-secret',
-      AGENTMEMORY_III_VERSION: '0.11.2',
       AGENTMEMORY_DEBUG: 'true',
     },
   });
   expect(config.agentMemory.environment).not.toHaveProperty('AGENTMEMORY_UNKNOWN_OPTION');
   expect(JSON.stringify(redactConfig(config))).not.toContain('managed-local-secret');
+});
+
+test('versoes gerenciadas usam default e permitem override por env e .env', async () => {
+  const repoPath = await mkdtemp(path.join(tmpdir(), 'mega-brain-managed-versions-'));
+  await writeFile(path.join(repoPath, '.env'), [
+    `${MANAGED_DEPENDENCY_VERSION_ENV.agentMemory}=0.9.30`,
+    `${MANAGED_DEPENDENCY_VERSION_ENV.codeReviewGraph}=2.4.0`,
+    `${LEGACY_III_ENGINE_VERSION_ENV}=0.11.3`,
+  ].join('\n'));
+
+  const fromDotEnv = await loadManagedDependencyVersions({ repoPath, env: {} });
+  expect(fromDotEnv.versions).toEqual({
+    agentMemory: '0.9.30',
+    codeReviewGraph: '2.4.0',
+    iiiEngine: '0.11.3',
+  });
+  expect(fromDotEnv.sources).toEqual({ agentMemory: 'dotenv', codeReviewGraph: 'dotenv', iiiEngine: 'dotenv' });
+
+  const fromProcess = await loadManagedDependencyVersions({
+    repoPath,
+    env: {
+      [MANAGED_DEPENDENCY_VERSION_ENV.codeReviewGraph]: '2.4.1',
+      [MANAGED_DEPENDENCY_VERSION_ENV.iiiEngine]: '0.11.4',
+    },
+  });
+  expect(fromProcess.versions).toEqual({
+    agentMemory: '0.9.30',
+    codeReviewGraph: '2.4.1',
+    iiiEngine: '0.11.4',
+  });
+  expect(fromProcess.sources).toEqual({ agentMemory: 'dotenv', codeReviewGraph: 'process', iiiEngine: 'process' });
+
+  await expect(loadManagedDependencyVersions({
+    repoPath,
+    envFilePath: false,
+    env: { [MANAGED_DEPENDENCY_VERSION_ENV.agentMemory]: 'latest' },
+  })).rejects.toThrow(/exact semver/);
+
+  await expect(loadManagedDependencyVersions({ envFilePath: false, env: {} })).resolves.toMatchObject({
+    versions: DEFAULT_MANAGED_DEPENDENCY_VERSIONS,
+  });
 });
 
 test('AC-028: credenciais e recursos remotos ou LLM exigem opt-ins e permanecem redigidos @spec:AC-028', async () => {

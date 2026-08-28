@@ -10,6 +10,8 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js';
 import { expect, test } from 'vitest';
 
+import { DEFAULT_MANAGED_DEPENDENCY_VERSIONS } from '../../src/runtime/dependency-versions.js';
+
 import { installManagedRuntime } from '../../src/cli/install.js';
 import { uninstallMegaBrain } from '../../src/cli/uninstall.js';
 import { writeProjectConfig } from '../../src/config/project-config.js';
@@ -59,7 +61,7 @@ test('AC-039/041/044: cliente stdio real inicia, usa seis tools e encerra o supe
     const project = String(body.project ?? new URL(request.url ?? '/', 'http://fixture').searchParams.get('project') ?? 'default');
     const projectMemories = memories.get(project) ?? [];
     let payload: Record<string, unknown> = {};
-    if (request.url?.endsWith('/health')) payload = { status: 'healthy', healthy: true, version: '0.9.29' };
+    if (request.url?.endsWith('/health')) payload = { status: 'healthy', healthy: true, version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory };
     else if (request.url?.endsWith('/livez')) payload = { status: 'ok' };
     else if (request.url?.endsWith('/remember')) {
       const record = { id: `${project}-${projectMemories.length + 1}`, content: String(body.content), project, metadata: body.metadata ?? {}, score: 0.99, createdAt: new Date().toISOString() };
@@ -125,7 +127,11 @@ test('AC-039/041/044: cliente stdio real inicia, usa seis tools e encerra o supe
     await client.close();
     client = undefined;
     const layout = runtimeLayout(dataDir, identity);
-    await waitUntil(async () => access(path.join(layout.projectRoot, 'supervisor', 'manifest.json')).then(() => false).catch(() => true));
+    await waitUntil(async () => {
+      const supervisorManifestRemoved = await access(path.join(layout.projectRoot, 'supervisor', 'manifest.json')).then(() => false).catch(() => true);
+      const runtimeStateRemoved = await access(layout.stateFile).then(() => false).catch(() => true);
+      return supervisorManifestRemoved && runtimeStateRemoved;
+    });
     await expect(access(layout.stateFile)).rejects.toMatchObject({ code: 'ENOENT' });
     await uninstallMegaBrain({ dataDir, identity });
   } finally {

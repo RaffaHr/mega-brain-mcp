@@ -9,6 +9,8 @@ import { fileURLToPath } from 'node:url';
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { expect, test } from 'vitest';
+
+import { DEFAULT_MANAGED_DEPENDENCY_VERSIONS } from '../../src/runtime/dependency-versions.js';
 import { AgentMemoryClient } from '../../src/adapters/agentmemory/client.js';
 import { CodeReviewGraphClient } from '../../src/adapters/code-review-graph/client.js';
 import { GitRepository } from '../../src/adapters/git/repository.js';
@@ -63,7 +65,7 @@ test('AC-035: real MCP orchestration routes through AgentMemory HTTP, CRG stdio 
     const body = chunks.length ? JSON.parse(Buffer.concat(chunks).toString('utf8')) as Record<string, unknown> : {};
     let payload: Record<string, unknown> = {};
     if (url.endsWith('/livez')) payload = { status: 'ok' };
-    else if (url.endsWith('/health')) payload = { status: 'healthy', healthy: true, version: '0.9.29' };
+    else if (url.endsWith('/health')) payload = { status: 'healthy', healthy: true, version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory };
     else if (url.endsWith('/remember')) {
       const id = `memory-${memories.length + 1}`;
       memories.push({ id, content: String(body.content), project: String(body.project), metadata: (body.metadata ?? {}) as Record<string, unknown>, createdAt: new Date().toISOString(), score: 0.99 });
