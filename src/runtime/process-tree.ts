@@ -25,11 +25,27 @@ async function exists(target: string): Promise<boolean> {
   return access(target).then(() => true).catch(() => false);
 }
 
+async function getChildPidsPosix(pid: number, exec: ExecFileFunction): Promise<number[]> {
+  try {
+    const { stdout } = await exec('pgrep', ['-P', String(pid)], { timeout: 5_000 });
+    const lines = String(stdout).split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
+    const directChildren = lines.map(Number).filter((p) => Number.isInteger(p) && p > 0 && p !== process.pid);
+    const allDescendants: number[] = [...directChildren];
+    for (const childPid of directChildren) {
+      const nested = await getChildPidsPosix(childPid, exec);
+      allDescendants.push(...nested);
+    }
+    return Array.from(new Set(allDescendants));
+  } catch {
+    return [];
+  }
+}
+
 export async function terminateProcessTree(
   pid: number,
   options: ProcessTreeOptions = {},
 ): Promise<void> {
-  if (!Number.isInteger(pid) || pid <= 0) return;
+  if (!Number.isInteger(pid) || pid <= 0 || pid === process.pid) return;
   const platform = options.platform ?? process.platform;
   const exec = options.execFile ?? (execFileAsync as ExecFileFunction);
 
@@ -50,14 +66,18 @@ export async function terminateProcessTree(
     }
   } else {
     const signal = options.force ? 'SIGKILL' : 'SIGTERM';
-    try {
-      process.kill(-pid, signal);
-    } catch {
+    const children = await getChildPidsPosix(pid, exec);
+    for (const childPid of children) {
       try {
-        process.kill(pid, signal);
+        process.kill(childPid, signal);
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
       }
+    }
+    try {
+      process.kill(pid, signal);
+    } catch (error) {
+      if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
     }
   }
 }
@@ -105,7 +125,9 @@ export async function sweepRuntimeProcesses(
   const pids = await findProcessesInPath(runtimeRoot, options);
   const terminate = options.terminate ?? ((pid: number) => terminateProcessTree(pid, options));
   for (const pid of pids) {
-    await terminate(pid).catch(() => undefined);
+    if (pid !== process.pid) {
+      await terminate(pid).catch(() => undefined);
+    }
   }
   return pids;
 }
