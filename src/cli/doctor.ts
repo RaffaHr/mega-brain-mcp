@@ -248,7 +248,7 @@ export function managedDoctorDependencies(input: {
             installedAt: '',
             agentMemoryMode: 'managed',
             project: { repositoryId: input.identity.repositoryId, checkoutId: input.identity.checkoutId, worktreeId: input.identity.worktreeId },
-            versions: { megaBrain: '0.1.5', agentMemory: 'uninstalled', codeReviewGraph: 'uninstalled' },
+            versions: { megaBrain: '0.1.6', agentMemory: 'uninstalled', codeReviewGraph: 'uninstalled' },
             backends: { codeReviewGraph: { command: '', args: [], cwd: input.identity.root, lifecycle: 'on-demand' } },
           },
         };
