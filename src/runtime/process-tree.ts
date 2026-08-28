@@ -1,4 +1,5 @@
 import { execFile } from 'node:child_process';
+import { access } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 
@@ -18,6 +19,10 @@ export interface ProcessTreeOptions {
 
 export interface SweepProcessesOptions extends ProcessTreeOptions {
   terminate?: (pid: number) => Promise<void>;
+}
+
+async function exists(target: string): Promise<boolean> {
+  return access(target).then(() => true).catch(() => false);
 }
 
 export async function terminateProcessTree(
@@ -63,6 +68,10 @@ export async function findProcessesInPath(
   const platform = options.platform ?? process.platform;
   const exec = options.execFile ?? (execFileAsync as ExecFileFunction);
   const normalizedTarget = path.resolve(pathPrefix).toLowerCase();
+
+  if (!options.execFile && !(await exists(normalizedTarget))) {
+    return [];
+  }
 
   if (platform === 'win32') {
     try {
