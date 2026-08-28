@@ -44,21 +44,11 @@ export async function terminateProcessTree(
       }
     }
   } else {
-    // POSIX process group / tree termination
     try {
       process.kill(-pid, 'SIGTERM');
     } catch {
       try {
         process.kill(pid, 'SIGTERM');
-      } catch (error) {
-        if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
-      }
-    }
-    try {
-      process.kill(-pid, 'SIGKILL');
-    } catch {
-      try {
-        process.kill(pid, 'SIGKILL');
       } catch (error) {
         if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
       }
@@ -76,7 +66,6 @@ export async function findProcessesInPath(
 
   if (platform === 'win32') {
     try {
-      // Escape for PowerShell script block
       const escaped = normalizedTarget.replaceAll("'", "''");
       const script = `Get-CimInstance Win32_Process | Where-Object { ($_.ExecutablePath -and $_.ExecutablePath.ToLower().Contains('${escaped}')) -or ($_.CommandLine -and $_.CommandLine.ToLower().Contains('${escaped}')) } | Select-Object -ExpandProperty ProcessId`;
       const { stdout } = await exec('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], {
