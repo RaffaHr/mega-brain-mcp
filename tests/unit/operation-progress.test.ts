@@ -41,7 +41,7 @@ const inspection: RuntimeInspection = {
     installedAt: '2026-08-28T00:00:00.000Z',
     agentMemoryMode: 'managed',
     project: { repositoryId: 'repo-id', checkoutId: 'checkout-id', worktreeId: 'worktree-id' },
-    versions: { megaBrain: '0.1.4-alpha', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph, iiiEngine: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.iiiEngine },
+    versions: { megaBrain: '0.1.5', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph, iiiEngine: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.iiiEngine },
     backends: {
       agentMemory: { command: 'node', args: [], cwd: '.', lifecycle: 'daemon' },
       codeReviewGraph: { command: 'python', args: [], cwd: '.', lifecycle: 'on-demand' },

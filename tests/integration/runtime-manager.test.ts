@@ -78,7 +78,7 @@ test('AC-001: instalação cria runtime isolado e verificável @spec:AC-001', as
   expect(commands[3]?.options.env?.CRG_DATA_DIR).toContain(path.join('runtime', '.staging-'));
   expect(manifest.backends.codeReviewGraph.environment?.CRG_DATA_DIR).toBe(manifest.isolation!.paths.codeReviewGraph);
   expect(manifest.versions).toEqual({
-    megaBrain: '0.1.4-alpha',
+    megaBrain: '0.1.5',
     agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory,
     codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph,
   });
@@ -133,7 +133,7 @@ test('versoes gerenciadas customizadas controlam download e manifesto do runtime
 
   expect(commands[0]?.args).toContain(`@agentmemory/agentmemory@${versions.agentMemory}`);
   expect(commands[2]?.args).toContain(`code-review-graph[embeddings]==${versions.codeReviewGraph}`);
-  expect(manifest.versions).toEqual({ megaBrain: '0.1.4-alpha', agentMemory: versions.agentMemory, codeReviewGraph: versions.codeReviewGraph });
+  expect(manifest.versions).toEqual({ megaBrain: '0.1.5', agentMemory: versions.agentMemory, codeReviewGraph: versions.codeReviewGraph });
   expect(manifest.backends.agentMemory?.environment?.AGENTMEMORY_III_VERSION).toBe(versions.iiiEngine);
 });
 

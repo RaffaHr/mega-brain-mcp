@@ -33,7 +33,7 @@ test('doctor report renders a structured terminal table with checks', async () =
         schemaVersion: 1,
         installedAt: '2026-08-24T12:00:00.000Z',
         project: { repositoryId: 'r', checkoutId: 'c', worktreeId: 'w' },
-        versions: { megaBrain: '0.1.4-alpha', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
+        versions: { megaBrain: '0.1.5', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
         backends: {
           agentMemory: { command: 'node', args: [], cwd: '.', lifecycle: 'daemon' },
           codeReviewGraph: { command: 'python', args: [], cwd: '.', lifecycle: 'on-demand' },
@@ -74,7 +74,7 @@ test('doctor report highlights degraded checks and warnings', async () => {
         schemaVersion: 1,
         installedAt: '2026-08-24T12:00:00.000Z',
         project: { repositoryId: 'r', checkoutId: 'c', worktreeId: 'w' },
-        versions: { megaBrain: '0.1.4-alpha', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
+        versions: { megaBrain: '0.1.5', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
         backends: {
           agentMemory: { command: 'node', args: [], cwd: '.', lifecycle: 'daemon' },
           codeReviewGraph: { command: 'python', args: [], cwd: '.', lifecycle: 'on-demand' },

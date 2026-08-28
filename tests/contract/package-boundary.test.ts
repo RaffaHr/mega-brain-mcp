@@ -96,7 +96,7 @@ test('AC-038: docs use the scoped package and automatic host lifecycle @spec:AC-
     readFile(path.join(root, 'docs', 'troubleshooting.md'), 'utf8'),
   ]);
   expect(readme).toContain('npm install --global @raffahr/mega-brain-mcp');
-  expect(readme).toContain('npm install --global .\\raffahr-mega-brain-mcp-0.1.4-alpha.tgz');
+  expect(readme).toContain('npm install --global .\\raffahr-mega-brain-mcp-0.1.5.tgz');
   expect(readme).toContain('choose Codex, Claude');
   expect(readme).toContain('Code, or both');
   expect(readme).not.toContain(`--${'hosts'}`);
