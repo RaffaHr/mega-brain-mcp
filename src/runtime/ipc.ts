@@ -49,7 +49,7 @@ async function prepareSocketDirectory(address: string): Promise<void> {
   await mkdir(directory, { recursive: true, mode: 0o700 });
   const metadata = await lstat(directory);
   const uid = process.getuid?.();
-  if (!metadata.isDirectory() || (uid !== undefined && metadata.uid !== uid)) {
+  if (!metadata.isDirectory() || uid === undefined || metadata.uid !== uid) {
     throw new Error(`Supervisor socket directory must be a directory owned by the current user: ${directory}`);
   }
   await chmod(directory, 0o700);

@@ -1,4 +1,4 @@
-import { chmod, mkdtemp, mkdir, rm, stat, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, mkdir, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -80,12 +80,14 @@ test('AC-048: manifest e lock ficam no namespace do worktree e o socket fica em 
   expect(shortPaths.ipcAddress.startsWith(shortLayout.projectRoot)).toBe(true);
 
   const deepLayout = runtimeLayout(`/tmp/${'d'.repeat(120)}`, identity);
-  const other = deriveProjectIdentity({ root: path.resolve('other-repo'), gitDir: '.git', commonGitDir: '.git' });
   const deepPaths = supervisorPaths(deepLayout, identity.worktreeId);
   expect(Buffer.byteLength(deepPaths.ipcAddress)).toBeLessThanOrEqual(SHORTEST_POSIX_SOCKET_LIMIT);
   expect(path.dirname(deepPaths.ipcAddress)).not.toBe(tmpdir());
   expect(path.dirname(path.dirname(deepPaths.ipcAddress))).toBe(tmpdir());
-  expect(deepPaths.ipcAddress).not.toBe(supervisorPaths(runtimeLayout(`/tmp/${'d'.repeat(120)}`, other), other.worktreeId).ipcAddress);
+
+  const other = deriveProjectIdentity({ root: path.resolve('other-repo'), gitDir: '.git', commonGitDir: '.git' });
+  const otherPaths = supervisorPaths(runtimeLayout(`/tmp/${'d'.repeat(120)}`, other), other.worktreeId);
+  expect(deepPaths.ipcAddress).not.toBe(otherPaths.ipcAddress);
 });
 
 test('AC-048: socket fora do projectRoot nasce em diretório 0700 do usuário com socket 0600 @spec:AC-048', async () => {
@@ -108,4 +110,21 @@ test('AC-048: socket fora do projectRoot nasce em diretório 0700 do usuário co
   } finally {
     await server.close();
   }
+});
+
+test('AC-048: supervisor recusa socket em diretório que não é um diretório do usuário @spec:AC-048', async () => {
+  if (process.platform === 'win32') return;
+  const dataDir = await deepDataDir('mega-brain-socket-squat-');
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  const paths = supervisorPaths(layout, identity.worktreeId);
+  const socketDirectory = path.dirname(paths.ipcAddress);
+  directories.push(socketDirectory);
+  const decoy = path.join(dataDir, 'decoy');
+  await mkdir(decoy, { recursive: true });
+  await symlink(decoy, socketDirectory);
+
+  await expect(startProjectSupervisor({ layout, identity, pid: process.pid }))
+    .rejects.toThrow(/must be a directory owned by the current user/u);
+  await expect(stat(paths.ipcAddress)).rejects.toMatchObject({ code: 'ENOENT' });
 });
