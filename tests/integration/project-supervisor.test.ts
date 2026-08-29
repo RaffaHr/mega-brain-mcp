@@ -10,7 +10,7 @@ import {
   startProjectSupervisor,
   type SupervisorProcessSpawner,
 } from '../../src/runtime/project-supervisor.js';
-import { runtimeLayout } from '../../src/runtime/layout.js';
+import { runtimeLayout, type RuntimeLayout } from '../../src/runtime/layout.js';
 import { readSupervisorManifest, supervisorManifestSchema, supervisorPaths } from '../../src/runtime/supervisor-manifest.js';
 
 const directories: string[] = [];
@@ -18,6 +18,23 @@ const directories: string[] = [];
 afterEach(async () => {
   await Promise.all(directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true })));
 });
+
+/**
+ * Polls until the idle shutdown removed the manifest instead of sleeping for a
+ * fixed slice, so a slow runner delays the assertion rather than failing it.
+ */
+async function waitForManifestRemoval(layout: RuntimeLayout, timeoutMs = 10_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const removed = await readSupervisorManifest(layout).then(
+      () => false,
+      (error: NodeJS.ErrnoException) => error.code === 'ENOENT',
+    );
+    if (removed) return;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error('supervisor manifest was not removed before the deadline');
+}
 
 test('AC-040: gateways concorrentes iniciam e reutilizam um único supervisor independente @spec:AC-040', async () => {
   const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-supervisor-'));
@@ -124,13 +141,37 @@ test('AC-041: shutdown ocioso que falha não derruba o supervisor por rejeição
     const handle = await ensureProjectSupervisor({ layout, identity, processExists: () => true });
     await handle.client.acquire('idle-gateway');
     await handle.client.release('idle-gateway');
-    await new Promise((resolve) => setTimeout(resolve, 300));
+    await waitForManifestRemoval(layout);
 
     expect(rejections).toEqual([]);
-    await expect(readSupervisorManifest(layout)).rejects.toMatchObject({ code: 'ENOENT' });
     await expect(server.checkIdle()).resolves.toBe(false);
   } finally {
     process.off('unhandledRejection', collectRejection);
+    await server.close();
+  }
+});
+
+test('AC-041: checkIdle aguardado propaga a falha do shutdown ao chamador @spec:AC-041', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-idle-propagation-'));
+  directories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  let now = 0;
+  const server = await startProjectSupervisor({
+    layout,
+    identity,
+    pid: process.pid,
+    now: () => now,
+    onShutdown: () => Promise.reject(new Error('shutdown hook failed')),
+  });
+
+  try {
+    const handle = await ensureProjectSupervisor({ layout, identity, processExists: () => true });
+    await handle.client.acquire('last-gateway');
+    await handle.client.release('last-gateway');
+    now = 5_000;
+    await expect(server.checkIdle()).rejects.toThrow('shutdown hook failed');
+  } finally {
     await server.close();
   }
 });
