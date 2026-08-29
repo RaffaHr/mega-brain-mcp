@@ -250,8 +250,14 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       await codeReviewGraph.stop().catch(() => undefined);
       database.close();
     };
-    process.once('SIGINT', () => { void close(); });
-    process.once('SIGTERM', () => { void close(); });
+    const closeOnSignal = () => {
+      void close().catch((error: unknown) => logger.log('warn', 'serve: close on signal failed', {
+        project: identity.worktreeId,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+    };
+    process.once('SIGINT', closeOnSignal);
+    process.once('SIGTERM', closeOnSignal);
     await listenMegaBrainServer(application, port);
     return;
   }
