@@ -60,6 +60,18 @@ running HTTP server is not required unless `--transport http` was selected.
 Codex configuration is in `.codex/config.toml`; Claude Code configuration is
 in `.mcp.json`. Do not register AgentMemory or Code Review Graph separately.
 
+## A shutdown left a managed runtime running
+
+Closing the host or sending `Ctrl+C` normally stops the private supervisor and its managed backends. When that shutdown itself fails, or a supervisor detects it no longer owns the project's registration, Mega Brain writes one line to `stderr` regardless of `MEGA_BRAIN_DEBUG`: `mega-brain: <message> [project <worktreeId>]`. Treat that line as a signal that backend processes or ports may still be up, and run `mega-brain stop --repo <project>` to stop them.
+
+## Project path is too deep for the supervisor socket
+
+A Unix domain socket path is bounded by the OS `sun_path` size, and a project whose runtime directory is nested several levels deep can exceed it. Mega Brain then binds the supervisor socket under a dedicated `mega-brain-<hash>` directory inside the system temporary directory instead of the project runtime directory; the manifest stays in the project as usual and no action is required. If the address still does not fit even under the temporary directory, the error names the byte limit and asks to point `TMPDIR` (or the platform equivalent) at a shorter path; set that and retry.
+
+## `Supervisor process <pid> exists but readiness failed`
+
+Reconnecting to a registered supervisor found it unreachable. On POSIX, "is registered but its IPC endpoint is gone" means the socket was removed while the process that bound it kept running, typically a temporary-directory cleaner unlinking it; that supervisor retires itself within seconds, on its own next idle check, freeing its manifest and ports, so retry the command. If it keeps failing, the recorded pid belongs to another program: delete the stale manifest at the path named in the error and retry. On Windows a gone endpoint is instead recycled immediately and silently on the next connection attempt, since a named pipe cannot outlive the process that created it. A plain "exists but readiness failed: `<cause>`" does not self-heal on either platform; it means the endpoint answered but refused the request, so inspect `<cause>` and stop the stale supervisor process before retrying.
+
 ## Remote AgentMemory validation does not advance
 
 Confirm the remote URL and paste the remote AgentMemory secret token when setup asks for it. Setup validates the token immediately and stores it only in this repository's local `.mega-brain/config.json`. For non-interactive install, provide the same value through `MEGA_BRAIN_AGENTMEMORY_TOKEN` or an existing local project config.
