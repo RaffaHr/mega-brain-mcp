@@ -92,9 +92,29 @@ describe('Process Tree Stopper and Process Verification', () => {
       execFile: mockExec as never,
     });
 
+    expect(executed).toHaveLength(1);
+    expect(executed[0]!.file).toBe('powershell');
     const script = executed[0]!.args.at(-1)!;
     expect(script).toContain('mega brain');
     expect(script).not.toContain('Mega Brain');
+  });
+
+  test('escapes regex metacharacters before handing the path to pgrep', async () => {
+    const executed: Array<{ file: string; args: string[] }> = [];
+    const mockExec = vi.fn(async (file: string, args: readonly string[]) => {
+      executed.push({ file, args: [...args] });
+      return { stdout: '', stderr: '' };
+    });
+
+    await findProcessesInPath('/tmp/Projects (old)/mega-brain+1/runtime', {
+      platform: 'linux',
+      execFile: mockExec as never,
+    });
+
+    expect(executed).toHaveLength(1);
+    expect(executed[0]!.file).toBe('pgrep');
+    expect(executed[0]!.args[1]).toContain('Projects \\(old\\)');
+    expect(executed[0]!.args[1]).toContain('mega-brain\\+1');
   });
 
   test('processTreeStopper delegates to terminateProcessTree', async () => {

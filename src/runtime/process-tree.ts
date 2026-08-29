@@ -82,6 +82,16 @@ export async function terminateProcessTree(
   }
 }
 
+/**
+ * Escapes a literal path for `pgrep -f`, which reads its argument as an
+ * extended regular expression. A directory carrying a metacharacter, such as
+ * `Projects (old)`, would otherwise make pgrep fail to parse the pattern and
+ * report no processes at all.
+ */
+function escapedForExtendedRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+}
+
 export async function findProcessesInPath(
   pathPrefix: string,
   options: ProcessTreeOptions = {},
@@ -109,7 +119,7 @@ export async function findProcessesInPath(
     }
   } else {
     try {
-      const { stdout } = await exec('pgrep', ['-f', target], { timeout: 10_000 });
+      const { stdout } = await exec('pgrep', ['-f', escapedForExtendedRegex(target)], { timeout: 10_000 });
       const lines = String(stdout).split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
       return lines.map((line) => Number(line)).filter((pid) => Number.isInteger(pid) && pid > 0 && pid !== process.pid);
     } catch {
