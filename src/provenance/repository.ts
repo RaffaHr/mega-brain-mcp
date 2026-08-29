@@ -1,5 +1,14 @@
 import type { ProvenanceDatabase } from './database.js';
-import type { FreshnessState } from './freshness.js';
+import type { FreshnessState, MemoryRefState } from './freshness.js';
+
+/**
+ * Counts per memory state.
+ *
+ * The known states are always present so the status payload keeps a stable
+ * shape, and the index signature keeps any state the database happens to hold
+ * instead of dropping it from the report and from the total.
+ */
+export type MemoryStateCounts = Record<MemoryRefState, number> & Record<string, number>;
 
 export interface EvidenceRecord {
   path: string;
@@ -66,7 +75,7 @@ export class ProvenanceRepository {
     })();
   }
 
-  updateState(memoryId: string, state: FreshnessState, confidence: number, reason: string, now = new Date()): void {
+  updateState(memoryId: string, state: MemoryRefState, confidence: number, reason: string, now = new Date()): void {
     this.database.transaction(() => {
       this.database.prepare('UPDATE memory_refs SET state = ?, confidence = ?, updated_at = ? WHERE memory_id = ?')
         .run(state, confidence, now.toISOString(), memoryId);
@@ -84,9 +93,9 @@ export class ProvenanceRepository {
     })();
   }
 
-  memoryState(memoryId: string): { state: FreshnessState; confidence: number } | null {
+  memoryState(memoryId: string): { state: MemoryRefState; confidence: number } | null {
     const row = this.database.prepare('SELECT state, confidence FROM memory_refs WHERE memory_id = ?').get(memoryId) as
-      | { state: FreshnessState; confidence: number }
+      | { state: MemoryRefState; confidence: number }
       | undefined;
     return row ?? null;
   }
@@ -139,19 +148,20 @@ export class ProvenanceRepository {
     `).all() as Array<{ memoryId: string }>;
   }
 
-  memoryCountsByState(): Record<string, number> {
+  memoryCountsByState(): MemoryStateCounts {
     const rows = this.database.prepare(`
       SELECT state, count(*) as count
       FROM memory_refs
       GROUP BY state
     `).all() as Array<{ state: string; count: number }>;
 
-    const counts: Record<string, number> = {
+    const counts: MemoryStateCounts = {
       ACTIVE: 0,
       POSSIBLY_STALE: 0,
       STALE: 0,
       SUPERSEDED: 0,
       CANDIDATE: 0,
+      CONFLICT: 0,
       DEPRECATED: 0,
       UNKNOWN: 0,
       FRESH: 0,

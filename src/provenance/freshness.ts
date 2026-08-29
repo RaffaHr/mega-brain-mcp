@@ -1,5 +1,15 @@
 export type FreshnessState = 'FRESH' | 'POSSIBLY_STALE' | 'STALE' | 'CONFLICT' | 'DEPRECATED' | 'UNKNOWN';
 
+/**
+ * States a memory reference can carry in storage.
+ *
+ * Assessing freshness only ever yields a `FreshnessState`, but the lifecycle
+ * also promotes a memory to `ACTIVE`, parks it as `CANDIDATE` until a test run
+ * confirms it, and reports `SUPERSEDED` in the status metrics, so persistence
+ * and queries speak this wider set.
+ */
+export type MemoryRefState = FreshnessState | 'ACTIVE' | 'CANDIDATE' | 'SUPERSEDED';
+
 export interface EvidenceSnapshot {
   path: string;
   storedHash: string;

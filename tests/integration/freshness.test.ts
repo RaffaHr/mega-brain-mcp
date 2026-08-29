@@ -51,6 +51,36 @@ test('metadata stores references and hashes without storing memory content', () 
   expect(database.prepare("SELECT name FROM pragma_table_info('memory_refs') WHERE name = 'content'").get()).toBeUndefined();
 });
 
+test('memory state counts keep every persisted state and always report the known ones', () => {
+  const database = openProvenanceDatabase(':memory:');
+  databases.push(database);
+  const repository = new ProvenanceRepository(database);
+  repository.registerProject({ id: 'repo', checkoutId: 'checkout', worktreeId: 'worktree', root: '/repo' });
+
+  expect(Object.keys(repository.memoryCountsByState()).sort()).toEqual([
+    'ACTIVE', 'CANDIDATE', 'CONFLICT', 'DEPRECATED', 'FRESH', 'POSSIBLY_STALE', 'STALE', 'SUPERSEDED', 'UNKNOWN',
+  ]);
+
+  for (const memoryId of ['memory-conflict', 'memory-unknown-state']) {
+    repository.saveMemoryReference({
+      memoryId,
+      projectId: 'repo',
+      state: 'FRESH',
+      confidence: 1,
+      evidence: [{ path: 'src/auth.ts', blobHash: 'blob', commitHash: 'commit' }],
+    });
+  }
+  repository.updateState('memory-conflict', 'CONFLICT', 0.2, 'current_evidence_conflicts');
+  database.prepare("UPDATE memory_refs SET state = 'WEIRD' WHERE memory_id = ?").run('memory-unknown-state');
+
+  const counts = repository.memoryCountsByState();
+
+  expect(counts.CONFLICT).toBe(1);
+  expect(counts.WEIRD).toBe(1);
+  expect(Object.values(counts).reduce((total, count) => total + count, 0)).toBe(2);
+  expect(repository.memoryCountsByState().SUPERSEDED).toBe(0);
+});
+
 test('provenance funciona com node:sqlite quando better-sqlite3 nativo nao esta disponivel', () => {
   const previous = process.env.MEGA_BRAIN_SQLITE_BACKEND;
   process.env.MEGA_BRAIN_SQLITE_BACKEND = 'node';
