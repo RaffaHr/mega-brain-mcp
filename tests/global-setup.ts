@@ -22,7 +22,8 @@ export default async function setup(): Promise<void> {
       path.join(root, 'tsconfig.json'),
     ], { cwd: root, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024 });
   } catch (error) {
-    const diagnostics = (error as { stdout?: string }).stdout?.trim();
+    const { stdout = '', stderr = '' } = error as { stdout?: string; stderr?: string };
+    const diagnostics = `${stdout}\n${stderr}`.trim();
     throw new Error(`Test suite build failed\n${diagnostics || String(error)}`);
   }
 }

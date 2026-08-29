@@ -103,8 +103,9 @@ test('AC-036: packed tarball installs a functional CLI outside the checkout @spe
 }, 600_000);
 
 test('AC-038: docs use the scoped package and automatic host lifecycle @spec:AC-038', async () => {
-  const [readme, configuration, troubleshooting, manifest] = await Promise.all([
+  const [readme, readmePtBr, configuration, troubleshooting, manifest] = await Promise.all([
     readFile(path.join(root, 'README.md'), 'utf8'),
+    readFile(path.join(root, 'README-ptbr.md'), 'utf8'),
     readFile(path.join(root, 'docs', 'configuration.md'), 'utf8'),
     readFile(path.join(root, 'docs', 'troubleshooting.md'), 'utf8'),
     packageManifest(),
@@ -119,4 +120,7 @@ test('AC-038: docs use the scoped package and automatic host lifecycle @spec:AC-
   expect(configuration).toContain('.mcp.json');
   expect(troubleshooting).toContain('venv');
   expect(troubleshooting).toContain('No files were changed');
+  for (const document of [readmePtBr, troubleshooting]) {
+    expect(document).toContain(packedTarballName(manifest));
+  }
 });
