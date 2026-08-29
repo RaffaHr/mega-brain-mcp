@@ -36,6 +36,10 @@ _Avoid_: Process leak check, orphan polling
 Staging isolation pattern moving an active or decommissioned runtime folder into a timestamped holding path before deletion or rollback.
 _Avoid_: Direct directory wipe, in-place overwrite
 
+**Runtime Permission Preservation**:
+Attribute cleanup before rename or deletion preserves executable permission bits and does not follow symbolic links into unrelated targets.
+_Avoid_: chmod 0666 on runtime binaries
+
 **Pending Delete Queue**:
 Deferred deletion registry recording locked paths marked for purge upon subsequent supervisor boot or CLI runs.
 _Avoid_: Stale file ignore, silent delete failure

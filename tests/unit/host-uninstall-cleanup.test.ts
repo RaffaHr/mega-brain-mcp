@@ -80,3 +80,19 @@ test('uninstall cleanup preserves external host hooks added after install backup
   expect(cleaned.hooks.SessionStart).toEqual([{ hooks: [{ type: 'command', command: 'external capture' }] }]);
   expect(cleaned.hooks.Stop).toBeUndefined();
 });
+
+test('uninstall cleanup restores MCP backups byte-for-byte', async () => {
+  const root = await tempRoot('mega-brain-mcp-backup-');
+  const backupDir = path.join(root, 'integration-backups');
+  const target = path.join(root, '.codex', 'config.toml');
+  const original = '[mcp_servers.existing]\r\nurl = "http://localhost:9999/mcp"\r\n';
+
+  await mkdir(path.dirname(target), { recursive: true });
+  await mkdir(backupDir, { recursive: true });
+  await writeFile(path.join(backupDir, 'codex-mcp.json'), JSON.stringify({ existed: true, content: original, target }), 'utf8');
+  await writeFile(target, '# managed content\n', 'utf8');
+
+  await restoreHostMcpFiles({ root, backupDir, hosts: ['codex'] });
+
+  expect(await readFile(target, 'utf8')).toBe(original);
+});

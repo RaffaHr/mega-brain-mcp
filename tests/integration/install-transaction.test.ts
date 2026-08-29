@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -18,7 +18,7 @@ import type { MegaBrainConfig } from '../../src/config/schema.js';
 import { deriveProjectIdentity } from '../../src/projects/identity.js';
 import { runtimeLayout } from '../../src/runtime/layout.js';
 import { startProjectSupervisor } from '../../src/runtime/project-supervisor.js';
-import { retryFilesystemOperation, RuntimeTransaction } from '../../src/runtime/transaction.js';
+import { retryFilesystemOperation, RuntimeTransaction, stripReadOnlyAttributes } from '../../src/runtime/transaction.js';
 
 const temporaryDirectories: string[] = [];
 const execFileAsync = promisify(execFile);
@@ -179,6 +179,19 @@ test('AC-061: retry de filesystem tolera EPERM transitorio no Windows @spec:AC-0
   }, 'Retrying locked runtime rename', { platform: 'win32', timeoutMs: 1_000, intervalMs: 1 });
 
   expect(attempts).toBe(3);
+});
+
+test('runtime cleanup preserves executable bits', async () => {
+  if (process.platform === 'win32') return;
+  const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-runtime-permissions-'));
+  temporaryDirectories.push(root);
+  const executable = path.join(root, 'runtime-bin');
+  await writeFile(executable, '#!/bin/sh\n', 'utf8');
+  await chmod(executable, 0o755);
+
+  await stripReadOnlyAttributes(root);
+
+  expect((await stat(executable)).mode & 0o111).toBe(0o111);
 });
 
 test('AC-060: install drena runtime existente sem state e nao reinicia se nao estava ativo @spec:AC-060', async () => {

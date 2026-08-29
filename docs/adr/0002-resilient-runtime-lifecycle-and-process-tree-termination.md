@@ -15,7 +15,7 @@ On Windows and POSIX systems, backend services (`agentmemory` spawning `iii-engi
 5. **Canonical Non-Git Identity**: Derive non-git project identity deterministically from the canonical absolute path of the workspace directory, ensuring consistent `worktreeId` resolution even if `.mega-brain/` was deleted.
 6. **Self-Healing and CLI Doctor**: Automatically drain pending deletions on all CLI commands, and provide `mega-brain doctor --fix` to terminate orphaned runtime processes and unblock locked resources.
 7. **Dual-State Reconciliation**: Anchor project identity to `worktreeId`. Allow `uninstall` to proceed with data purging even if `.mega-brain/config.json` was deleted by the user. Enforce that `upgrade` without an existing installation fails fast with guidance to run `setup` (unless `--init` is passed).
-8. **Progressive Retry with Attribute Reset**: Update filesystem retry logic to strip Read-Only flags and Windows file attributes before attempting deletion or rename operations.
+8. **Progressive Retry with Attribute Reset**: Update filesystem retry logic to strip Read-Only flags and Windows file attributes before attempting deletion or rename operations while preserving executable bits and skipping symbolic links.
 
 ## Consequences
 

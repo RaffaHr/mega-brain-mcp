@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { access, chmod, cp, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { access, chmod, cp, lstat, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 export class RuntimeTransaction {
@@ -44,8 +44,9 @@ async function exists(target: string): Promise<boolean> {
 export async function stripReadOnlyAttributes(targetPath: string): Promise<void> {
   const resolved = path.resolve(targetPath);
   try {
-    const metadata = await stat(resolved);
-    await chmod(resolved, metadata.isDirectory() ? 0o777 : 0o666).catch(() => undefined);
+    const metadata = await lstat(resolved);
+    if (metadata.isSymbolicLink()) return;
+    await chmod(resolved, metadata.isDirectory() ? (metadata.mode & 0o777) | 0o777 : (metadata.mode & 0o777) | 0o666).catch(() => undefined);
     if (metadata.isDirectory()) {
       const entries = await readdir(resolved).catch(() => []);
       for (const entry of entries) {

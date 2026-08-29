@@ -1,4 +1,4 @@
-import { access, chmod, mkdir, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
+import { access, chmod, lstat, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 export interface PendingDeletesManifest {
@@ -56,8 +56,9 @@ export async function clearPendingDelete(dataDir: string, targetPath: string): P
 
 async function stripReadOnlyRecursive(target: string): Promise<void> {
   try {
-    const stats = await stat(target);
-    await chmod(target, stats.isDirectory() ? 0o777 : 0o666).catch(() => undefined);
+    const stats = await lstat(target);
+    if (stats.isSymbolicLink()) return;
+    await chmod(target, stats.isDirectory() ? (stats.mode & 0o777) | 0o777 : (stats.mode & 0o777) | 0o666).catch(() => undefined);
     if (stats.isDirectory()) {
       const entries = await readdir(target).catch(() => []);
       for (const entry of entries) {
