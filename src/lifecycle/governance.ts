@@ -40,7 +40,7 @@ export async function processDeletedPathsGovernance(
   } catch (error) {
     createLocalLogger().log('debug', 'governance: remote expurgation failed', {
       project: projectId,
-      memories: memoryIds.length,
+      memoryCount: memoryIds.length,
       error: error instanceof Error ? error.message : String(error),
     });
   }
