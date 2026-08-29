@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import { access, chmod, cp, lstat, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
+import { createLocalLogger, type LocalLogger } from '../observability/logger.js';
+
 export class RuntimeTransaction {
   readonly #rollbacks: Array<() => Promise<void>> = [];
   readonly #commits: Array<() => Promise<void>> = [];
@@ -41,20 +43,33 @@ async function exists(target: string): Promise<boolean> {
   return access(target).then(() => true).catch(() => false);
 }
 
-export async function stripReadOnlyAttributes(targetPath: string): Promise<void> {
+/**
+ * Clears read-only attributes so a later removal or rename can succeed.
+ *
+ * Every failure is reported instead of discarded: a refused `chmod` is the
+ * usual reason the subsequent `rm` fails, and without the record the removal
+ * error carries no hint about its cause. Clearing attributes is still
+ * best-effort, so a failure never aborts the walk. The logger is threaded
+ * through the recursion so one instance serves the whole tree.
+ */
+export async function stripReadOnlyAttributes(targetPath: string, logger: LocalLogger = createLocalLogger()): Promise<void> {
   const resolved = path.resolve(targetPath);
+  const report = (error: unknown): void => logger.log('debug', 'runtime: could not clear read-only attributes', {
+    path: resolved,
+    error: error instanceof Error ? error.message : String(error),
+  });
   try {
     const metadata = await lstat(resolved);
     if (metadata.isSymbolicLink()) return;
-    await chmod(resolved, metadata.isDirectory() ? (metadata.mode & 0o777) | 0o777 : (metadata.mode & 0o777) | 0o666).catch(() => undefined);
+    await chmod(resolved, metadata.isDirectory() ? (metadata.mode & 0o777) | 0o777 : (metadata.mode & 0o777) | 0o666).catch(report);
     if (metadata.isDirectory()) {
-      const entries = await readdir(resolved).catch(() => []);
+      const entries = await readdir(resolved).catch((error: unknown) => { report(error); return [] as string[]; });
       for (const entry of entries) {
-        await stripReadOnlyAttributes(path.join(resolved, entry)).catch(() => undefined);
+        await stripReadOnlyAttributes(path.join(resolved, entry), logger).catch(report);
       }
     }
-  } catch {
-    // ignore
+  } catch (error) {
+    report(error);
   }
 }
 
