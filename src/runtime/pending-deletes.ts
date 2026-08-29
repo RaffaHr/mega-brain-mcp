@@ -77,8 +77,9 @@ export async function safeRemoveDirectory(target: string, logger: LocalLogger = 
       await rm(resolved, { recursive: true, force: true });
       return true;
     } catch (error) {
-      logger.log('debug', 'runtime: could not remove directory', {
+      logger.log('warn', 'runtime: could not remove directory', {
         path: resolved,
+        basename: path.basename(resolved),
         error: error instanceof Error ? error.message : String(error),
       });
       return false;

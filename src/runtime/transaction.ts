@@ -50,12 +50,15 @@ async function exists(target: string): Promise<boolean> {
  * usual reason the subsequent `rm` fails, and without the record the removal
  * error carries no hint about its cause. Clearing attributes is still
  * best-effort, so a failure never aborts the walk. The logger is threaded
- * through the recursion so one instance serves the whole tree.
+ * through the recursion so one instance serves the whole tree, and the base
+ * name travels beside the full path because redaction hides long absolute
+ * paths from the record.
  */
 export async function stripReadOnlyAttributes(targetPath: string, logger: LocalLogger = createLocalLogger()): Promise<void> {
   const resolved = path.resolve(targetPath);
   const report = (error: unknown): void => logger.log('debug', 'runtime: could not clear read-only attributes', {
     path: resolved,
+    basename: path.basename(resolved),
     error: error instanceof Error ? error.message : String(error),
   });
   try {
@@ -65,7 +68,7 @@ export async function stripReadOnlyAttributes(targetPath: string, logger: LocalL
     if (metadata.isDirectory()) {
       const entries = await readdir(resolved).catch((error: unknown) => { report(error); return [] as string[]; });
       for (const entry of entries) {
-        await stripReadOnlyAttributes(path.join(resolved, entry), logger).catch(report);
+        await stripReadOnlyAttributes(path.join(resolved, entry), logger);
       }
     }
   } catch (error) {

@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -10,6 +10,7 @@ import {
   drainPendingDeletes,
   loadPendingDeletes,
   queuePendingDelete,
+  safeRemoveDirectory,
 } from '../../src/runtime/pending-deletes.js';
 import { stripReadOnlyAttributes } from '../../src/runtime/transaction.js';
 
@@ -60,8 +61,33 @@ describe('Pending Delete Queue', () => {
 
     expect(records).toHaveLength(1);
     expect(records[0]).toMatchObject({ level: 'debug', message: 'runtime: could not clear read-only attributes' });
-    expect(records[0]!.fields).toMatchObject({ path: path.resolve(missing) });
+    expect(records[0]!.fields).toMatchObject({ path: path.resolve(missing), basename: 'never-created' });
     expect(String(records[0]!.fields.error)).toContain('ENOENT');
+  });
+
+  test('reports why a directory could not be removed before queueing it', async () => {
+    if (process.platform === 'win32' || process.getuid?.() === 0) return;
+    const root = await mkdtemp(path.join(tmpdir(), 'pending-deletes-locked-'));
+    temporaryDirectories.push(root);
+    const parent = path.join(root, 'parent');
+    const target = path.join(parent, 'locked');
+    await mkdir(target, { recursive: true });
+    const records: Array<{ level: string; message: string; fields: Record<string, unknown> }> = [];
+    const logger: LocalLogger = {
+      log: (level, message, fields = {}) => { records.push({ level, message, fields }); },
+    };
+
+    await chmod(parent, 0o555);
+    try {
+      await expect(safeRemoveDirectory(target, logger)).resolves.toBe(false);
+    } finally {
+      await chmod(parent, 0o755);
+    }
+
+    const failure = records.find(({ message }) => message === 'runtime: could not remove directory');
+    expect(failure).toMatchObject({ level: 'warn' });
+    expect(failure!.fields).toMatchObject({ path: path.resolve(target), basename: 'locked' });
+    expect(String(failure!.fields.error)).toMatch(/EACCES|EPERM/u);
   });
 
   test('tolerates already-deleted files without error during drain', async () => {
