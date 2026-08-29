@@ -12,7 +12,7 @@ import { AgentMemoryClient } from '../adapters/agentmemory/client.js';
 import { probeRemoteAgentMemoryIsolation } from '../adapters/agentmemory/capabilities.js';
 import { CodeReviewGraphClient } from '../adapters/code-review-graph/client.js';
 import { GitRepository, NO_GIT_HEAD } from '../adapters/git/repository.js';
-import { createLocalLogger, type LocalLogger } from '../observability/logger.js';
+import { createLocalLogger, reportShutdownIssue, type LocalLogger } from '../observability/logger.js';
 import { loadConfig, loadManagedDependencyVersions } from '../config/load.js';
 import type { MegaBrainConfig } from '../config/schema.js';
 import { discoverProjectIdentity } from '../projects/identity.js';
@@ -379,10 +379,13 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       identity,
       onShutdown: () => stopManagedRuntime(config.dataDir, identity),
     });
-    const reportCloseFailure = (error: unknown): void => logger.log('warn', 'supervisor: close failed', {
-      project: identity.worktreeId,
-      error: error instanceof Error ? error.message : String(error),
-    });
+    const reportCloseFailure = (error: unknown): void => {
+      logger.log('warn', 'supervisor: close failed', {
+        project: identity.worktreeId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      reportShutdownIssue('supervisor close failed; its managed runtime may still be running', identity.worktreeId);
+    };
     const close = () => { void supervisor.close().catch(reportCloseFailure); };
     process.once('SIGINT', close);
     process.once('SIGTERM', close);

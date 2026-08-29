@@ -3,7 +3,7 @@ import { chmod, mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { afterEach, expect, test } from 'vitest';
+import { afterEach, expect, test, vi } from 'vitest';
 
 import { deriveProjectIdentity } from '../../src/projects/identity.js';
 import {
@@ -218,7 +218,7 @@ test('AC-041: checkIdle aguardado propaga a falha do shutdown ao chamador @spec:
   }
 });
 
-test('AC-040: manifest cujo socket sumiu é reciclado por um supervisor novo @spec:AC-040', async () => {
+test('AC-040: manifest de processo morto é reciclado por um supervisor novo @spec:AC-040', async () => {
   if (process.platform === 'win32') return;
   const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-dead-socket-'));
   directories.push(dataDir);
@@ -232,19 +232,24 @@ test('AC-040: manifest cujo socket sumiu é reciclado por um supervisor novo @sp
     leaseOptions: { shutdownGraceMs: 0 },
     onShutdown: () => { shutdowns += 1; },
   });
-  await rm(orphan.manifest.ipcAddress, { force: true });
 
   let replacement: Awaited<ReturnType<typeof startProjectSupervisor>> | undefined;
   const handle = await ensureProjectSupervisor({
     layout,
     identity,
-    processExists: () => true,
+    processExists: (candidate) => candidate === 7373,
     spawner: {
       async spawn() {
         replacement = await startProjectSupervisor({ layout, identity, pid: 7373 });
         return 7373;
       },
     },
+  });
+
+  const stderrWrites: string[] = [];
+  const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation((chunk: unknown) => {
+    stderrWrites.push(String(chunk));
+    return true;
   });
 
   try {
@@ -260,14 +265,40 @@ test('AC-040: manifest cujo socket sumiu é reciclado por um supervisor novo @sp
     expect(await orphan.checkIdle()).toBe(false);
     expect(shutdowns).toBe(0);
     expect(orphan.registered()).toBe(false);
+    expect(stderrWrites.join('')).toContain('no longer owns this project');
+    expect(stderrWrites.join('')).toContain(identity.worktreeId);
+    expect(stderrWrites.join('')).not.toContain(dataDir);
 
     await orphan.close();
     expect(await readSupervisorManifest(layout)).toMatchObject({ pid: 7373 });
     expect((await handle.client.status()).leases).toEqual([]);
   } finally {
+    stderrSpy.mockRestore();
     await handle.client.close();
     await replacement?.close();
     await orphan.close();
+  }
+});
+
+test('AC-040: supervisor vivo sem endpoint falha com instrução em vez de duplicar o runtime @spec:AC-040', async () => {
+  if (process.platform === 'win32') return;
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-live-orphan-'));
+  directories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  const server = await startProjectSupervisor({ layout, identity, pid: process.pid });
+  await rm(server.manifest.ipcAddress, { force: true });
+
+  try {
+    await expect(ensureProjectSupervisor({
+      layout,
+      identity,
+      processExists: () => true,
+      spawner: { spawn: async () => { throw new Error('must not spawn a second supervisor'); } },
+    })).rejects.toThrow(/is running but its IPC endpoint is gone/u);
+    await expect(readSupervisorManifest(layout)).resolves.toMatchObject({ pid: process.pid });
+  } finally {
+    await server.close();
   }
 });
 

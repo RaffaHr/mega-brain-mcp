@@ -17,6 +17,19 @@ export function debugLoggingEnabled(environment: NodeJS.ProcessEnv = process.env
   return /^(?:1|true|yes|on|debug)$/u.test(debug ?? '');
 }
 
+/**
+ * Writes a shutdown diagnostic that survives the default log level.
+ *
+ * A shutdown that leaves backends running is silent by nature: the process
+ * exits and `createLocalLogger` stays quiet unless debugging is on, so the only
+ * evidence would be ports that never freed. Reserved for the shutdown path, and
+ * limited to a fixed sentence plus the project identity because an error
+ * message can carry a filesystem path.
+ */
+export function reportShutdownIssue(message: string, worktreeId: string): void {
+  process.stderr.write(`mega-brain: ${message} [project ${worktreeId}]\n`);
+}
+
 export function createLocalLogger(
   sink: (line: string) => void = (line) => process.stderr.write(`${line}\n`),
   options: LocalLoggerOptions = {},

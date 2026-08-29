@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
 import { mkdir, open, readFile, rm } from 'node:fs/promises';
 
-import { createLocalLogger } from '../observability/logger.js';
+import { createLocalLogger, reportShutdownIssue } from '../observability/logger.js';
 import type { ProjectIdentity } from '../projects/identity.js';
 import { startSupervisorIpcServer, SupervisorIpcClient } from './ipc.js';
 import { LeaseRegistry, type LeaseRegistryOptions } from './leases.js';
@@ -128,6 +128,9 @@ export async function startProjectSupervisor(input: {
       closed = true;
       clearInterval(timer);
       registered = await ownsRegistration();
+      if (!registered) {
+        reportShutdownIssue('supervisor no longer owns this project; leaving its managed runtime running', input.identity.worktreeId);
+      }
       try {
         await ipc.close();
         if (registered) await removeSupervisorManifest(input.layout, manifest);
@@ -171,10 +174,13 @@ export async function startProjectSupervisor(input: {
    */
   const timer = setInterval(() => {
     if (closed) return;
-    void checkIdle().catch((error: unknown) => createLocalLogger().log('warn', 'supervisor: idle shutdown failed', {
-      project: input.identity.worktreeId,
-      error: error instanceof Error ? error.message : String(error),
-    }));
+    void checkIdle().catch((error: unknown) => {
+      createLocalLogger().log('warn', 'supervisor: idle shutdown failed', {
+        project: input.identity.worktreeId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      reportShutdownIssue('supervisor idle shutdown failed; its managed runtime may still be running', input.identity.worktreeId);
+    });
   }, Math.min(1_000, Math.max(100, leases.shutdownGraceMs)));
   timer.unref();
 
@@ -210,17 +216,27 @@ async function defaultProcessExists(pid: number): Promise<boolean> {
 }
 
 /**
- * Tells a manifest that outlived its endpoint from a supervisor that is merely
- * unhealthy.
+ * Decides what a failed readiness check says about the registered supervisor.
  *
- * The manifest is only written once the IPC server is listening, so a missing
- * endpoint (a reaped socket under the temporary directory, a released named
- * pipe) or a refused connection (the process was killed without unlinking, and
- * its pid was later reused) means the recorded supervisor is gone. Anything
- * else, an identity mismatch in particular, must still surface.
+ * `refused` means the endpoint is still on disk but nothing answers on it. A
+ * live supervisor keeps that socket bound for as long as it runs, and only this
+ * project may write into the directory, so a refusal proves the process that
+ * bound it died without unlinking and the recorded pid now belongs to something
+ * else: the registration can be recycled.
+ *
+ * `missing` means the endpoint itself is gone, which a temporary directory
+ * reaper does to a supervisor that is still running and still listening on the
+ * unlinked socket. Recycling then would start a second supervisor on the same
+ * fixed backend ports, where the newcomer loses the bind silently and the
+ * runtime state ends up naming processes nobody owns, so that case is reported
+ * instead. The pid cannot be killed to break the tie because it may have been
+ * reused.
  */
-function unreachableAddress(error: unknown): boolean {
-  return ['ENOENT', 'ECONNREFUSED'].includes((error as NodeJS.ErrnoException).code ?? '');
+function readinessVerdict(error: unknown): 'refused' | 'missing' | 'unhealthy' {
+  const code = (error as NodeJS.ErrnoException).code;
+  if (code === 'ECONNREFUSED') return 'refused';
+  if (code === 'ENOENT') return 'missing';
+  return 'unhealthy';
 }
 
 async function connectExisting(
@@ -245,9 +261,13 @@ async function connectExisting(
     await client.status();
     return { manifest, client, reused: true };
   } catch (error) {
-    if (unreachableAddress(error)) {
+    const verdict = readinessVerdict(error);
+    if (verdict === 'refused') {
       await removeSupervisorManifest(options.layout, manifest);
       return null;
+    }
+    if (verdict === 'missing') {
+      throw new Error(`Supervisor process ${manifest.pid} is running but its IPC endpoint is gone; stop that process to let this project start a new supervisor`);
     }
     throw new Error(`Supervisor process ${manifest.pid} exists but readiness failed: ${error instanceof Error ? error.message : String(error)}`);
   }
