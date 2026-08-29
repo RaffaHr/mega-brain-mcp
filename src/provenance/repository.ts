@@ -124,7 +124,7 @@ export class ProvenanceRepository {
     return (this.database.prepare(`SELECT DISTINCT memory_id AS memoryId FROM evidence WHERE path IN (${placeholders}) ORDER BY memory_id`).all(...paths) as Array<{ memoryId: string }>).map(({ memoryId }) => memoryId);
   }
 
-  findMemoriesByState(state: FreshnessState): Array<{ memoryId: string }> {
+  findMemoriesByState(state: MemoryRefState): Array<{ memoryId: string }> {
     return this.database.prepare(`
       SELECT memory_id AS memoryId
       FROM memory_refs
@@ -141,11 +141,7 @@ export class ProvenanceRepository {
         WHERE m.state = 'CANDIDATE' AND e.commit_hash = ?
       `).all(filter.commitHash) as Array<{ memoryId: string }>;
     }
-    return this.database.prepare(`
-      SELECT DISTINCT memory_id AS memoryId
-      FROM memory_refs
-      WHERE state = 'CANDIDATE'
-    `).all() as Array<{ memoryId: string }>;
+    return this.findMemoriesByState('CANDIDATE');
   }
 
   memoryCountsByState(): MemoryStateCounts {
