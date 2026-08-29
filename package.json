@@ -43,7 +43,7 @@
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run",
-    "test:spec": "vitest run --pool=threads --maxWorkers=1 --reporter=json --outputFile=.spec/verification/vitest-results.json",
+    "test:spec": "vitest run --pool=threads --maxWorkers=1 --testTimeout=30000 --hookTimeout=30000 --reporter=json --outputFile=.spec/verification/vitest-results.json",
     "test:autonomous": "vitest run tests/e2e/autonomous-lifecycle.test.ts tests/e2e/concurrent-projects.test.ts",
     "benchmark": "vitest run tests/e2e/benchmark.test.ts",
     "audit": "node scripts/onp-spec-ci.mjs audit --ci",

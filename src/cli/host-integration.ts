@@ -180,6 +180,10 @@ export async function restoreHostMcpFiles(
     }
     const target = backup?.target ?? (input.root ? targetFor(input.root, host) : undefined);
     if (!target) continue;
+    if (backup && backup.existed) {
+      await atomicWrite(target, backup.content);
+      continue;
+    }
     const current = await readOptional(target);
     if (!current.existed) continue;
     const cleaned = host === 'codex'
