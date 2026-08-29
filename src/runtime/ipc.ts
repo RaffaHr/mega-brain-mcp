@@ -1,5 +1,6 @@
-import { chmod, rm } from 'node:fs/promises';
+import { chmod, lstat, mkdir, rm } from 'node:fs/promises';
 import net, { type Server, type Socket } from 'node:net';
+import path from 'node:path';
 
 import { z } from 'zod';
 
@@ -32,11 +33,36 @@ export interface SupervisorIpcServer {
   close(): Promise<void>;
 }
 
+/**
+ * Restricts the directory holding a Unix domain socket to the current user
+ * before the socket is bound.
+ *
+ * `listen` creates the socket with the process umask and only afterwards is it
+ * narrowed to `0600`, so the directory has to be the barrier that closes that
+ * window. Rejecting anything that is not a directory owned by this user also
+ * defeats a symlink or a pre-created world-writable directory squatting the
+ * address, and `mkdir` alone would leave the permissions of an existing
+ * directory untouched.
+ */
+async function prepareSocketDirectory(address: string): Promise<void> {
+  const directory = path.dirname(address);
+  await mkdir(directory, { recursive: true, mode: 0o700 });
+  const metadata = await lstat(directory);
+  const uid = process.getuid?.();
+  if (!metadata.isDirectory() || (uid !== undefined && metadata.uid !== uid)) {
+    throw new Error(`Supervisor socket directory must be a directory owned by the current user: ${directory}`);
+  }
+  await chmod(directory, 0o700);
+}
+
 export async function startSupervisorIpcServer(input: {
   address: string;
   handle(request: SupervisorIpcRequest): Promise<SupervisorIpcResponse> | SupervisorIpcResponse;
 }): Promise<SupervisorIpcServer> {
-  if (process.platform !== 'win32') await rm(input.address, { force: true });
+  if (process.platform !== 'win32') {
+    await prepareSocketDirectory(input.address);
+    await rm(input.address, { force: true });
+  }
   const sockets = new Set<Socket>();
   const server: Server = net.createServer((socket) => {
     sockets.add(socket);

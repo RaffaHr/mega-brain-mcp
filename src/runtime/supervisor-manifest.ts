@@ -1,5 +1,6 @@
-import { randomUUID } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { chmod, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { z } from 'zod';
@@ -26,6 +27,29 @@ export interface SupervisorPaths {
   ipcAddress: string;
 }
 
+const POSIX_SOCKET_PATH_LIMIT = process.platform === 'darwin' ? 104 : 107;
+
+/**
+ * Resolves the Unix domain socket address of a supervisor.
+ *
+ * Binding fails with EINVAL when the address does not fit the platform
+ * `sun_path` buffer, so a project whose runtime directory is deep falls back to
+ * a dedicated directory under the system temporary folder. The fallback name is
+ * derived from the supervisor directory instead of the worktree identity so two
+ * data directories holding the same project never collide, and the directory is
+ * exclusive so `startSupervisorIpcServer` can restrict it to the current user.
+ */
+function posixIpcAddress(directory: string): string {
+  const preferred = path.join(directory, 'supervisor.sock');
+  if (Buffer.byteLength(preferred) <= POSIX_SOCKET_PATH_LIMIT) return preferred;
+  const digest = createHash('sha256').update(directory).digest('hex').slice(0, 16);
+  const fallback = path.join(tmpdir(), `mega-brain-${digest}`, 's.sock');
+  if (Buffer.byteLength(fallback) > POSIX_SOCKET_PATH_LIMIT) {
+    throw new Error(`Supervisor socket address exceeds the ${POSIX_SOCKET_PATH_LIMIT} byte platform limit even under the temporary directory; point TMPDIR at a shorter path`);
+  }
+  return fallback;
+}
+
 export function supervisorPaths(layout: RuntimeLayout, worktreeId: string): SupervisorPaths {
   if (!/^[a-f0-9]{24}$/u.test(worktreeId)) throw new Error('Invalid supervisor worktree identity');
   const directory = path.join(layout.projectRoot, 'supervisor');
@@ -35,7 +59,7 @@ export function supervisorPaths(layout: RuntimeLayout, worktreeId: string): Supe
     startupLock: path.join(directory, 'startup.lock'),
     ipcAddress: process.platform === 'win32'
       ? `\\\\.\\pipe\\mega-brain-${worktreeId}`
-      : path.join(directory, 'supervisor.sock'),
+      : posixIpcAddress(directory),
   };
 }
 
