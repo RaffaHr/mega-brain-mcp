@@ -8,6 +8,7 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { deriveProjectIdentity } from '../../src/projects/identity.js';
 import {
   ensureProjectSupervisor,
+  readinessVerdict,
   startProjectSupervisor,
   type SupervisorProcessSpawner,
 } from '../../src/runtime/project-supervisor.js';
@@ -299,6 +300,20 @@ test('AC-040: supervisor vivo sem endpoint falha com instrução em vez de dupli
     await expect(readSupervisorManifest(layout)).resolves.toMatchObject({ pid: process.pid });
   } finally {
     await server.close();
+  }
+});
+
+test('AC-040: endpoint ausente recicla no Windows e é reportado no Unix @spec:AC-040', () => {
+  const missingEndpoint = Object.assign(new Error('connect ENOENT'), { code: 'ENOENT' });
+  const refusedEndpoint = Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' });
+
+  expect(readinessVerdict(missingEndpoint, 'win32')).toBe('refused');
+  expect(readinessVerdict(missingEndpoint, 'linux')).toBe('missing');
+  expect(readinessVerdict(missingEndpoint, 'darwin')).toBe('missing');
+
+  for (const platform of ['win32', 'linux', 'darwin'] as const) {
+    expect(readinessVerdict(refusedEndpoint, platform)).toBe('refused');
+    expect(readinessVerdict(new Error('Supervisor IPC identity mismatch'), platform)).toBe('unhealthy');
   }
 });
 

@@ -240,18 +240,23 @@ async function defaultProcessExists(pid: number): Promise<boolean> {
  * bound it died without unlinking and the recorded pid now belongs to something
  * else: the registration can be recycled.
  *
- * `missing` means the endpoint itself is gone, which a temporary directory
- * reaper does to a supervisor that is still running and still listening on the
- * unlinked socket. Recycling then would start a second supervisor on the same
- * fixed backend ports, where the newcomer loses the bind silently and the
- * runtime state ends up naming processes nobody owns, so that case is reported
- * instead. The pid cannot be killed to break the tie because it may have been
- * reused.
+ * A gone endpoint means opposite things per platform. On Unix a temporary
+ * directory reaper unlinks the socket of a supervisor that keeps running and
+ * listening on the unlinked inode, so the case is `missing` and gets reported:
+ * recycling would start a second supervisor on the same fixed backend ports,
+ * where the newcomer loses the bind silently and the runtime state ends up
+ * naming processes nobody owns. Windows releases a named pipe together with the
+ * process that created it, so an absent pipe proves the creator is gone and the
+ * live pid is a reuse, which is the same conclusion as a refusal. The pid is
+ * never killed to break the tie because it may belong to another program.
  */
-function readinessVerdict(error: unknown): 'refused' | 'missing' | 'unhealthy' {
+export function readinessVerdict(
+  error: unknown,
+  platform: NodeJS.Platform = process.platform,
+): 'refused' | 'missing' | 'unhealthy' {
   const code = (error as NodeJS.ErrnoException).code;
   if (code === 'ECONNREFUSED') return 'refused';
-  if (code === 'ENOENT') return 'missing';
+  if (code === 'ENOENT') return platform === 'win32' ? 'refused' : 'missing';
   return 'unhealthy';
 }
 
