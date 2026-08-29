@@ -105,8 +105,9 @@ test('AC-048: socket fora do projectRoot nasce em diretório 0700 do usuário co
 
   const server = await startProjectSupervisor({ layout, identity, pid: process.pid });
   try {
+    expect(path.dirname(server.manifest.ipcAddress)).toBe(socketDirectory);
     expect((await stat(socketDirectory)).mode & 0o777).toBe(0o700);
-    expect((await stat(paths.ipcAddress)).mode & 0o777).toBe(0o600);
+    expect((await stat(server.manifest.ipcAddress)).mode & 0o777).toBe(0o600);
   } finally {
     await server.close();
   }

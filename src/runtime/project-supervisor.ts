@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { randomUUID } from 'node:crypto';
 import { mkdir, open, readFile, rm } from 'node:fs/promises';
 
 import { createLocalLogger } from '../observability/logger.js';
@@ -7,6 +8,7 @@ import { startSupervisorIpcServer, SupervisorIpcClient } from './ipc.js';
 import { LeaseRegistry, type LeaseRegistryOptions } from './leases.js';
 import type { RuntimeLayout } from './layout.js';
 import {
+  isSameSupervisor,
   readSupervisorManifest,
   removeSupervisorManifest,
   supervisorPaths,
@@ -57,7 +59,7 @@ export async function startProjectSupervisor(input: {
   assertLayoutIdentity(input.layout, input.identity);
   const pid = input.pid ?? process.pid;
   const now = input.now ?? Date.now;
-  const paths = supervisorPaths(input.layout, input.identity.worktreeId);
+  const paths = supervisorPaths(input.layout, input.identity.worktreeId, randomUUID().replaceAll('-', '').slice(0, 8));
   await mkdir(paths.directory, { recursive: true, mode: 0o700 });
   const leases = new LeaseRegistry({ ...input.leaseOptions, now });
   const startedAt = new Date(now()).toISOString();
@@ -117,15 +119,32 @@ export async function startProjectSupervisor(input: {
       clearInterval(timer);
       try {
         await ipc.close();
-        await removeSupervisorManifest(input.layout);
+        await removeSupervisorManifest(input.layout, manifest);
       } finally {
         resolveClosed();
       }
     })();
     return closing;
   };
+  /**
+   * Reports whether the manifest still names this supervisor.
+   *
+   * A supervisor whose manifest was recycled has already been replaced, and its
+   * shutdown hook stops the managed runtime the replacement is now using, so an
+   * unregistered instance has to retire without touching shared state. Failing
+   * to read the manifest counts as not owning it, which keeps the destructive
+   * path closed by default.
+   */
+  const ownsRegistration = async (): Promise<boolean> => {
+    const current = await readSupervisorManifest(input.layout).catch(() => null);
+    return current !== null && isSameSupervisor(current, manifest);
+  };
   const checkIdle = async (): Promise<boolean> => {
     if (closed || !leases.shouldShutdown()) return false;
+    if (!(await ownsRegistration())) {
+      await close();
+      return false;
+    }
     try {
       await input.onShutdown?.();
     } finally {
@@ -207,7 +226,7 @@ async function connectExisting(
   }
   const processExists = options.processExists ?? defaultProcessExists;
   if (!(await processExists(manifest.pid))) {
-    await removeSupervisorManifest(options.layout);
+    await removeSupervisorManifest(options.layout, manifest);
     return null;
   }
   const client = new SupervisorIpcClient(manifest);
@@ -216,7 +235,7 @@ async function connectExisting(
     return { manifest, client, reused: true };
   } catch (error) {
     if (unreachableAddress(error)) {
-      await removeSupervisorManifest(options.layout);
+      await removeSupervisorManifest(options.layout, manifest);
       return null;
     }
     throw new Error(`Supervisor process ${manifest.pid} exists but readiness failed: ${error instanceof Error ? error.message : String(error)}`);

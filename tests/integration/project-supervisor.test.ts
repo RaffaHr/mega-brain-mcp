@@ -11,7 +11,7 @@ import {
   type SupervisorProcessSpawner,
 } from '../../src/runtime/project-supervisor.js';
 import { runtimeLayout, type RuntimeLayout } from '../../src/runtime/layout.js';
-import { readSupervisorManifest, supervisorManifestSchema, supervisorPaths } from '../../src/runtime/supervisor-manifest.js';
+import { readSupervisorManifest, supervisorManifestSchema, supervisorPaths, writeSupervisorManifest } from '../../src/runtime/supervisor-manifest.js';
 
 const directories: string[] = [];
 
@@ -200,9 +200,8 @@ test('AC-040: manifest cujo socket sumiu é reciclado por um supervisor novo @sp
   directories.push(dataDir);
   const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
   const layout = runtimeLayout(dataDir, identity);
-  const paths = supervisorPaths(layout, identity.worktreeId);
   const orphan = await startProjectSupervisor({ layout, identity, pid: process.pid });
-  await rm(paths.ipcAddress, { force: true });
+  await rm(orphan.manifest.ipcAddress, { force: true });
 
   let replacement: Awaited<ReturnType<typeof startProjectSupervisor>> | undefined;
   const handle = await ensureProjectSupervisor({
@@ -220,13 +219,41 @@ test('AC-040: manifest cujo socket sumiu é reciclado por um supervisor novo @sp
   try {
     expect(handle.reused).toBe(false);
     expect(handle.manifest.pid).toBe(7373);
+    expect(handle.manifest.ipcAddress).not.toBe(orphan.manifest.ipcAddress);
     await handle.client.acquire('recovered-gateway');
     expect((await handle.client.status()).leases).toEqual(['recovered-gateway']);
     await handle.client.release('recovered-gateway');
+
+    await orphan.close();
+    expect(await readSupervisorManifest(layout)).toMatchObject({ pid: 7373 });
+    expect((await handle.client.status()).leases).toEqual([]);
   } finally {
     await handle.client.close();
     await replacement?.close();
     await orphan.close();
+  }
+});
+
+test('AC-040: readiness que não é endereço inacessível preserva o manifest @spec:AC-040', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-readiness-'));
+  directories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  const server = await startProjectSupervisor({ layout, identity, pid: process.pid });
+  const published = await readSupervisorManifest(layout);
+  const impostor = { ...published, pid: published.pid + 1 };
+  await writeSupervisorManifest(layout, impostor);
+
+  try {
+    await expect(ensureProjectSupervisor({
+      layout,
+      identity,
+      processExists: () => true,
+      spawner: { spawn: async () => { throw new Error('must not spawn'); } },
+    })).rejects.toThrow(/readiness failed/u);
+    await expect(readSupervisorManifest(layout)).resolves.toMatchObject({ pid: impostor.pid });
+  } finally {
+    await server.close();
   }
 });
 
