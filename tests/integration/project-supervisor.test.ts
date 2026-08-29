@@ -118,6 +118,7 @@ test('AC-041: supervisor encerra cinco segundos após a última lease @spec:AC-0
   now = 5_000;
   expect(await server.checkIdle()).toBe(true);
   expect(shutdowns).toBe(1);
+  expect(server.registered()).toBe(true);
   await expect(readSupervisorManifest(layout)).rejects.toMatchObject({ code: 'ENOENT' });
 });
 
@@ -200,7 +201,14 @@ test('AC-040: manifest cujo socket sumiu é reciclado por um supervisor novo @sp
   directories.push(dataDir);
   const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
   const layout = runtimeLayout(dataDir, identity);
-  const orphan = await startProjectSupervisor({ layout, identity, pid: process.pid });
+  let shutdowns = 0;
+  const orphan = await startProjectSupervisor({
+    layout,
+    identity,
+    pid: process.pid,
+    leaseOptions: { shutdownGraceMs: 0 },
+    onShutdown: () => { shutdowns += 1; },
+  });
   await rm(orphan.manifest.ipcAddress, { force: true });
 
   let replacement: Awaited<ReturnType<typeof startProjectSupervisor>> | undefined;
@@ -223,6 +231,12 @@ test('AC-040: manifest cujo socket sumiu é reciclado por um supervisor novo @sp
     await handle.client.acquire('recovered-gateway');
     expect((await handle.client.status()).leases).toEqual(['recovered-gateway']);
     await handle.client.release('recovered-gateway');
+
+    orphan.leases.acquire('stale-gateway');
+    orphan.leases.release('stale-gateway');
+    expect(await orphan.checkIdle()).toBe(false);
+    expect(shutdowns).toBe(0);
+    expect(orphan.registered()).toBe(false);
 
     await orphan.close();
     expect(await readSupervisorManifest(layout)).toMatchObject({ pid: 7373 });

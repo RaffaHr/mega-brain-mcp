@@ -46,6 +46,15 @@ export interface ProjectSupervisorServer {
   closed: Promise<void>;
   checkIdle(): Promise<boolean>;
   close(): Promise<void>;
+  /**
+   * Whether this instance still held the project registration when it closed.
+   *
+   * A daemon reads it before tearing down the managed runtime: an instance that
+   * was replaced shares that runtime with its replacement, so stopping it would
+   * kill backends another supervisor is serving. Reads `false` until `close`
+   * settles the verdict.
+   */
+  registered(): boolean;
 }
 
 export async function startProjectSupervisor(input: {
@@ -100,6 +109,7 @@ export async function startProjectSupervisor(input: {
   }
 
   let closed = false;
+  let registered = false;
   let resolveClosed!: () => void;
   const closedPromise = new Promise<void>((resolve) => { resolveClosed = resolve; });
   let closing: Promise<void> | undefined;
@@ -117,9 +127,10 @@ export async function startProjectSupervisor(input: {
       if (closed) return;
       closed = true;
       clearInterval(timer);
+      registered = await ownsRegistration();
       try {
         await ipc.close();
-        await removeSupervisorManifest(input.layout, manifest);
+        if (registered) await removeSupervisorManifest(input.layout, manifest);
       } finally {
         resolveClosed();
       }
@@ -167,7 +178,7 @@ export async function startProjectSupervisor(input: {
   }, Math.min(1_000, Math.max(100, leases.shutdownGraceMs)));
   timer.unref();
 
-  return { manifest, leases, closed: closedPromise, checkIdle, close };
+  return { manifest, leases, closed: closedPromise, checkIdle, close, registered: () => registered };
 }
 
 export interface EnsureProjectSupervisorOptions {

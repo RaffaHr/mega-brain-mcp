@@ -391,7 +391,10 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       process.off('SIGINT', close);
       process.off('SIGTERM', close);
       await supervisor.close().catch(reportCloseFailure);
-      await stopManagedRuntime(config.dataDir, identity);
+      if (supervisor.registered()) await stopManagedRuntime(config.dataDir, identity);
+      else logger.log('warn', 'supervisor: leaving the managed runtime to the supervisor that replaced this one', {
+        project: identity.worktreeId,
+      });
     }
     return;
   }

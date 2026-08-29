@@ -1,4 +1,4 @@
-import { chmod, mkdtemp, mkdir, rm, stat, symlink, writeFile } from 'node:fs/promises';
+import { chmod, mkdtemp, mkdir, readdir, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -80,7 +80,8 @@ test('AC-048: manifest e lock ficam no namespace do worktree e o socket fica em 
   expect(shortPaths.ipcAddress.startsWith(shortLayout.projectRoot)).toBe(true);
 
   const deepLayout = runtimeLayout(`/tmp/${'d'.repeat(120)}`, identity);
-  const deepPaths = supervisorPaths(deepLayout, identity.worktreeId);
+  const deepPaths = supervisorPaths(deepLayout, identity.worktreeId, 'a1b2c3d4');
+  expect(path.basename(deepPaths.ipcAddress)).toBe('s-a1b2c3d4.sock');
   expect(Buffer.byteLength(deepPaths.ipcAddress)).toBeLessThanOrEqual(SHORTEST_POSIX_SOCKET_LIMIT);
   expect(path.dirname(deepPaths.ipcAddress)).not.toBe(tmpdir());
   expect(path.dirname(path.dirname(deepPaths.ipcAddress))).toBe(tmpdir());
@@ -127,5 +128,5 @@ test('AC-048: supervisor recusa socket em diretório que não é um diretório d
 
   await expect(startProjectSupervisor({ layout, identity, pid: process.pid }))
     .rejects.toThrow(/must be a directory owned by the current user/u);
-  await expect(stat(paths.ipcAddress)).rejects.toMatchObject({ code: 'ENOENT' });
+  expect(await readdir(decoy)).toEqual([]);
 });
