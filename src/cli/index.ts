@@ -245,13 +245,14 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       codeReviewGraph,
       provenance: new ProvenanceRepository(database),
     }));
-    const close = async () => {
+    let closing: Promise<void> | undefined;
+    const close = (): Promise<void> => (closing ??= (async () => {
       await application.close().catch(() => undefined);
       await codeReviewGraph.stop().catch(() => undefined);
       database.close();
-    };
+    })());
     const closeOnSignal = () => {
-      void close().catch((error: unknown) => logger.log('warn', 'serve: close on signal failed', {
+      void close().catch((error: unknown) => logger.log('warn', 'serve: close failed', {
         project: identity.worktreeId,
         error: error instanceof Error ? error.message : String(error),
       }));
@@ -378,7 +379,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       identity,
       onShutdown: () => stopManagedRuntime(config.dataDir, identity),
     });
-    const reportCloseFailure = (error: unknown): void => logger.log('warn', 'supervisor: close on signal failed', {
+    const reportCloseFailure = (error: unknown): void => logger.log('warn', 'supervisor: close failed', {
       project: identity.worktreeId,
       error: error instanceof Error ? error.message : String(error),
     });

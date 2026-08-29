@@ -110,7 +110,7 @@ export async function runMcpCommand(input: {
     input.logger?.log('info', 'mcp: stdio server ready; waiting for JSON-RPC messages from the host', {
       project: input.identity.worktreeId,
     });
-    const reportCloseFailure = (error: unknown): void => input.logger?.log('warn', 'mcp: close on signal failed', {
+    const reportCloseFailure = (error: unknown): void => input.logger?.log('warn', 'mcp: close failed', {
       project: input.identity.worktreeId,
       error: error instanceof Error ? error.message : String(error),
     });
