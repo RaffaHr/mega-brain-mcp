@@ -176,6 +176,42 @@ test('AC-041: checkIdle aguardado propaga a falha do shutdown ao chamador @spec:
   }
 });
 
+test('AC-040: manifest cujo socket sumiu é reciclado por um supervisor novo @spec:AC-040', async () => {
+  if (process.platform === 'win32') return;
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-dead-socket-'));
+  directories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  const paths = supervisorPaths(layout, identity.worktreeId);
+  const orphan = await startProjectSupervisor({ layout, identity, pid: process.pid });
+  await rm(paths.ipcAddress, { force: true });
+
+  let replacement: Awaited<ReturnType<typeof startProjectSupervisor>> | undefined;
+  const handle = await ensureProjectSupervisor({
+    layout,
+    identity,
+    processExists: () => true,
+    spawner: {
+      async spawn() {
+        replacement = await startProjectSupervisor({ layout, identity, pid: 7373 });
+        return 7373;
+      },
+    },
+  });
+
+  try {
+    expect(handle.reused).toBe(false);
+    expect(handle.manifest.pid).toBe(7373);
+    await handle.client.acquire('recovered-gateway');
+    expect((await handle.client.status()).leases).toEqual(['recovered-gateway']);
+    await handle.client.release('recovered-gateway');
+  } finally {
+    await handle.client.close();
+    await replacement?.close();
+    await orphan.close();
+  }
+});
+
 test('AC-054: drain preserva leases existentes e bloqueia novas aquisições @spec:AC-054', async () => {
   const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-drain-'));
   directories.push(dataDir);

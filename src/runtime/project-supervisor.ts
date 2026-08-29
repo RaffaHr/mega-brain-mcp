@@ -168,6 +168,20 @@ async function defaultProcessExists(pid: number): Promise<boolean> {
   }
 }
 
+/**
+ * Tells a manifest that outlived its endpoint from a supervisor that is merely
+ * unhealthy.
+ *
+ * The manifest is only written once the IPC server is listening, so a missing
+ * endpoint (a reaped socket under the temporary directory, a released named
+ * pipe) or a refused connection (the process was killed without unlinking, and
+ * its pid was later reused) means the recorded supervisor is gone. Anything
+ * else, an identity mismatch in particular, must still surface.
+ */
+function unreachableAddress(error: unknown): boolean {
+  return ['ENOENT', 'ECONNREFUSED'].includes((error as NodeJS.ErrnoException).code ?? '');
+}
+
 async function connectExisting(
   options: EnsureProjectSupervisorOptions,
 ): Promise<ProjectSupervisorHandle | null> {
@@ -190,6 +204,10 @@ async function connectExisting(
     await client.status();
     return { manifest, client, reused: true };
   } catch (error) {
+    if (unreachableAddress(error)) {
+      await removeSupervisorManifest(options.layout);
+      return null;
+    }
     throw new Error(`Supervisor process ${manifest.pid} exists but readiness failed: ${error instanceof Error ? error.message : String(error)}`);
   }
 }
