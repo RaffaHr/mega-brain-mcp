@@ -4,7 +4,7 @@ import path from 'node:path';
 
 import { afterEach, describe, expect, test } from 'vitest';
 
-import type { LocalLogger } from '../../src/observability/logger.js';
+import { createLocalLogger, type LocalLogger } from '../../src/observability/logger.js';
 import {
   clearPendingDelete,
   drainPendingDeletes,
@@ -88,6 +88,26 @@ describe('Pending Delete Queue', () => {
     expect(failure).toMatchObject({ level: 'warn' });
     expect(failure!.fields).toMatchObject({ path: path.resolve(target), basename: 'locked' });
     expect(String(failure!.fields.error)).toMatch(/EACCES|EPERM/u);
+  });
+
+  test('keeps the failing target identifiable after the real logger redacts the emitted record', async () => {
+    const root = await mkdtemp(path.join(tmpdir(), 'pending-deletes-redaction-'));
+    temporaryDirectories.push(root);
+    const lines: string[] = [];
+    const logger = createLocalLogger((line) => lines.push(line), {
+      environment: { MEGA_BRAIN_LOG_LEVEL: 'debug' },
+    });
+
+    await stripReadOnlyAttributes(path.join(root, 'never-created'), logger);
+
+    expect(lines).toHaveLength(1);
+    const record = JSON.parse(lines[0]!) as Record<string, unknown>;
+    expect(record).toMatchObject({
+      level: 'debug',
+      message: 'runtime: could not clear read-only attributes',
+      basename: 'never-created',
+    });
+    expect(String(record.error)).toContain('ENOENT');
   });
 
   test('tolerates already-deleted files without error during drain', async () => {

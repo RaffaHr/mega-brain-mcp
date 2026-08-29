@@ -130,3 +130,31 @@ test('AC-048: supervisor recusa socket em diretório que não é um diretório d
     .rejects.toThrow(/must be a directory owned by the current user/u);
   expect(await readdir(decoy)).toEqual([]);
 });
+
+test('AC-048: identidade de instância fora do formato não vira componente de caminho @spec:AC-048', () => {
+  const identity = deriveProjectIdentity({ root: path.resolve('repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(path.resolve('isolated-runtime-data'), identity);
+
+  for (const instanceId of ['..', '../../etc', 'a1b2c3d4/../..', 'a1b2c3d', 'a1b2c3d45', 'A1B2C3D4', 'g1b2c3d4', '']) {
+    expect(() => supervisorPaths(layout, identity.worktreeId, instanceId))
+      .toThrow(/Invalid supervisor instance identity/u);
+  }
+  expect(path.basename(supervisorPaths(layout, identity.worktreeId, 'a1b2c3d4').ipcAddress))
+    .toBe(process.platform === 'win32' ? `mega-brain-${identity.worktreeId}-a1b2c3d4` : 's-a1b2c3d4.sock');
+});
+
+test('AC-048: endereço que não cabe nem no diretório temporário falha com orientação acionável @spec:AC-048', () => {
+  if (process.platform === 'win32') return;
+  const identity = deriveProjectIdentity({ root: path.resolve('repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(`/tmp/${'d'.repeat(120)}`, identity);
+  const previous = process.env.TMPDIR;
+  process.env.TMPDIR = `/tmp/${'t'.repeat(100)}`;
+
+  try {
+    expect(() => supervisorPaths(layout, identity.worktreeId, 'a1b2c3d4'))
+      .toThrow(/point TMPDIR at a shorter path/u);
+  } finally {
+    if (previous === undefined) delete process.env.TMPDIR;
+    else process.env.TMPDIR = previous;
+  }
+});

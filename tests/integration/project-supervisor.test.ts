@@ -1,4 +1,5 @@
-import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { chmod, mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -34,6 +35,28 @@ async function waitForManifestRemoval(layout: RuntimeLayout, timeoutMs = 10_000)
     await new Promise((resolve) => setTimeout(resolve, 25));
   }
   throw new Error('supervisor manifest was not removed before the deadline');
+}
+
+/**
+ * Binds a Unix domain socket in another process and kills it without letting it
+ * unlink the address, reproducing what a supervisor killed with `SIGKILL`
+ * leaves behind: the socket file survives, so connecting to it is refused
+ * instead of reporting a missing address.
+ */
+async function abandonSocket(address: string): Promise<number> {
+  await mkdir(path.dirname(address), { recursive: true, mode: 0o700 });
+  const child = spawn(process.execPath, [
+    '-e',
+    `require('node:net').createServer().listen(${JSON.stringify(address)}, () => console.log('bound'));`,
+  ], { stdio: ['ignore', 'pipe', 'inherit'] });
+  const bound = await new Promise<boolean>((resolve) => {
+    child.stdout!.once('data', () => resolve(true));
+    child.once('exit', () => resolve(false));
+  });
+  if (!bound) throw new Error(`could not bind a socket at ${address}`);
+  child.kill('SIGKILL');
+  await new Promise((resolve) => child.once('exit', resolve));
+  return child.pid!;
 }
 
 test('AC-040: gateways concorrentes iniciam e reutilizam um único supervisor independente @spec:AC-040', async () => {
@@ -245,6 +268,53 @@ test('AC-040: manifest cujo socket sumiu é reciclado por um supervisor novo @sp
     await handle.client.close();
     await replacement?.close();
     await orphan.close();
+  }
+});
+
+test('AC-040: manifest cujo endpoint recusa conexão é reciclado mesmo com o pid reutilizado @spec:AC-040', async () => {
+  if (process.platform === 'win32') return;
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-refused-socket-'));
+  directories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  const paths = supervisorPaths(layout, identity.worktreeId, 'deadbeef');
+  await mkdir(paths.directory, { recursive: true, mode: 0o700 });
+  directories.push(path.dirname(paths.ipcAddress));
+  const killedPid = await abandonSocket(paths.ipcAddress);
+  expect((await stat(paths.ipcAddress)).isSocket()).toBe(true);
+  const startedAt = new Date(0).toISOString();
+  await writeSupervisorManifest(layout, {
+    protocolVersion: 1,
+    worktreeId: identity.worktreeId,
+    pid: killedPid,
+    ipcAddress: paths.ipcAddress,
+    startedAt,
+    updatedAt: startedAt,
+  });
+
+  let replacement: Awaited<ReturnType<typeof startProjectSupervisor>> | undefined;
+  const handle = await ensureProjectSupervisor({
+    layout,
+    identity,
+    processExists: () => true,
+    spawner: {
+      async spawn() {
+        replacement = await startProjectSupervisor({ layout, identity, pid: 4242 });
+        return 4242;
+      },
+    },
+  });
+
+  try {
+    expect(handle.reused).toBe(false);
+    expect(handle.manifest.pid).toBe(4242);
+    expect(handle.manifest.ipcAddress).not.toBe(paths.ipcAddress);
+    await handle.client.acquire('gateway-after-sigkill');
+    expect((await handle.client.status()).leases).toEqual(['gateway-after-sigkill']);
+    expect(await readSupervisorManifest(layout)).toMatchObject({ pid: 4242 });
+  } finally {
+    await handle.client.close();
+    await replacement?.close();
   }
 });
 
