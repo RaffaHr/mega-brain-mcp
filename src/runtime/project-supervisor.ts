@@ -101,15 +101,26 @@ export async function startProjectSupervisor(input: {
   let resolveClosed!: () => void;
   const closedPromise = new Promise<void>((resolve) => { resolveClosed = resolve; });
   let closing: Promise<void> | undefined;
+  /**
+   * Releases the endpoint and the manifest.
+   *
+   * `closedPromise` is settled in a `finally` because it is what the daemon
+   * awaits before stopping the managed runtime: leaving it pending after a
+   * failed release would strand the process with its backends still running.
+   * The rejection itself keeps propagating to whoever awaits `close()`.
+   */
   const close = async (): Promise<void> => {
     if (closing) return closing;
     closing = (async () => {
       if (closed) return;
       closed = true;
       clearInterval(timer);
-      await ipc.close();
-      await removeSupervisorManifest(input.layout);
-      resolveClosed();
+      try {
+        await ipc.close();
+        await removeSupervisorManifest(input.layout);
+      } finally {
+        resolveClosed();
+      }
     })();
     return closing;
   };

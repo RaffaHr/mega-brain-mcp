@@ -1,4 +1,4 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
@@ -148,6 +148,24 @@ test('AC-041: shutdown ocioso que falha não derruba o supervisor por rejeição
   } finally {
     process.off('unhandledRejection', collectRejection);
     await server.close();
+  }
+});
+
+test('AC-041: falha ao liberar o IPC ainda libera quem aguarda o encerramento @spec:AC-041', async () => {
+  if (process.platform === 'win32' || process.getuid?.() === 0) return;
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-close-failure-'));
+  directories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  const socketDirectory = path.dirname(supervisorPaths(layout, identity.worktreeId).ipcAddress);
+  const server = await startProjectSupervisor({ layout, identity, pid: process.pid });
+
+  await chmod(socketDirectory, 0o555);
+  try {
+    await expect(server.close()).rejects.toThrow();
+    await expect(server.closed).resolves.toBeUndefined();
+  } finally {
+    await chmod(socketDirectory, 0o700);
   }
 });
 

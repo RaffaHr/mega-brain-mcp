@@ -378,19 +378,18 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       identity,
       onShutdown: () => stopManagedRuntime(config.dataDir, identity),
     });
-    const close = () => {
-      void supervisor.close().catch((error: unknown) => logger.log('warn', 'supervisor: close on signal failed', {
-        project: identity.worktreeId,
-        error: error instanceof Error ? error.message : String(error),
-      }));
-    };
+    const reportCloseFailure = (error: unknown): void => logger.log('warn', 'supervisor: close on signal failed', {
+      project: identity.worktreeId,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    const close = () => { void supervisor.close().catch(reportCloseFailure); };
     process.once('SIGINT', close);
     process.once('SIGTERM', close);
     try { await supervisor.closed; }
     finally {
       process.off('SIGINT', close);
       process.off('SIGTERM', close);
-      await supervisor.close();
+      await supervisor.close().catch(reportCloseFailure);
       await stopManagedRuntime(config.dataDir, identity);
     }
     return;
