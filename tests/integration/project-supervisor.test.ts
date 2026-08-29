@@ -295,11 +295,36 @@ test('AC-040: supervisor vivo sem endpoint falha com instrução em vez de dupli
       identity,
       processExists: () => true,
       spawner: { spawn: async () => { throw new Error('must not spawn a second supervisor'); } },
-    })).rejects.toThrow(/is running but its IPC endpoint is gone/u);
+    })).rejects.toThrow(new RegExp(`registered but its IPC endpoint is gone[\\s\\S]*${supervisorPaths(layout, identity.worktreeId).manifest.replaceAll('\\', '\\\\')}`, 'u'));
     await expect(readSupervisorManifest(layout)).resolves.toMatchObject({ pid: process.pid });
   } finally {
     await server.close();
   }
+});
+
+test('AC-041: supervisor cujo endpoint some se aposenta parando o próprio runtime @spec:AC-041', async () => {
+  if (process.platform === 'win32') return;
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-lost-endpoint-'));
+  directories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  let shutdowns = 0;
+  const server = await startProjectSupervisor({
+    layout,
+    identity,
+    pid: process.pid,
+    onShutdown: () => { shutdowns += 1; },
+  });
+
+  server.leases.acquire('busy-gateway');
+  expect(await server.checkIdle()).toBe(false);
+
+  await rm(server.manifest.ipcAddress, { force: true });
+
+  expect(await server.checkIdle()).toBe(true);
+  expect(shutdowns).toBe(1);
+  expect(server.registered()).toBe(true);
+  await expect(readSupervisorManifest(layout)).rejects.toMatchObject({ code: 'ENOENT' });
 });
 
 test('AC-040: manifest cujo endpoint recusa conexão é reciclado mesmo com o pid reutilizado @spec:AC-040', async () => {

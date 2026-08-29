@@ -1,6 +1,6 @@
 import { spawn } from 'node:child_process';
 import { randomUUID } from 'node:crypto';
-import { mkdir, open, readFile, rm } from 'node:fs/promises';
+import { access, mkdir, open, readFile, rm } from 'node:fs/promises';
 
 import { createLocalLogger, reportShutdownIssue } from '../observability/logger.js';
 import type { ProjectIdentity } from '../projects/identity.js';
@@ -128,10 +128,10 @@ export async function startProjectSupervisor(input: {
       closed = true;
       clearInterval(timer);
       registered = await ownsRegistration();
-      if (!registered) {
-        reportShutdownIssue('supervisor no longer owns this project; leaving its managed runtime running', input.identity.worktreeId);
-      }
       try {
+        if (!registered) {
+          reportShutdownIssue('supervisor no longer owns this project; leaving its managed runtime running', input.identity.worktreeId);
+        }
         await ipc.close();
         if (registered) await removeSupervisorManifest(input.layout, manifest);
       } finally {
@@ -153,8 +153,24 @@ export async function startProjectSupervisor(input: {
     const current = await readSupervisorManifest(input.layout).catch(() => null);
     return current !== null && isSameSupervisor(current, manifest);
   };
+  /**
+   * Reports whether the endpoint this supervisor bound has disappeared.
+   *
+   * A temporary directory reaper unlinks the socket of a supervisor that is
+   * still running: it keeps listening on an inode no client can reach, and its
+   * registration would pin the project until someone cleared it by hand.
+   * Retiring on that signal releases the backend ports and the manifest while
+   * this instance still owns both, which is what makes the recovery safe.
+   * Windows names a pipe instead of a filesystem entry and releases it with the
+   * process, so the check is meaningless there.
+   */
+  const endpointLost = async (): Promise<boolean> => {
+    if (process.platform === 'win32') return false;
+    return access(manifest.ipcAddress).then(() => false, () => true);
+  };
   const checkIdle = async (): Promise<boolean> => {
-    if (closed || !leases.shouldShutdown()) return false;
+    if (closed) return false;
+    if (!leases.shouldShutdown() && !(await endpointLost())) return false;
     if (!(await ownsRegistration())) {
       await close();
       return false;
@@ -267,7 +283,7 @@ async function connectExisting(
       return null;
     }
     if (verdict === 'missing') {
-      throw new Error(`Supervisor process ${manifest.pid} is running but its IPC endpoint is gone; stop that process to let this project start a new supervisor`);
+      throw new Error(`Supervisor process ${manifest.pid} is registered but its IPC endpoint is gone. A running supervisor retires by itself within seconds, so retry; if this persists the recorded pid belongs to another program and the stale registration at ${supervisorPaths(options.layout, options.identity.worktreeId).manifest} can be deleted`);
     }
     throw new Error(`Supervisor process ${manifest.pid} exists but readiness failed: ${error instanceof Error ? error.message : String(error)}`);
   }
