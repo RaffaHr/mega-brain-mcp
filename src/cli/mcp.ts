@@ -110,7 +110,12 @@ export async function runMcpCommand(input: {
     input.logger?.log('info', 'mcp: stdio server ready; waiting for JSON-RPC messages from the host', {
       project: input.identity.worktreeId,
     });
-    const close = () => { void session.close(); };
+    const close = () => {
+      void session.close().catch((error: unknown) => input.logger?.log('warn', 'mcp: close on signal failed', {
+        project: input.identity.worktreeId,
+        error: error instanceof Error ? error.message : String(error),
+      }));
+    };
     process.once('SIGINT', close);
     process.once('SIGTERM', close);
     try {
