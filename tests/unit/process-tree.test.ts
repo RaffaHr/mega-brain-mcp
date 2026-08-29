@@ -3,6 +3,7 @@ import path from 'node:path';
 import { describe, expect, test, vi } from 'vitest';
 
 import {
+  escapedForExtendedRegex,
   findProcessesInPath,
   processTreeStopper,
   sweepRuntimeProcesses,
@@ -76,8 +77,9 @@ describe('Process Tree Stopper and Process Verification', () => {
     expect(executed).toHaveLength(1);
     expect(executed[0]!.file).toBe('pgrep');
     expect(executed[0]!.args[0]).toBe('-f');
-    expect(executed[0]!.args[1]).toBe(path.resolve('/tmp/Mega Brain/Runtime'));
+    expect(executed[0]!.args[1]).toBe(escapedForExtendedRegex(path.resolve('/tmp/Mega Brain/Runtime')));
     expect(executed[0]!.args[1]).toContain('Mega Brain');
+    expect(executed[0]!.args[1]).not.toContain('mega brain');
   });
 
   test('lowercases the runtime path only for the case-insensitive Windows lookup', async () => {

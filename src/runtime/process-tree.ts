@@ -88,7 +88,7 @@ export async function terminateProcessTree(
  * `Projects (old)`, would otherwise make pgrep fail to parse the pattern and
  * report no processes at all.
  */
-function escapedForExtendedRegex(value: string): string {
+export function escapedForExtendedRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
 }
 
