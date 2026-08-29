@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { access, chmod, cp, mkdir, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { access, chmod, cp, lstat, mkdir, readFile, readdir, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 
 export class RuntimeTransaction {
@@ -41,34 +41,61 @@ async function exists(target: string): Promise<boolean> {
   return access(target).then(() => true).catch(() => false);
 }
 
+export async function stripReadOnlyAttributes(targetPath: string): Promise<void> {
+  const resolved = path.resolve(targetPath);
+  try {
+    const metadata = await lstat(resolved);
+    if (metadata.isSymbolicLink()) return;
+    await chmod(resolved, metadata.isDirectory() ? (metadata.mode & 0o777) | 0o777 : (metadata.mode & 0o777) | 0o666).catch(() => undefined);
+    if (metadata.isDirectory()) {
+      const entries = await readdir(resolved).catch(() => []);
+      for (const entry of entries) {
+        await stripReadOnlyAttributes(path.join(resolved, entry)).catch(() => undefined);
+      }
+    }
+  } catch {
+    // ignore
+  }
+}
+
 function retryableFilesystemError(error: unknown, platform: NodeJS.Platform = process.platform): boolean {
   const code = (error as NodeJS.ErrnoException).code;
-  return platform === 'win32' && ['EBUSY', 'EACCES', 'EPERM', 'ENOTEMPTY'].includes(code ?? '');
+  return (platform === 'win32' || platform === 'linux' || platform === 'darwin')
+    && ['EBUSY', 'EACCES', 'EPERM', 'ENOTEMPTY'].includes(code ?? '');
 }
 
 export async function retryFilesystemOperation<T>(
   operation: () => Promise<T>,
   label: string,
-  options: { timeoutMs?: number; intervalMs?: number; platform?: NodeJS.Platform } = {},
+  options: { timeoutMs?: number; intervalMs?: number; platform?: NodeJS.Platform; targetPath?: string } = {},
 ): Promise<T> {
   const timeoutMs = options.timeoutMs ?? 30_000;
-  const intervalMs = options.intervalMs ?? 100;
+  let intervalMs = options.intervalMs ?? 50;
   const deadline = Date.now() + timeoutMs;
   let lastError: unknown;
+  let attempt = 0;
+
   do {
     try {
       return await operation();
     } catch (error) {
       if (!retryableFilesystemError(error, options.platform)) throw error;
       lastError = error;
+      attempt += 1;
+      if (options.targetPath && attempt % 3 === 0) {
+        await stripReadOnlyAttributes(options.targetPath).catch(() => undefined);
+      }
       await new Promise((resolve) => setTimeout(resolve, intervalMs));
+      intervalMs = Math.min(intervalMs * 1.5, 500);
     }
   } while (Date.now() < deadline);
+
   throw new Error(`${label} failed because Windows still has a handle open on the runtime path: ${lastError instanceof Error ? lastError.message : String(lastError)}`);
 }
 
-export async function retryRename(from: string, to: string, label: string): Promise<void> {
-  await retryFilesystemOperation(() => rename(from, to), label);
+export async function retryRename(from: string, to: string, label: string, options: { timeoutMs?: number } = {}): Promise<void> {
+  await stripReadOnlyAttributes(from).catch(() => undefined);
+  await retryFilesystemOperation(() => rename(from, to), label, { targetPath: from, ...options });
 }
 
 export async function snapshotFile(transaction: RuntimeTransaction, target: string): Promise<void> {
@@ -121,7 +148,10 @@ export async function swapStagedPath(
   await mkdir(path.dirname(target), { recursive: true });
   const backup = `${target}.transaction-backup-${randomUUID()}`;
   const hadTarget = await exists(target);
-  if (hadTarget) await retryRename(target, backup, 'Backing up current runtime');
+  if (hadTarget) {
+    await stripReadOnlyAttributes(target).catch(() => undefined);
+    await retryRename(target, backup, 'Backing up current runtime');
+  }
   try {
     await retryRename(staged, target, 'Activating staged runtime');
   } catch (error) {

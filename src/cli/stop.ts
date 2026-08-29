@@ -2,6 +2,7 @@ import { rm } from 'node:fs/promises';
 
 import type { ProjectIdentity } from '../projects/identity.js';
 import { runtimeLayout } from '../runtime/layout.js';
+import { processTreeStopper, sweepRuntimeProcesses, terminateProcessTree } from '../runtime/process-tree.js';
 import { readRuntimeState } from '../runtime/supervisor.js';
 
 export interface ProcessStopper {
@@ -12,16 +13,10 @@ export interface StopManagedRuntimeOptions {
   processExists?: (pid: number) => boolean | Promise<boolean>;
   waitTimeoutMs?: number;
   pollIntervalMs?: number;
+  sweep?: boolean;
 }
 
-export const systemProcessStopper: ProcessStopper = {
-  async stop(pid) {
-    try { process.kill(pid, 'SIGTERM'); }
-    catch (error) {
-      if ((error as NodeJS.ErrnoException).code !== 'ESRCH') throw error;
-    }
-  },
-};
+export const systemProcessStopper: ProcessStopper = processTreeStopper();
 
 async function defaultProcessExists(pid: number): Promise<boolean> {
   try {
@@ -44,6 +39,21 @@ async function waitForStopped(pids: number[], options: StopManagedRuntimeOptions
     if (stillRunning.length === 0) return;
     await new Promise((resolve) => setTimeout(resolve, options.pollIntervalMs ?? 100));
   } while (Date.now() < deadline);
+
+  // Force kill any remaining processes before giving up
+  for (const pid of stillRunning) {
+    await terminateProcessTree(pid, { force: true }).catch(() => undefined);
+  }
+  const graceDeadline = Date.now() + 1_500;
+  do {
+    const alive = [];
+    for (const pid of stillRunning) {
+      if (await processExists(pid)) alive.push(pid);
+    }
+    if (alive.length === 0) return;
+    await new Promise((resolve) => setTimeout(resolve, options.pollIntervalMs ?? 100));
+  } while (Date.now() < graceDeadline);
+
   throw new Error(`Runtime processes did not stop within ${options.waitTimeoutMs ?? 5_000}ms: ${stillRunning.join(', ')}`);
 }
 
@@ -57,11 +67,22 @@ export async function stopManagedRuntime(
   let state;
   try { state = await readRuntimeState(layout); }
   catch (error) {
-    if ((error as NodeJS.ErrnoException).code === 'ENOENT') return;
+    if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+      if (options.sweep !== false) {
+        await sweepRuntimeProcesses(layout.runtimeRoot).catch(() => []);
+      }
+      return;
+    }
     throw error;
   }
   const pids = Object.values(state.processes);
-  await Promise.allSettled(pids.map((pid) => stopper.stop(pid)));
-  await waitForStopped(pids, options);
-  await rm(layout.stateFile, { force: true });
+  try {
+    await Promise.allSettled(pids.map((pid) => stopper.stop(pid)));
+    await waitForStopped(pids, options);
+  } finally {
+    if (options.sweep !== false) {
+      await sweepRuntimeProcesses(layout.runtimeRoot).catch(() => []);
+    }
+    await rm(layout.stateFile, { force: true });
+  }
 }

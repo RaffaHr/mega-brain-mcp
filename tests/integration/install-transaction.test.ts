@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { execFile } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, mkdtemp, readFile, readdir, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
@@ -18,7 +18,7 @@ import type { MegaBrainConfig } from '../../src/config/schema.js';
 import { deriveProjectIdentity } from '../../src/projects/identity.js';
 import { runtimeLayout } from '../../src/runtime/layout.js';
 import { startProjectSupervisor } from '../../src/runtime/project-supervisor.js';
-import { retryFilesystemOperation, RuntimeTransaction } from '../../src/runtime/transaction.js';
+import { retryFilesystemOperation, RuntimeTransaction, stripReadOnlyAttributes } from '../../src/runtime/transaction.js';
 
 const temporaryDirectories: string[] = [];
 const execFileAsync = promisify(execFile);
@@ -181,6 +181,19 @@ test('AC-061: retry de filesystem tolera EPERM transitorio no Windows @spec:AC-0
   expect(attempts).toBe(3);
 });
 
+test('runtime cleanup preserves executable bits', async () => {
+  if (process.platform === 'win32') return;
+  const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-runtime-permissions-'));
+  temporaryDirectories.push(root);
+  const executable = path.join(root, 'runtime-bin');
+  await writeFile(executable, '#!/bin/sh\n', 'utf8');
+  await chmod(executable, 0o755);
+
+  await stripReadOnlyAttributes(root);
+
+  expect((await stat(executable)).mode & 0o111).toBe(0o111);
+});
+
 test('AC-060: install drena runtime existente sem state e nao reinicia se nao estava ativo @spec:AC-060', async () => {
   const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-installed-runtime-swap-'));
   temporaryDirectories.push(dataDir);
@@ -236,4 +249,20 @@ test('AC-045: uninstall preserva dados por default e só remove o namespace com 
   expect(await readFile(memory, 'utf8')).toBe('preserve-me');
   expect(await uninstallMegaBrain({ dataDir, identity, drain: async () => undefined, purge: true })).toEqual({ dataPreserved: false });
   await expect(readFile(memory, 'utf8')).rejects.toMatchObject({ code: 'ENOENT' });
+});
+
+
+test('AC-062: uninstall succeeds and cleans project data even when workspace config is missing @spec:AC-062', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-uninstall-missing-config-'));
+  temporaryDirectories.push(dataDir);
+  const repo = path.join(dataDir, 'repo');
+  const identity = deriveProjectIdentity({ root: repo, gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  await mkdir(layout.current, { recursive: true });
+  await writeFile(path.join(layout.current, 'runtime-lock.json'), '{}');
+
+  // No .mega-brain/config.json exists in workspace
+  const result = await uninstallMegaBrain({ dataDir, identity, drain: async () => undefined, purge: true });
+  expect(result.dataPreserved).toBe(false);
+  await expect(readdir(layout.projectRoot)).rejects.toMatchObject({ code: 'ENOENT' });
 });

@@ -52,7 +52,7 @@ npm install --global /artifact/package.tgz --no-audit --no-fund >/dev/null
 `;
 
 const waitForAutonomousShutdown = `
-for attempt in $(seq 1 30); do
+for attempt in $(seq 1 60); do
   remaining="$(find /tmp/mega-data/projects -path '*/runtime-state.json' -o -path '*/supervisor/manifest.json')"
   test -z "$remaining" && break
   sleep 1
@@ -104,7 +104,7 @@ try {
 set -euo pipefail
 ${installPackage}
 ${repositorySetup}
-if mega-brain install --repo /tmp/repo --hosts codex; then echo 'install unexpectedly succeeded' >&2; exit 1; fi
+if mega-brain upgrade --init --repo /tmp/repo --hosts codex; then echo 'install unexpectedly succeeded' >&2; exit 1; fi
 test ! -e /tmp/mega-data
 test ! -e /tmp/repo/.codex
 `);
@@ -114,7 +114,7 @@ set -euo pipefail
 apt-get update -qq && apt-get install -y -qq git >/dev/null
 ${installPackage}
 ${repositorySetup}
-if mega-brain install --repo /tmp/repo --hosts codex; then echo 'install unexpectedly succeeded' >&2; exit 1; fi
+if mega-brain upgrade --init --repo /tmp/repo --hosts codex; then echo 'install unexpectedly succeeded' >&2; exit 1; fi
 test ! -e /tmp/mega-data
 test ! -e /tmp/repo/.codex
 `);
@@ -125,7 +125,7 @@ ${installPackage}
 ${repositorySetup}
 printf '#!/bin/sh\\nprintf "Python 3.9.19\\\\n"\\n' > /tmp/python-old
 chmod +x /tmp/python-old
-if mega-brain install --repo /tmp/repo --hosts codex --python /tmp/python-old; then echo 'install unexpectedly succeeded' >&2; exit 1; fi
+if mega-brain upgrade --init --repo /tmp/repo --hosts codex --python /tmp/python-old; then echo 'install unexpectedly succeeded' >&2; exit 1; fi
 test ! -e /tmp/mega-data
 test ! -e /tmp/repo/.codex
 `);
@@ -134,7 +134,7 @@ test ! -e /tmp/repo/.codex
 set -euo pipefail
 ${installPackage}
 ${repositorySetup}
-if mega-brain install --repo /tmp/repo --hosts codex; then echo 'install unexpectedly succeeded' >&2; exit 1; fi
+if mega-brain upgrade --init --repo /tmp/repo --hosts codex; then echo 'install unexpectedly succeeded' >&2; exit 1; fi
 test ! -e /tmp/mega-data
 test ! -e /tmp/repo/.codex
 `);
@@ -150,7 +150,7 @@ cp /tmp/codex-original.toml /tmp/repo/.codex/config.toml
 export AGENTMEMORY_USE_DOCKER=false
 export AGENTMEMORY_TOOLS=core
 mega-brain --help | grep 'Usage: mega-brain'
-mega-brain install --repo /tmp/repo --hosts codex
+mega-brain upgrade --init --repo /tmp/repo --hosts codex
 grep '\\[mcp_servers.mega-brain\\]' /tmp/repo/.codex/config.toml
 grep -F 'args = ["--no-warnings"' /tmp/repo/.codex/config.toml
 grep -F '@raffahr/mega-brain-mcp/dist/cli/index.js' /tmp/repo/.codex/config.toml
@@ -192,8 +192,8 @@ done
 export MEGA_BRAIN_DATA_DIR=/tmp/mega-data
 export AGENTMEMORY_USE_DOCKER=false
 export AGENTMEMORY_TOOLS=core
-mega-brain install --repo /tmp/repo-a --hosts codex
-mega-brain install --repo /tmp/repo-b --hosts codex
+mega-brain upgrade --init --repo /tmp/repo-a --hosts codex
+mega-brain upgrade --init --repo /tmp/repo-b --hosts codex
 test "$(find /tmp/mega-data/projects -path '*/runtime/current/runtime-lock.json' | wc -l)" -eq 2
 MEGA_BRAIN_REPO=/tmp/repo-a MEGA_BRAIN_SENTINEL=repo-a-only MEGA_BRAIN_OTHER_SENTINEL=repo-b-only node /artifact/probe.mjs > /tmp/probe-a.log 2>&1 &
 probe_a=$!

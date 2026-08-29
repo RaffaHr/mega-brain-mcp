@@ -114,8 +114,11 @@ export async function startProjectSupervisor(input: {
   };
   const checkIdle = async (): Promise<boolean> => {
     if (closed || !leases.shouldShutdown()) return false;
-    await close();
-    await input.onShutdown?.();
+    try {
+      await input.onShutdown?.();
+    } finally {
+      await close();
+    }
     return true;
   };
   const timer = setInterval(() => {

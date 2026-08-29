@@ -8,6 +8,9 @@ import type { CodeReviewGraphClient } from '../adapters/code-review-graph/client
 import { probeCodeReviewGraphIsolation } from '../adapters/code-review-graph/capabilities.js';
 import { NO_GIT_HEAD } from '../adapters/git/repository.js';
 import type { ProjectIdentity } from '../projects/identity.js';
+import { drainPendingDeletes } from '../runtime/pending-deletes.js';
+import { sweepRuntimeProcesses } from '../runtime/process-tree.js';
+import type { RuntimeLayout } from '../runtime/layout.js';
 import { redactValue } from '../security/redaction.js';
 import { createEnvelope, type MegaBrainEnvelope } from '../server/envelope.js';
 import { inspectManagedRuntime, type RuntimeInspection } from './install.js';
@@ -27,21 +30,15 @@ export interface DoctorOptions {
   config?: Record<string, unknown>;
 }
 
-type RuntimeReport = {
-  healthy?: boolean;
-  checks?: Record<string, unknown>;
-  versions?: Record<string, unknown>;
-  isolation?: {
-    worktreeId?: string;
-    ports?: Record<string, unknown>;
-    paths?: Record<string, unknown>;
-  } | null;
-};
-
-type BackendReport = {
-  agentMemory?: { healthy?: boolean; version?: string | null; endpoints?: readonly string[]; authChecked?: boolean };
-  codeReviewGraph?: { healthy?: boolean; version?: string | null; graphHead?: string | null; tools?: readonly string[]; schemasChecked?: boolean; storage?: unknown };
-};
+export async function runDoctorFix(input: {
+  dataDir: string;
+  identity: ProjectIdentity;
+  layout: RuntimeLayout;
+}): Promise<{ purged: string[]; swept: number[] }> {
+  const drained = await drainPendingDeletes(input.dataDir);
+  const swept = await sweepRuntimeProcesses(input.layout.runtimeRoot).catch(() => []);
+  return { purged: drained.purged, swept };
+}
 
 export async function runDoctor(options: DoctorOptions, dependencies: DoctorDependencies): Promise<MegaBrainEnvelope> {
   const [runtime, agentMemory, codeReviewGraph, head] = await Promise.all([
@@ -51,7 +48,7 @@ export async function runDoctor(options: DoctorOptions, dependencies: DoctorDepe
     dependencies.gitHead(),
   ]);
   const warnings: string[] = [];
-  if (!runtime.healthy) warnings.push('managed runtime failed integrity checks');
+  if (!runtime.healthy) warnings.push('managed runtime failed integrity checks or is not installed');
   if (!agentMemory.healthy) warnings.push('agentmemory unavailable');
   if (!codeReviewGraph.healthy) warnings.push('code_review_graph unavailable');
   if (agentMemory.version && agentMemory.version !== runtime.manifest.versions.agentMemory) warnings.push('agentmemory version mismatch');
@@ -110,63 +107,62 @@ function valueText(value: unknown): string {
   return String(value);
 }
 
-function checkText(value: boolean, ok = 'OK', fail = 'Error'): string {
-  return value ? `${pc.green(cliIcons.check)} ${ok}` : `${pc.red(cliIcons.cross)} ${fail}`;
+function checkText(value: boolean, positive = 'OK', negative = 'Degraded'): string {
+  return value ? `${pc.green(cliIcons.check)} ${positive}` : `${pc.red(cliIcons.cross)} ${negative}`;
 }
 
 function staleText(value: boolean): string {
-  return value ? `${pc.red(cliIcons.cross)} Stale` : `${pc.green(cliIcons.check)} Fresh`;
+  return value ? `${pc.yellow(cliIcons.cross)} Stale` : `${pc.green(cliIcons.check)} Fresh`;
 }
 
-function shortHead(value: string | null): string {
-  if (!value) return pc.dim('n/a');
-  if (value === NO_GIT_HEAD) return pc.dim('NO_GIT_HEAD');
-  return value.length > 12 ? value.slice(0, 12) : value;
+function shortHead(value: string | null | undefined): string {
+  if (!value || value === NO_GIT_HEAD) return pc.dim('none');
+  return value.slice(0, 8);
 }
 
-function formatPercent(value: number): string {
+function formatPercent(value: number | undefined): string {
+  if (typeof value !== 'number') return pc.dim('n/a');
   return `${Math.round(value * 100)}%`;
 }
 
-function section(title: string, table: string): string {
-  return `${pc.bold(pc.cyan(title))}\n${table}`;
+function section(title: string, content: string): string {
+  return `${pc.bold(pc.cyan(title))}\n${content}`;
 }
 
-function warningSection(warnings: readonly string[]): string {
+function warningSection(warnings: string[]): string {
   if (warnings.length === 0) return `${pc.bold(pc.cyan('Warnings'))}\n${pc.green(cliIcons.check)} No warnings detected`;
-  return [pc.bold(pc.cyan('Warnings')), ...warnings.map((warning) => `${pc.red(cliIcons.cross)} ${warning}`)].join('\n');
+  return `${pc.bold(pc.yellow('Warnings'))}\n${warnings.map((warning) => `  ${pc.yellow(cliIcons.cross)} ${warning}`).join('\n')}`;
 }
 
-function configurationRows(configuration: Record<string, unknown>): Array<readonly string[]> {
-  const agentMemory = nestedRecord(configuration, 'agentMemory');
-  const codeReviewGraph = nestedRecord(configuration, 'codeReviewGraph');
-  return [
-    ['Data root', valueText(configuration.dataDir)],
-    ['HTTP port', valueText(configuration.port)],
-    ['Log level', valueText(configuration.logLevel)],
-    ['Network egress', valueText(configuration.allowEgress)],
-    ['LLM providers', valueText(configuration.allowLlm)],
-    ['AgentMemory mode', valueText(agentMemory.mode)],
-    ['AgentMemory URL', valueText(agentMemory.baseUrl)],
-    ['Code Review Graph command', valueText(codeReviewGraph.command)],
-    ['Code Review Graph data', valueText(codeReviewGraph.dataDir)],
-  ];
+function configurationRows(config: Record<string, unknown>): Array<[string, string]> {
+  const rows: Array<[string, string]> = [];
+  for (const [key, value] of Object.entries(config)) {
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      for (const [nestedKey, nestedValue] of Object.entries(value as Record<string, unknown>)) {
+        rows.push([`${key}.${nestedKey}`, valueText(nestedValue)]);
+      }
+    } else {
+      rows.push([key, valueText(value)]);
+    }
+  }
+  return rows;
 }
 
 export function formatDoctorReport(envelope: MegaBrainEnvelope): string {
-  const result = envelope.result;
-  const runtime = asRecord(result.runtime) as RuntimeReport;
-  const backends = asRecord(result.backends) as BackendReport;
-  const agentMemory = backends.agentMemory ?? {};
-  const codeReviewGraph = backends.codeReviewGraph ?? {};
-  const queueDepth = Number(result.queueDepth ?? 0);
-  const crgToolCount = Array.isArray(codeReviewGraph.tools) ? codeReviewGraph.tools.length : 0;
+  const result = asRecord(envelope.result);
+  const runtime = asRecord(result.runtime);
+  const backends = asRecord(result.backends);
+  const agentMemory = asRecord(backends.agentMemory);
+  const codeReviewGraph = asRecord(backends.codeReviewGraph);
+  const versions = nestedRecord(result.runtime, 'versions');
+  const isolation = nestedRecord(result.runtime, 'isolation');
+  const ports = nestedRecord(isolation, 'ports');
+  const paths = nestedRecord(isolation, 'paths');
+  const runtimeChecks = nestedRecord(result.runtime, 'checks');
+  const queueDepth = typeof result.queueDepth === 'number' ? result.queueDepth : 0;
   const graphHead = typeof result.graphHead === 'string' ? result.graphHead : null;
-  const runtimeChecks = asRecord(runtime.checks);
-  const versions = asRecord(runtime.versions);
-  const isolation = runtime.isolation ?? null;
-  const ports = asRecord(isolation?.ports);
-  const paths = asRecord(isolation?.paths);
+  const crgTools = Array.isArray(codeReviewGraph.tools) ? codeReviewGraph.tools : [];
+  const crgToolCount = crgTools.length;
   const configuration = asRecord(result.configuration);
   const graphStale = Boolean(graphHead && envelope.head !== NO_GIT_HEAD && envelope.head !== graphHead);
 
@@ -240,22 +236,49 @@ export function managedDoctorDependencies(input: {
   gitHead(): Promise<string>;
 }): DoctorDependencies {
   return {
-    inspect: () => inspectManagedRuntime(input.dataDir, input.identity),
+    inspect: async () => {
+      try {
+        return await inspectManagedRuntime(input.dataDir, input.identity);
+      } catch {
+        return {
+          healthy: false,
+          checks: { installed: false },
+          manifest: {
+            schemaVersion: 1,
+            installedAt: '',
+            agentMemoryMode: 'managed',
+            project: { repositoryId: input.identity.repositoryId, checkoutId: input.identity.checkoutId, worktreeId: input.identity.worktreeId },
+            versions: { megaBrain: '0.1.6', agentMemory: 'uninstalled', codeReviewGraph: 'uninstalled' },
+            backends: { codeReviewGraph: { command: '', args: [], cwd: input.identity.root, lifecycle: 'on-demand' } },
+          },
+        };
+      }
+    },
     async probeAgentMemory() {
       try { return await probeAgentMemory(input.agentMemory); }
       catch { return { healthy: false, version: null, endpoints: [] }; }
     },
     async probeCodeReviewGraph() {
-      const storage = probeCodeReviewGraphIsolation(input.codeReviewGraph, input.identity.root);
-      await input.codeReviewGraph.start();
-      const changes = await input.codeReviewGraph.call('detect_changes_tool', {});
-      return {
-        healthy: true,
-        version: input.codeReviewGraph.serverVersion(),
-        graphHead: findString(changes.structuredContent, new Set(['graphHead', 'graph_head', 'indexedCommit', 'indexed_commit', 'commitHash', 'commit_hash'])),
-        tools: input.codeReviewGraph.tools(),
-        storage,
-      };
+      try {
+        const storage = probeCodeReviewGraphIsolation(input.codeReviewGraph, input.identity.root);
+        await input.codeReviewGraph.start();
+        const changes = await input.codeReviewGraph.call('detect_changes_tool', {});
+        return {
+          healthy: true,
+          version: input.codeReviewGraph.serverVersion(),
+          graphHead: findString(changes.structuredContent, new Set(['graphHead', 'graph_head', 'indexedCommit', 'indexed_commit', 'commitHash', 'commit_hash'])),
+          tools: input.codeReviewGraph.tools(),
+          storage,
+        };
+      } catch {
+        return {
+          healthy: false,
+          version: null,
+          graphHead: null,
+          tools: [],
+          storage: null,
+        };
+      }
     },
     gitHead: input.gitHead,
   };
