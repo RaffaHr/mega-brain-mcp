@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { mkdir, open, readFile, rm } from 'node:fs/promises';
 
+import { createLocalLogger } from '../observability/logger.js';
 import type { ProjectIdentity } from '../projects/identity.js';
 import { startSupervisorIpcServer, SupervisorIpcClient } from './ipc.js';
 import { LeaseRegistry, type LeaseRegistryOptions } from './leases.js';
@@ -121,8 +122,18 @@ export async function startProjectSupervisor(input: {
     }
     return true;
   };
+  /**
+   * Drives the idle shutdown without letting a failure become an unhandled
+   * rejection, which Node turns into a fatal error and would kill the daemon.
+   * The handler stays on this callsite instead of inside `checkIdle` so callers
+   * that await it keep seeing the failure propagate.
+   */
   const timer = setInterval(() => {
-    if (!closed) void checkIdle();
+    if (closed) return;
+    void checkIdle().catch((error: unknown) => createLocalLogger().log('warn', 'supervisor: idle shutdown failed', {
+      project: input.identity.worktreeId,
+      error: error instanceof Error ? error.message : String(error),
+    }));
   }, Math.min(1_000, Math.max(100, leases.shutdownGraceMs)));
   timer.unref();
 

@@ -104,6 +104,37 @@ test('AC-041: supervisor encerra cinco segundos após a última lease @spec:AC-0
   await expect(readSupervisorManifest(layout)).rejects.toMatchObject({ code: 'ENOENT' });
 });
 
+test('AC-041: shutdown ocioso que falha não derruba o supervisor por rejeição não tratada @spec:AC-041', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-idle-failure-'));
+  directories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  const rejections: unknown[] = [];
+  const collectRejection = (reason: unknown): void => { rejections.push(reason); };
+  process.on('unhandledRejection', collectRejection);
+  const server = await startProjectSupervisor({
+    layout,
+    identity,
+    pid: process.pid,
+    leaseOptions: { shutdownGraceMs: 0 },
+    onShutdown: () => Promise.reject(new Error('shutdown hook failed')),
+  });
+
+  try {
+    const handle = await ensureProjectSupervisor({ layout, identity, processExists: () => true });
+    await handle.client.acquire('idle-gateway');
+    await handle.client.release('idle-gateway');
+    await new Promise((resolve) => setTimeout(resolve, 300));
+
+    expect(rejections).toEqual([]);
+    await expect(readSupervisorManifest(layout)).rejects.toMatchObject({ code: 'ENOENT' });
+    await expect(server.checkIdle()).resolves.toBe(false);
+  } finally {
+    process.off('unhandledRejection', collectRejection);
+    await server.close();
+  }
+});
+
 test('AC-054: drain preserva leases existentes e bloqueia novas aquisições @spec:AC-054', async () => {
   const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-drain-'));
   directories.push(dataDir);
