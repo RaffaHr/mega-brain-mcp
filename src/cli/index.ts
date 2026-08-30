@@ -677,6 +677,7 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     } catch {
       inspection = undefined;
     }
+    const isProvisioned = Boolean(inspection && inspection.healthy && inspection.manifest?.installedAt);
     const repository = await optionalGitRepository(identity, logger);
     const agentMemory = createAgentMemoryClient(config, undefined, inspection?.manifest);
     const crgCommand = inspection?.manifest?.backends?.codeReviewGraph;
@@ -691,7 +692,8 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     });
     try {
       const result = await runDoctor({
-        project: identity.worktreeId,
+        project: isProvisioned ? identity.worktreeId : 'Not provisioned',
+        provisioned: isProvisioned,
         hooksHealthy: true,
         queueDepth: 0,
         config,
@@ -701,10 +703,14 @@ export async function main(args = process.argv.slice(2), output: (value: string)
         agentMemory,
         codeReviewGraph,
         gitHead: () => repository ? repository.head() : Promise.resolve(NO_GIT_HEAD),
+        gitAvailable: () => Promise.resolve(Boolean(repository)),
+        provisioned: isProvisioned,
       }));
       output(flag(args, '--json') ? JSON.stringify(result) : formatDoctorReport(result));
     } finally {
-      await codeReviewGraph.stop().catch(() => undefined);
+      if (isProvisioned) {
+        await codeReviewGraph.stop().catch(() => undefined);
+      }
     }
     return;
   }
