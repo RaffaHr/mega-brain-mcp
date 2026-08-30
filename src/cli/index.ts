@@ -500,12 +500,21 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     }
     const jsonOutput = flag(args, '--json');
     const prompts = createTerminalPrompts();
+    let currentInspection: Awaited<ReturnType<typeof inspectManagedRuntime>> | undefined;
+    try {
+      currentInspection = await inspectManagedRuntime(config.dataDir, identity);
+    } catch {
+      currentInspection = undefined;
+    }
+    const currentVersions = currentInspection?.manifest?.versions;
     const progress = createOperationProgress({
       title: 'Mega Brain upgrade',
       steps: upgradeSteps({
         agentMemoryMode: config.agentMemory.mode,
         managedIiiEngineRequired: config.agentMemory.mode === 'managed' && process.platform === 'win32',
         managedCodeReviewGraph: config.codeReviewGraph.command === 'code-review-graph',
+        currentVersions,
+        targetVersions: dependencyVersions,
       }),
       enabled: !jsonOutput,
     });
