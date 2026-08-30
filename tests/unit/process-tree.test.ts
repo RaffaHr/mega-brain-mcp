@@ -1,6 +1,9 @@
+import path from 'node:path';
+
 import { describe, expect, test, vi } from 'vitest';
 
 import {
+  escapedForExtendedRegex,
   findProcessesInPath,
   processTreeStopper,
   sweepRuntimeProcesses,
@@ -57,6 +60,63 @@ describe('Process Tree Stopper and Process Verification', () => {
 
     expect(pids).toEqual([1001, 1002]);
     expect(terminated).toEqual([1001, 1002]);
+  });
+
+  test('preserves the runtime path capitalization when matching processes on POSIX', async () => {
+    const executed: Array<{ file: string; args: string[] }> = [];
+    const mockExec = vi.fn(async (file: string, args: readonly string[]) => {
+      executed.push({ file, args: [...args] });
+      return { stdout: '', stderr: '' };
+    });
+
+    await findProcessesInPath('/tmp/Mega Brain/Runtime', {
+      platform: 'linux',
+      execFile: mockExec as never,
+    });
+
+    expect(executed).toHaveLength(1);
+    expect(executed[0]!.file).toBe('pgrep');
+    expect(executed[0]!.args[0]).toBe('-f');
+    expect(executed[0]!.args[1]).toBe(escapedForExtendedRegex(path.resolve('/tmp/Mega Brain/Runtime')));
+    expect(executed[0]!.args[1]).toContain('Mega Brain');
+    expect(executed[0]!.args[1]).not.toContain('mega brain');
+  });
+
+  test('lowercases the runtime path only for the case-insensitive Windows lookup', async () => {
+    const executed: Array<{ file: string; args: string[] }> = [];
+    const mockExec = vi.fn(async (file: string, args: readonly string[]) => {
+      executed.push({ file, args: [...args] });
+      return { stdout: '', stderr: '' };
+    });
+
+    await findProcessesInPath('/tmp/Mega Brain/Runtime', {
+      platform: 'win32',
+      execFile: mockExec as never,
+    });
+
+    expect(executed).toHaveLength(1);
+    expect(executed[0]!.file).toBe('powershell');
+    const script = executed[0]!.args.at(-1)!;
+    expect(script).toContain('mega brain');
+    expect(script).not.toContain('Mega Brain');
+  });
+
+  test('escapes regex metacharacters before handing the path to pgrep', async () => {
+    const executed: Array<{ file: string; args: string[] }> = [];
+    const mockExec = vi.fn(async (file: string, args: readonly string[]) => {
+      executed.push({ file, args: [...args] });
+      return { stdout: '', stderr: '' };
+    });
+
+    await findProcessesInPath('/tmp/Projects (old)/mega-brain+1/runtime', {
+      platform: 'linux',
+      execFile: mockExec as never,
+    });
+
+    expect(executed).toHaveLength(1);
+    expect(executed[0]!.file).toBe('pgrep');
+    expect(executed[0]!.args[1]).toContain('Projects \\(old\\)');
+    expect(executed[0]!.args[1]).toContain('mega-brain\\+1');
   });
 
   test('processTreeStopper delegates to terminateProcessTree', async () => {

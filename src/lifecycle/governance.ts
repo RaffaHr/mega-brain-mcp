@@ -1,4 +1,5 @@
 import type { AgentMemoryClient } from '../adapters/agentmemory/client.js';
+import { createLocalLogger } from '../observability/logger.js';
 import type { ProvenanceRepository } from '../provenance/repository.js';
 
 export interface GovernanceResult {
@@ -7,6 +8,14 @@ export interface GovernanceResult {
   deprecatedCount: number;
 }
 
+/**
+ * Deprecates the memories anchored to deleted paths and asks AgentMemory to
+ * expunge them.
+ *
+ * The local provenance transition is the durable part, so an unavailable
+ * AgentMemory is recorded and tolerated rather than raised: a Git hook must not
+ * break because a backend is down.
+ */
 export async function processDeletedPathsGovernance(
   deletedPaths: string[],
   projectId: string,
@@ -27,15 +36,13 @@ export async function processDeletedPathsGovernance(
   }
 
   try {
-    if (typeof (agentMemory as any).governanceDelete === 'function') {
-      await (agentMemory as any).governanceDelete({
-        memoryIds,
-        project: projectId,
-        reason: 'file_deleted_governance',
-      });
-    }
-  } catch {
-    // Graceful fallback if governanceDelete endpoint is not implemented on mock
+    await agentMemory.governanceDelete({ memoryIds, project: projectId, reason: 'file_deleted_governance' });
+  } catch (error) {
+    createLocalLogger().log('debug', 'governance: remote expurgation failed', {
+      project: projectId,
+      memoryCount: memoryIds.length,
+      error: error instanceof Error ? error.message : String(error),
+    });
   }
 
   return {

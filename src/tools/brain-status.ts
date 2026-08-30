@@ -13,6 +13,7 @@ export interface MemoryStateMetrics {
   STALE: number;
   SUPERSEDED: number;
   CANDIDATE?: number;
+  CONFLICT?: number;
   DEPRECATED?: number;
   FRESH?: number;
   UNKNOWN?: number;

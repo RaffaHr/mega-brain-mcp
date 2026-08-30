@@ -277,7 +277,7 @@ O host enxerga exatamente seis ferramentas. As ferramentas dos backends são det
 | `brain_change_context` | Explica o que pode ser afetado antes de alterar arquivo ou símbolo. Avalia raio de impacto, caminhos de fluxo, acoplamento temporal de co-mudança, churn de símbolos e hotspots de risco. | Code Review Graph, AgentMemory, histórico do Git | Não |
 | `brain_history` | Monta linha do tempo cronológica a partir de commits, sessões, memórias, episódios ancorados do AgentMemory e evolução de símbolos via Git Pickaxe (`git log -S`). | Git, AgentMemory, Code Review Graph | Não |
 | `brain_validate` | Reavalia se um item memorizado ainda está atualizado em relação a hashes de blob e corpo AST locais, reconciliando proativamente itens candidatos. | Proveniência, Git | Metadados de validação |
-| `brain_status` | Informa a saúde dos backends, sincronização do grafo, profundidade da fila e distribuição de memórias por estado (`FRESH`, `ACTIVE`, `CANDIDATE`, `POSSIBLY_STALE`, `STALE`, `DEPRECATED`). | Estado do runtime, AgentMemory, Code Review Graph, Git, Proveniência | Não |
+| `brain_status` | Informa a saúde dos backends, sincronização do grafo, profundidade da fila e distribuição de memórias por estado (`FRESH`, `ACTIVE`, `CANDIDATE`, `POSSIBLY_STALE`, `STALE`, `CONFLICT`, `DEPRECATED`). | Estado do runtime, AgentMemory, Code Review Graph, Git, Proveniência | Não |
 
 ### `brain_recall`
 
@@ -548,7 +548,7 @@ Exemplo de chamada JSON-RPC:
 
 ### `brain_status`
 
-Use `brain_status` no início de uma sessão, após um checkout, quando o contexto recuperado parecer desatualizado ou antes de confiar na saída de impacto do Code Review Graph. Informa a saúde dos backends, sincronização do grafo, profundidade da fila e distribuição das memórias por estado (`FRESH`, `ACTIVE`, `CANDIDATE`, `POSSIBLY_STALE`, `STALE`, `DEPRECATED`).
+Use `brain_status` no início de uma sessão, após um checkout, quando o contexto recuperado parecer desatualizado ou antes de confiar na saída de impacto do Code Review Graph. Informa a saúde dos backends, sincronização do grafo, profundidade da fila e distribuição das memórias por estado (`FRESH`, `ACTIVE`, `CANDIDATE`, `POSSIBLY_STALE`, `STALE`, `CONFLICT`, `DEPRECATED`).
 
 Entrada:
 

@@ -6,7 +6,7 @@ import { AgentMemoryClient } from '../adapters/agentmemory/client.js';
 import { CodeReviewGraphClient } from '../adapters/code-review-graph/client.js';
 import { GitRepository } from '../adapters/git/repository.js';
 import type { MegaBrainConfig } from '../config/schema.js';
-import type { LocalLogger } from '../observability/logger.js';
+import { reportShutdownIssue, type LocalLogger } from '../observability/logger.js';
 import type { ProjectIdentity } from '../projects/identity.js';
 import { openProvenanceDatabase } from '../provenance/database.js';
 import { ProvenanceRepository } from '../provenance/repository.js';
@@ -110,7 +110,14 @@ export async function runMcpCommand(input: {
     input.logger?.log('info', 'mcp: stdio server ready; waiting for JSON-RPC messages from the host', {
       project: input.identity.worktreeId,
     });
-    const close = () => { void session.close(); };
+    const reportCloseFailure = (error: unknown): void => {
+      input.logger?.log('warn', 'mcp: close failed', {
+        project: input.identity.worktreeId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      reportShutdownIssue('mcp session close failed; its backends may still be running', input.identity.worktreeId);
+    };
+    const close = () => { void session.close().catch(reportCloseFailure); };
     process.once('SIGINT', close);
     process.once('SIGTERM', close);
     try {
@@ -118,7 +125,7 @@ export async function runMcpCommand(input: {
     } finally {
       process.off('SIGINT', close);
       process.off('SIGTERM', close);
-      await session.close();
+      await session.close().catch(reportCloseFailure);
       await codeReviewGraph.stop().catch(() => undefined);
       database.close();
       input.logger?.log('info', 'mcp: stdio server closed', { project: input.identity.worktreeId });

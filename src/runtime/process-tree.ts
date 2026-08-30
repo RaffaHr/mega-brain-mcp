@@ -82,21 +82,31 @@ export async function terminateProcessTree(
   }
 }
 
+/**
+ * Escapes a literal path for `pgrep -f`, which reads its argument as an
+ * extended regular expression. A directory carrying a metacharacter, such as
+ * `Projects (old)`, would otherwise make pgrep fail to parse the pattern and
+ * report no processes at all.
+ */
+export function escapedForExtendedRegex(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&');
+}
+
 export async function findProcessesInPath(
   pathPrefix: string,
   options: ProcessTreeOptions = {},
 ): Promise<number[]> {
   const platform = options.platform ?? process.platform;
   const exec = options.execFile ?? (execFileAsync as ExecFileFunction);
-  const normalizedTarget = path.resolve(pathPrefix).toLowerCase();
+  const target = path.resolve(pathPrefix);
 
-  if (!options.execFile && !(await exists(normalizedTarget))) {
+  if (!options.execFile && !(await exists(target))) {
     return [];
   }
 
   if (platform === 'win32') {
     try {
-      const escaped = normalizedTarget.replaceAll("'", "''");
+      const escaped = target.toLowerCase().replaceAll("'", "''");
       const script = `Get-CimInstance Win32_Process | Where-Object { ($_.ExecutablePath -and $_.ExecutablePath.ToLower().Contains('${escaped}')) -or ($_.CommandLine -and $_.CommandLine.ToLower().Contains('${escaped}')) } | Select-Object -ExpandProperty ProcessId`;
       const { stdout } = await exec('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], {
         windowsHide: true,
@@ -109,7 +119,7 @@ export async function findProcessesInPath(
     }
   } else {
     try {
-      const { stdout } = await exec('pgrep', ['-f', normalizedTarget], { timeout: 10_000 });
+      const { stdout } = await exec('pgrep', ['-f', escapedForExtendedRegex(target)], { timeout: 10_000 });
       const lines = String(stdout).split(/\r?\n/).map((line) => line.trim()).filter(Boolean);
       return lines.map((line) => Number(line)).filter((pid) => Number.isInteger(pid) && pid > 0 && pid !== process.pid);
     } catch {

@@ -12,7 +12,7 @@ import { AgentMemoryClient } from '../adapters/agentmemory/client.js';
 import { probeRemoteAgentMemoryIsolation } from '../adapters/agentmemory/capabilities.js';
 import { CodeReviewGraphClient } from '../adapters/code-review-graph/client.js';
 import { GitRepository, NO_GIT_HEAD } from '../adapters/git/repository.js';
-import { createLocalLogger, type LocalLogger } from '../observability/logger.js';
+import { createLocalLogger, reportShutdownIssue, type LocalLogger } from '../observability/logger.js';
 import { loadConfig, loadManagedDependencyVersions } from '../config/load.js';
 import type { MegaBrainConfig } from '../config/schema.js';
 import { redactText } from '../security/redaction.js';
@@ -248,13 +248,20 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       codeReviewGraph,
       provenance: new ProvenanceRepository(database),
     }));
-    const close = async () => {
+    let closing: Promise<void> | undefined;
+    const close = (): Promise<void> => (closing ??= (async () => {
       await application.close().catch(() => undefined);
       await codeReviewGraph.stop().catch(() => undefined);
       database.close();
+    })());
+    const closeOnSignal = () => {
+      void close().catch((error: unknown) => logger.log('warn', 'serve: close failed', {
+        project: identity.worktreeId,
+        error: error instanceof Error ? error.message : String(error),
+      }));
     };
-    process.once('SIGINT', () => { void close(); });
-    process.once('SIGTERM', () => { void close(); });
+    process.once('SIGINT', closeOnSignal);
+    process.once('SIGTERM', closeOnSignal);
     await listenMegaBrainServer(application, port);
     return;
   }
@@ -426,15 +433,25 @@ export async function main(args = process.argv.slice(2), output: (value: string)
       identity,
       onShutdown: () => stopManagedRuntime(config.dataDir, identity),
     });
-    const close = () => { void supervisor.close(); };
+    const reportCloseFailure = (error: unknown): void => {
+      logger.log('warn', 'supervisor: close failed', {
+        project: identity.worktreeId,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      reportShutdownIssue('supervisor close failed; its managed runtime may still be running', identity.worktreeId);
+    };
+    const close = () => { void supervisor.close().catch(reportCloseFailure); };
     process.once('SIGINT', close);
     process.once('SIGTERM', close);
     try { await supervisor.closed; }
     finally {
       process.off('SIGINT', close);
       process.off('SIGTERM', close);
-      await supervisor.close();
-      await stopManagedRuntime(config.dataDir, identity);
+      await supervisor.close().catch(reportCloseFailure);
+      if (supervisor.registered()) await stopManagedRuntime(config.dataDir, identity);
+      else logger.log('warn', 'supervisor: leaving the managed runtime to the supervisor that replaced this one', {
+        project: identity.worktreeId,
+      });
     }
     return;
   }

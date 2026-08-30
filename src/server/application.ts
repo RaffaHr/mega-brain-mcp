@@ -383,7 +383,7 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
       const graphHead = graph.status === 'fulfilled' && head !== NO_GIT_HEAD
         ? (graph.value.structuredContent?.graphHead ?? graph.value.structuredContent?.graph_head)
         : undefined;
-      const memoryCounts = provenance.memoryCountsByState ? provenance.memoryCountsByState() : undefined;
+      const memoryCounts = provenance.memoryCountsByState();
       const status = brainStatus({
         project: identity.worktreeId,
         head,
@@ -397,7 +397,7 @@ export function createApplicationHandlers(dependencies: ApplicationDependencies)
         verbose: Boolean(input.verbose),
         metrics: {
           graphNodeCount: 0,
-          memoryCounts: memoryCounts as any,
+          memoryCounts,
           retrievalLatencyMs: 0,
         },
       });
