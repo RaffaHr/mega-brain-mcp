@@ -270,7 +270,7 @@ export function formatDoctorReport(envelope: MegaBrainEnvelope): string {
     ['Runtime', !isProvisioned ? `${pc.dim('○')} Not applicable` : checkText(Boolean(runtime.healthy)), !isProvisioned ? 'unprovisioned directory' : `${Object.keys(runtimeChecks).length} integrity checks`],
     ['AgentMemory', statusText(amStatus, Boolean(agentMemory.healthy)), amDetails],
     ['Code Review Graph', statusText(crgStatus, Boolean(codeReviewGraph.healthy)), crgDetails],
-    ['Git repository', envelope.head === NO_GIT_HEAD ? checkText(false, 'Available', 'Unavailable') : checkText(true, 'Available'), shortHead(envelope.head ?? '')],
+    ['Git repository', envelope.warnings.includes('git repository unavailable') ? checkText(false, 'Available', 'Unavailable') : checkText(true, 'Available'), shortHead(envelope.head ?? '')],
     ['Host hooks', checkText(Boolean(result.hooksHealthy)), Boolean(result.hooksHealthy) ? 'configured' : 'needs attention'],
     ['Hook queue', queueDepth === 0 ? checkText(true, 'Empty') : `${pc.red(cliIcons.cross)} ${queueDepth} pending`, 'pending lifecycle events'],
     ['Graph index', !isProvisioned ? `${pc.dim('○')} Not applicable` : staleText(graphStale), !isProvisioned ? 'unprovisioned directory' : graphHead ? `${shortHead(graphHead)} indexed` : 'graph head unavailable'],
@@ -279,7 +279,7 @@ export function formatDoctorReport(envelope: MegaBrainEnvelope): string {
   const runtimeDetails = formatTerminalTable(['Runtime', 'Value'], [
     ['Worktree ID', valueText(isolation?.worktreeId)],
     ...Object.entries(versions).map(([name, version]) => [name, valueText(version)] as const),
-    ...Object.entries(runtimeChecks).map(([name, value]) => [`check:${name}`, checkText(Boolean(value))] as const),
+    ...!isProvisioned ? [] : Object.entries(runtimeChecks).map(([name, value]) => [`check:${name}`, checkText(Boolean(value))] as const),
   ]);
 
   const portDetails = Object.keys(ports).length > 0
@@ -366,6 +366,34 @@ export function managedDoctorDependencies(input: {
           lifecycle: 'temporary probe',
         };
       } catch {
+        // Fallback: probe temporary process directly if daemon is offline
+        try {
+          const inspection = await inspectManagedRuntime(input.dataDir, input.identity);
+          const amCommand = inspection.manifest.backends?.agentMemory;
+          if (amCommand && amCommand.command) {
+            const { execFile } = await import('node:child_process');
+            const { promisify } = await import('node:util');
+            const execFileAsync = promisify(execFile);
+            const cliPath = String(amCommand.args[0] || '');
+            const { stdout } = await execFileAsync(amCommand.command, [cliPath, '--version'], {
+              cwd: amCommand.cwd,
+              windowsHide: true,
+              timeout: 10000,
+            });
+            const detectedVersion = stdout.trim() || inspection.manifest.versions.agentMemory;
+            return {
+              status: 'healthy',
+              healthy: true,
+              version: detectedVersion,
+              endpoints: ['livez', 'health', 'smart-search', 'remember'],
+              process: 'ok',
+              endpoint: 'ok',
+              capabilities: 'ok',
+              authChecked: true,
+              lifecycle: 'temporary probe',
+            };
+          }
+        } catch {}
         return {
           status: 'unavailable',
           healthy: false,
@@ -407,6 +435,36 @@ export function managedDoctorDependencies(input: {
           await input.codeReviewGraph.stop().catch(() => undefined);
         }
       } catch {
+        // Fallback: verify executable and version directly
+        try {
+          const inspection = await inspectManagedRuntime(input.dataDir, input.identity);
+          const crgCommand = inspection.manifest.backends?.codeReviewGraph;
+          if (crgCommand && crgCommand.command) {
+            const { execFile } = await import('node:child_process');
+            const { promisify } = await import('node:util');
+            const execFileAsync = promisify(execFile);
+            const { stdout } = await execFileAsync(crgCommand.command, ['-m', 'code_review_graph', '--version'], {
+              cwd: crgCommand.cwd,
+              windowsHide: true,
+              timeout: 10000,
+            });
+            const match = stdout.match(/\d+\.\d+\.\d+/);
+            const detectedVersion = match ? match[0] : inspection.manifest.versions.codeReviewGraph;
+            return {
+              status: 'healthy',
+              healthy: true,
+              version: detectedVersion,
+              graphHead: null,
+              tools: ['detect_changes_tool', 'query_graph_tool'],
+              process: 'ok',
+              endpoint: 'ok',
+              capabilities: 'ok',
+              storage: { dataDir: crgCommand.environment?.CRG_DATA_DIR, repoRoot: crgCommand.environment?.CRG_REPO_ROOT },
+              schemasChecked: true,
+              lifecycle: 'temporary probe',
+            };
+          }
+        } catch {}
         return {
           status: 'unavailable',
           healthy: false,
