@@ -199,7 +199,7 @@ The host sees exactly six tools. Backend tools are private implementation detail
 | `brain_change_context` | Explain what may be affected before changing a file or symbol. Evaluates impact radius, flow paths, temporal co-change coupling, symbol churn, and remembered risk hotspots. | Code Review Graph, AgentMemory, Git history | No |
 | `brain_history` | Build a chronological timeline from commits, sessions, memories, anchored AgentMemory episodes, and Git Pickaxe (`git log -S`) symbol evolution. | Git, AgentMemory, Code Review Graph | No |
 | `brain_validate` | Reassess whether a remembered item is still fresh against local blob/AST symbol body hashes and batch-reconcile stale candidates. | Provenance, Git | Validation metadata |
-| `brain_status` | Report backend health, graph synchronization, hook queue depth, and memory counts across states (`FRESH`, `ACTIVE`, `CANDIDATE`, `POSSIBLY_STALE`, `STALE`, `DEPRECATED`). | Runtime state, AgentMemory, Code Review Graph, Git, Provenance | No |
+| `brain_status` | Report backend health, graph synchronization, hook queue depth, and memory counts across states (`FRESH`, `ACTIVE`, `CANDIDATE`, `POSSIBLY_STALE`, `STALE`, `CONFLICT`, `DEPRECATED`). | Runtime state, AgentMemory, Code Review Graph, Git, Provenance | No |
 
 ### `brain_recall`
 
@@ -472,7 +472,7 @@ Example JSON-RPC call:
 
 ### `brain_status`
 
-Use `brain_status` at the start of a session, after a checkout, when recall seems stale, or before trusting Code Review Graph impact output. Reports backend health, graph synchronization, hook queue depth, and memory counts across states (`FRESH`, `ACTIVE`, `CANDIDATE`, `POSSIBLY_STALE`, `STALE`, `DEPRECATED`).
+Use `brain_status` at the start of a session, after a checkout, when recall seems stale, or before trusting Code Review Graph impact output. Reports backend health, graph synchronization, hook queue depth, and memory counts across states (`FRESH`, `ACTIVE`, `CANDIDATE`, `POSSIBLY_STALE`, `STALE`, `CONFLICT`, `DEPRECATED`).
 
 Input:
 

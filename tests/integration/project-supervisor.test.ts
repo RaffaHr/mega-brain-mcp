@@ -1,23 +1,64 @@
-import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { spawn } from 'node:child_process';
+import { chmod, mkdir, mkdtemp, rm, stat, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 
-import { afterEach, expect, test } from 'vitest';
+import { afterEach, expect, test, vi } from 'vitest';
 
 import { deriveProjectIdentity } from '../../src/projects/identity.js';
 import {
   ensureProjectSupervisor,
+  readinessVerdict,
   startProjectSupervisor,
   type SupervisorProcessSpawner,
 } from '../../src/runtime/project-supervisor.js';
-import { runtimeLayout } from '../../src/runtime/layout.js';
-import { readSupervisorManifest, supervisorManifestSchema, supervisorPaths } from '../../src/runtime/supervisor-manifest.js';
+import { runtimeLayout, type RuntimeLayout } from '../../src/runtime/layout.js';
+import { readSupervisorManifest, supervisorManifestSchema, supervisorPaths, writeSupervisorManifest } from '../../src/runtime/supervisor-manifest.js';
 
 const directories: string[] = [];
 
 afterEach(async () => {
   await Promise.all(directories.splice(0).map((directory) => rm(directory, { recursive: true, force: true })));
 });
+
+/**
+ * Polls until the idle shutdown removed the manifest instead of sleeping for a
+ * fixed slice, so a slow runner delays the assertion rather than failing it.
+ */
+async function waitForManifestRemoval(layout: RuntimeLayout, timeoutMs = 10_000): Promise<void> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const removed = await readSupervisorManifest(layout).then(
+      () => false,
+      (error: NodeJS.ErrnoException) => error.code === 'ENOENT',
+    );
+    if (removed) return;
+    await new Promise((resolve) => setTimeout(resolve, 25));
+  }
+  throw new Error('supervisor manifest was not removed before the deadline');
+}
+
+/**
+ * Binds a Unix domain socket in another process and kills it without letting it
+ * unlink the address, reproducing what a supervisor killed with `SIGKILL`
+ * leaves behind: the socket file survives, so connecting to it is refused
+ * instead of reporting a missing address.
+ */
+async function abandonSocket(address: string): Promise<number> {
+  await mkdir(path.dirname(address), { recursive: true, mode: 0o700 });
+  const child = spawn(process.execPath, [
+    '-e',
+    `require('node:net').createServer().listen(${JSON.stringify(address)}, () => console.log('bound'));`,
+  ], { stdio: ['ignore', 'pipe', 'inherit'] });
+  const bound = await new Promise<boolean>((resolve) => {
+    child.stdout!.once('data', () => resolve(true));
+    child.once('exit', () => resolve(false));
+  });
+  if (!bound) throw new Error(`could not bind a socket at ${address}`);
+  child.kill('SIGKILL');
+  await new Promise((resolve) => child.once('exit', resolve));
+  return child.pid!;
+}
 
 test('AC-040: gateways concorrentes iniciam e reutilizam um único supervisor independente @spec:AC-040', async () => {
   const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-supervisor-'));
@@ -101,7 +142,274 @@ test('AC-041: supervisor encerra cinco segundos após a última lease @spec:AC-0
   now = 5_000;
   expect(await server.checkIdle()).toBe(true);
   expect(shutdowns).toBe(1);
+  expect(server.registered()).toBe(true);
   await expect(readSupervisorManifest(layout)).rejects.toMatchObject({ code: 'ENOENT' });
+});
+
+test('AC-041: shutdown ocioso que falha não derruba o supervisor por rejeição não tratada @spec:AC-041', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-idle-failure-'));
+  directories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  const rejections: unknown[] = [];
+  const collectRejection = (reason: unknown): void => { rejections.push(reason); };
+  process.on('unhandledRejection', collectRejection);
+  const server = await startProjectSupervisor({
+    layout,
+    identity,
+    pid: process.pid,
+    leaseOptions: { shutdownGraceMs: 0 },
+    onShutdown: () => Promise.reject(new Error('shutdown hook failed')),
+  });
+
+  try {
+    const handle = await ensureProjectSupervisor({ layout, identity, processExists: () => true });
+    await handle.client.acquire('idle-gateway');
+    await handle.client.release('idle-gateway');
+    await waitForManifestRemoval(layout);
+
+    expect(rejections).toEqual([]);
+    await expect(server.checkIdle()).resolves.toBe(false);
+  } finally {
+    process.off('unhandledRejection', collectRejection);
+    await server.close();
+  }
+});
+
+test('AC-041: falha ao liberar o IPC ainda libera quem aguarda o encerramento @spec:AC-041', async () => {
+  if (process.platform === 'win32' || process.getuid?.() === 0) return;
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-close-failure-'));
+  directories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  const socketDirectory = path.dirname(supervisorPaths(layout, identity.worktreeId).ipcAddress);
+  const server = await startProjectSupervisor({ layout, identity, pid: process.pid });
+
+  await chmod(socketDirectory, 0o555);
+  try {
+    await expect(server.close()).rejects.toThrow();
+    await expect(server.closed).resolves.toBeUndefined();
+  } finally {
+    await chmod(socketDirectory, 0o700);
+  }
+});
+
+test('AC-041: checkIdle aguardado propaga a falha do shutdown ao chamador @spec:AC-041', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-idle-propagation-'));
+  directories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  let now = 0;
+  const server = await startProjectSupervisor({
+    layout,
+    identity,
+    pid: process.pid,
+    now: () => now,
+    onShutdown: () => Promise.reject(new Error('shutdown hook failed')),
+  });
+
+  try {
+    const handle = await ensureProjectSupervisor({ layout, identity, processExists: () => true });
+    await handle.client.acquire('last-gateway');
+    await handle.client.release('last-gateway');
+    now = 5_000;
+    await expect(server.checkIdle()).rejects.toThrow('shutdown hook failed');
+  } finally {
+    await server.close();
+  }
+});
+
+test('AC-040: manifest de processo morto é reciclado por um supervisor novo @spec:AC-040', async () => {
+  if (process.platform === 'win32') return;
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-dead-socket-'));
+  directories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  let shutdowns = 0;
+  const orphan = await startProjectSupervisor({
+    layout,
+    identity,
+    pid: process.pid,
+    leaseOptions: { shutdownGraceMs: 0 },
+    onShutdown: () => { shutdowns += 1; },
+  });
+
+  let replacement: Awaited<ReturnType<typeof startProjectSupervisor>> | undefined;
+  const handle = await ensureProjectSupervisor({
+    layout,
+    identity,
+    processExists: (candidate) => candidate === 7373,
+    spawner: {
+      async spawn() {
+        replacement = await startProjectSupervisor({ layout, identity, pid: 7373 });
+        return 7373;
+      },
+    },
+  });
+
+  const stderrWrites: string[] = [];
+  const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation((chunk: unknown) => {
+    stderrWrites.push(String(chunk));
+    return true;
+  });
+
+  try {
+    expect(handle.reused).toBe(false);
+    expect(handle.manifest.pid).toBe(7373);
+    expect(handle.manifest.ipcAddress).not.toBe(orphan.manifest.ipcAddress);
+    await handle.client.acquire('recovered-gateway');
+    expect((await handle.client.status()).leases).toEqual(['recovered-gateway']);
+    await handle.client.release('recovered-gateway');
+
+    orphan.leases.acquire('stale-gateway');
+    orphan.leases.release('stale-gateway');
+    expect(await orphan.checkIdle()).toBe(false);
+    expect(shutdowns).toBe(0);
+    expect(orphan.registered()).toBe(false);
+    expect(stderrWrites.join('')).toContain('no longer owns this project');
+    expect(stderrWrites.join('')).toContain(identity.worktreeId);
+    expect(stderrWrites.join('')).not.toContain(dataDir);
+
+    await orphan.close();
+    expect(await readSupervisorManifest(layout)).toMatchObject({ pid: 7373 });
+    expect((await handle.client.status()).leases).toEqual([]);
+  } finally {
+    stderrSpy.mockRestore();
+    await handle.client.close();
+    await replacement?.close();
+    await orphan.close();
+  }
+});
+
+test('AC-040: supervisor vivo sem endpoint falha com instrução em vez de duplicar o runtime @spec:AC-040', async () => {
+  if (process.platform === 'win32') return;
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-live-orphan-'));
+  directories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  const server = await startProjectSupervisor({ layout, identity, pid: process.pid });
+  await rm(server.manifest.ipcAddress, { force: true });
+
+  try {
+    await expect(ensureProjectSupervisor({
+      layout,
+      identity,
+      processExists: () => true,
+      spawner: { spawn: async () => { throw new Error('must not spawn a second supervisor'); } },
+    })).rejects.toThrow(new RegExp(`registered but its IPC endpoint is gone[\\s\\S]*${supervisorPaths(layout, identity.worktreeId).manifest.replaceAll('\\', '\\\\')}`, 'u'));
+    await expect(readSupervisorManifest(layout)).resolves.toMatchObject({ pid: process.pid });
+  } finally {
+    await server.close();
+  }
+});
+
+test('AC-040: endpoint ausente recicla no Windows e é reportado no Unix @spec:AC-040', () => {
+  const missingEndpoint = Object.assign(new Error('connect ENOENT'), { code: 'ENOENT' });
+  const refusedEndpoint = Object.assign(new Error('connect ECONNREFUSED'), { code: 'ECONNREFUSED' });
+
+  expect(readinessVerdict(missingEndpoint, 'win32')).toBe('refused');
+  expect(readinessVerdict(missingEndpoint, 'linux')).toBe('missing');
+  expect(readinessVerdict(missingEndpoint, 'darwin')).toBe('missing');
+
+  for (const platform of ['win32', 'linux', 'darwin'] as const) {
+    expect(readinessVerdict(refusedEndpoint, platform)).toBe('refused');
+    expect(readinessVerdict(new Error('Supervisor IPC identity mismatch'), platform)).toBe('unhealthy');
+  }
+});
+
+test('AC-041: supervisor cujo endpoint some se aposenta parando o próprio runtime @spec:AC-041', async () => {
+  if (process.platform === 'win32') return;
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-lost-endpoint-'));
+  directories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  let shutdowns = 0;
+  const server = await startProjectSupervisor({
+    layout,
+    identity,
+    pid: process.pid,
+    onShutdown: () => { shutdowns += 1; },
+  });
+
+  server.leases.acquire('busy-gateway');
+  expect(await server.checkIdle()).toBe(false);
+
+  await rm(server.manifest.ipcAddress, { force: true });
+
+  expect(await server.checkIdle()).toBe(true);
+  expect(shutdowns).toBe(1);
+  expect(server.registered()).toBe(true);
+  await expect(readSupervisorManifest(layout)).rejects.toMatchObject({ code: 'ENOENT' });
+});
+
+test('AC-040: manifest cujo endpoint recusa conexão é reciclado mesmo com o pid reutilizado @spec:AC-040', async () => {
+  if (process.platform === 'win32') return;
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-refused-socket-'));
+  directories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  const paths = supervisorPaths(layout, identity.worktreeId, 'deadbeef');
+  await mkdir(paths.directory, { recursive: true, mode: 0o700 });
+  directories.push(path.dirname(paths.ipcAddress));
+  const killedPid = await abandonSocket(paths.ipcAddress);
+  expect((await stat(paths.ipcAddress)).isSocket()).toBe(true);
+  const startedAt = new Date(0).toISOString();
+  await writeSupervisorManifest(layout, {
+    protocolVersion: 1,
+    worktreeId: identity.worktreeId,
+    pid: killedPid,
+    ipcAddress: paths.ipcAddress,
+    startedAt,
+    updatedAt: startedAt,
+  });
+
+  let replacement: Awaited<ReturnType<typeof startProjectSupervisor>> | undefined;
+  const handle = await ensureProjectSupervisor({
+    layout,
+    identity,
+    processExists: () => true,
+    spawner: {
+      async spawn() {
+        replacement = await startProjectSupervisor({ layout, identity, pid: 4242 });
+        return 4242;
+      },
+    },
+  });
+
+  try {
+    expect(handle.reused).toBe(false);
+    expect(handle.manifest.pid).toBe(4242);
+    expect(handle.manifest.ipcAddress).not.toBe(paths.ipcAddress);
+    await handle.client.acquire('gateway-after-sigkill');
+    expect((await handle.client.status()).leases).toEqual(['gateway-after-sigkill']);
+    expect(await readSupervisorManifest(layout)).toMatchObject({ pid: 4242 });
+  } finally {
+    await handle.client.close();
+    await replacement?.close();
+  }
+});
+
+test('AC-040: readiness que não é endereço inacessível preserva o manifest @spec:AC-040', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-project-readiness-'));
+  directories.push(dataDir);
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const layout = runtimeLayout(dataDir, identity);
+  const server = await startProjectSupervisor({ layout, identity, pid: process.pid });
+  const published = await readSupervisorManifest(layout);
+  const impostor = { ...published, pid: published.pid + 1 };
+  await writeSupervisorManifest(layout, impostor);
+
+  try {
+    await expect(ensureProjectSupervisor({
+      layout,
+      identity,
+      processExists: () => true,
+      spawner: { spawn: async () => { throw new Error('must not spawn'); } },
+    })).rejects.toThrow(/readiness failed/u);
+    await expect(readSupervisorManifest(layout)).resolves.toMatchObject({ pid: impostor.pid });
+  } finally {
+    await server.close();
+  }
 });
 
 test('AC-054: drain preserva leases existentes e bloqueia novas aquisições @spec:AC-054', async () => {

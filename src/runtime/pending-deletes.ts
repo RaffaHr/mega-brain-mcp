@@ -1,5 +1,8 @@
-import { access, chmod, lstat, mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { access, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
+
+import { createLocalLogger, type LocalLogger } from '../observability/logger.js';
+import { stripReadOnlyAttributes } from './transaction.js';
 
 export interface PendingDeletesManifest {
   version: 1;
@@ -54,37 +57,31 @@ export async function clearPendingDelete(dataDir: string, targetPath: string): P
   await savePendingDeletes(dataDir, filtered);
 }
 
-async function stripReadOnlyRecursive(target: string): Promise<void> {
-  try {
-    const stats = await lstat(target);
-    if (stats.isSymbolicLink()) return;
-    await chmod(target, stats.isDirectory() ? (stats.mode & 0o777) | 0o777 : (stats.mode & 0o777) | 0o666).catch(() => undefined);
-    if (stats.isDirectory()) {
-      const entries = await readdir(target).catch(() => []);
-      for (const entry of entries) {
-        await stripReadOnlyRecursive(path.join(target, entry)).catch(() => undefined);
-      }
-    }
-  } catch {
-    // ignore
-  }
-}
-
-export async function safeRemoveDirectory(target: string): Promise<boolean> {
+/**
+ * Removes a directory, retrying once after a second attribute pass because a
+ * handle released between the two tries is the common Windows case. Returning
+ * `false` tells the caller to queue the path, and the reason for the final
+ * failure is reported so a stuck path can be diagnosed.
+ */
+export async function safeRemoveDirectory(target: string, logger: LocalLogger = createLocalLogger()): Promise<boolean> {
   const resolved = path.resolve(target);
   if (!(await exists(resolved))) return true;
 
-  await stripReadOnlyRecursive(resolved);
+  await stripReadOnlyAttributes(resolved, logger);
   try {
     await rm(resolved, { recursive: true, force: true });
     return true;
   } catch {
-    // Retry once after additional chmod
-    await stripReadOnlyRecursive(resolved);
+    await stripReadOnlyAttributes(resolved, logger);
     try {
       await rm(resolved, { recursive: true, force: true });
       return true;
-    } catch {
+    } catch (error) {
+      logger.log('warn', 'runtime: could not remove directory', {
+        path: resolved,
+        basename: path.basename(resolved),
+        error: error instanceof Error ? error.message : String(error),
+      });
       return false;
     }
   }

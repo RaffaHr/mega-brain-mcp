@@ -9,6 +9,19 @@ import { expect, test } from 'vitest';
 const execFileAsync = promisify(execFile);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
+/**
+ * Reads the published identity from the single source of truth so a version
+ * bump keeps these assertions honest instead of letting the documented install
+ * commands drift away from what npm actually produces.
+ */
+async function packageManifest(): Promise<{ name: string; version: string }> {
+  return JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8')) as { name: string; version: string };
+}
+
+function packedTarballName(manifest: { name: string; version: string }): string {
+  return `${manifest.name.replace(/^@/u, '').replace('/', '-')}-${manifest.version}.tgz`;
+}
+
 function npmCli(): { command: string; args: string[] } {
   if (process.platform !== 'win32') return { command: 'npm', args: [] };
   return { command: process.execPath, args: [process.env.npm_execpath ?? path.join(path.dirname(process.execPath), 'node_modules', 'npm', 'bin', 'npm-cli.js')] };
@@ -81,7 +94,7 @@ test('AC-036: packed tarball installs a functional CLI outside the checkout @spe
       '--no-bin-links',
       tarball,
     ], { cwd: temporary, encoding: 'utf8', maxBuffer: 20 * 1024 * 1024, env: npmEnvironment, timeout: 420_000 });
-    const cli = path.join(consumer, 'node_modules', '@raffahr', 'mega-brain-mcp', 'dist', 'cli', 'index.js');
+    const cli = path.join(consumer, 'node_modules', ...(await packageManifest()).name.split('/'), 'dist', 'cli', 'index.js');
     const help = await execFileAsync(process.execPath, [cli, '--help'], { cwd: temporary, encoding: 'utf8', timeout: 30_000 });
     expect(help.stdout).toContain('Usage: mega-brain');
   } finally {
@@ -90,13 +103,15 @@ test('AC-036: packed tarball installs a functional CLI outside the checkout @spe
 }, 600_000);
 
 test('AC-038: docs use the scoped package and automatic host lifecycle @spec:AC-038', async () => {
-  const [readme, configuration, troubleshooting] = await Promise.all([
+  const [readme, readmePtBr, configuration, troubleshooting, manifest] = await Promise.all([
     readFile(path.join(root, 'README.md'), 'utf8'),
+    readFile(path.join(root, 'README-ptbr.md'), 'utf8'),
     readFile(path.join(root, 'docs', 'configuration.md'), 'utf8'),
     readFile(path.join(root, 'docs', 'troubleshooting.md'), 'utf8'),
+    packageManifest(),
   ]);
-  expect(readme).toContain('npm install --global @raffahr/mega-brain-mcp');
-  expect(readme).toContain('npm install --global .\\raffahr-mega-brain-mcp-0.1.6.tgz');
+  expect(readme).toContain(`npm install --global ${manifest.name}`);
+  expect(readme).toContain(`npm install --global .\\${packedTarballName(manifest)}`);
   expect(readme).toContain('choose Codex, Claude');
   expect(readme).toContain('Code, or both');
   expect(readme).not.toContain(`--${'hosts'}`);
@@ -105,4 +120,7 @@ test('AC-038: docs use the scoped package and automatic host lifecycle @spec:AC-
   expect(configuration).toContain('.mcp.json');
   expect(troubleshooting).toContain('venv');
   expect(troubleshooting).toContain('No files were changed');
+  for (const document of [readmePtBr, troubleshooting]) {
+    expect(document).toContain(packedTarballName(manifest));
+  }
 });

@@ -129,3 +129,52 @@ test('handlers degradam quando Git existe mas ainda nao tem HEAD', async () => {
   expect(status.warnings).not.toContain('code_review_graph index is behind Git HEAD');
   database.close();
 });
+
+test('brain_status publica as contagens de memoria do projeto com CONFLICT sempre presente', async () => {
+  const dataDir = await mkdtemp(path.join(tmpdir(), 'mega-brain-app-memory-counts-'));
+  const identity = deriveProjectIdentity({ root: path.join(dataDir, 'repo'), gitDir: '.git', commonGitDir: '.git' });
+  const database = openProvenanceDatabase(':memory:');
+  const provenance = new ProvenanceRepository(database);
+  const agentMemory = {
+    health: async () => ({ healthy: true, version: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory }),
+    smartSearch: async () => ({ results: [] }),
+  } as unknown as AgentMemoryClient;
+  const codeReviewGraph = {
+    start: async () => undefined,
+    call: async () => ({ content: [], structuredContent: { graphHead: 'abc' } }),
+    serverVersion: () => DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph,
+  } as unknown as CodeReviewGraphClient;
+  const git = { head: async () => 'abc' } as unknown as GitRepository;
+  const handlers = createApplicationHandlers({
+    config: testConfig(dataDir),
+    identity,
+    git,
+    agentMemory,
+    codeReviewGraph,
+    provenance,
+  });
+  const memoryCounts = async (): Promise<Record<string, number>> =>
+    ((await handlers.brain_status!({})).result.metrics as { memoryCounts: Record<string, number> }).memoryCounts;
+
+  expect(await memoryCounts()).toMatchObject({
+    ACTIVE: 0, CANDIDATE: 0, CONFLICT: 0, DEPRECATED: 0, FRESH: 0, POSSIBLY_STALE: 0, STALE: 0, SUPERSEDED: 0, UNKNOWN: 0,
+  });
+
+  provenance.registerProject({
+    id: identity.worktreeId,
+    checkoutId: identity.checkoutId,
+    worktreeId: identity.worktreeId,
+    root: identity.root,
+  });
+  provenance.saveMemoryReference({
+    memoryId: 'memory-conflict',
+    projectId: identity.worktreeId,
+    state: 'FRESH',
+    confidence: 1,
+    evidence: [{ path: 'src/auth.ts', blobHash: 'blob', commitHash: 'commit' }],
+  });
+  provenance.updateState('memory-conflict', 'CONFLICT', 0.2, 'current_evidence_conflicts');
+
+  expect(await memoryCounts()).toMatchObject({ CONFLICT: 1, FRESH: 0 });
+  database.close();
+});

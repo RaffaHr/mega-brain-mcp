@@ -102,6 +102,35 @@ describe('P5 Consolidation, governance & reconciliation (@spec:p5-consolidation-
     expect(state.confidence).toBe(0);
   });
 
+  it('AC-090: Expurgo local conclui mesmo com AgentMemory indisponível @spec:AC-090 @principle:P-006', async () => {
+    const db = openProvenanceDatabase(':memory:');
+    const repo = new ProvenanceRepository(db);
+    repo.registerProject({ id: 'proj-5', checkoutId: 'chk-5', worktreeId: 'proj-5', root: '/repo' });
+    repo.saveMemoryReference({
+      memoryId: 'mem-del-1',
+      projectId: 'proj-5',
+      state: 'FRESH',
+      confidence: 1.0,
+      statement: 'Legacy xml serializer handles xml export',
+      type: 'fact',
+      evidence: [{ path: 'src/legacy-xml.ts', blobHash: 'b1', commitHash: 'c1' }],
+    });
+    const unavailableAgentMemory = {
+      governanceDelete: async () => { throw new Error('backend down'); },
+    };
+
+    const result = await processDeletedPathsGovernance(
+      ['src/legacy-xml.ts'],
+      'proj-5',
+      unavailableAgentMemory,
+      repo,
+    );
+
+    expect(result.deprecatedCount).toBe(1);
+    expect(result.expurgatedMemoryIds).toContain('mem-del-1');
+    expect(repo.memoryState('mem-del-1').state).toBe('DEPRECATED');
+  });
+
   it('AC-091: Reconciliação proativa de integridade de AST @spec:AC-091', async () => {
     const db = openProvenanceDatabase(':memory:');
     const repo = new ProvenanceRepository(db);
