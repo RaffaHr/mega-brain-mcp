@@ -1,9 +1,8 @@
 # Configuration
 
-Mega Brain reads `.env` from the project directory selected by `--repo`. Configuration
-precedence is CLI flags, process environment, project `.env`, JSON
-configuration file, then built-in defaults. Keep the real `.env` uncommitted; `.env.example` contains
-only safe defaults and empty credential placeholders.
+Mega Brain reads local `.mega-brain/config.json` from project directory selected by `--repo`. Setup creates directory with restricted permissions, adds `.mega-brain/` to `.gitignore`, and rejects already tracked config before writing secrets. Repository `.env` is never written, migrated, or used for backend settings; only managed dependency version variables are read from it. CLI flags and explicit process environment win over local config.
+
+Setup reruns preserve existing local values unless reset is explicitly selected. Summary shows a redacted configuration diff; unchanged reruns show `No changes` and skip confirmation. Secrets prompt once with explicit consumers (`AgentMemory`, `Code Review Graph`, or both). Backend features that can transmit data or incur cost default to disabled; selecting one records explicit user intent.
 
 ## AgentMemory profiles
 
@@ -48,7 +47,7 @@ Direct variables override duplicate entries in
 `MEGA_BRAIN_AGENTMEMORY_ENV_JSON`. Unknown direct variables are ignored; unknown
 keys in the JSON map are rejected. The explicit allowlist is:
 
-- Runtime and behavior: `AGENTMEMORY_AGENT_SCOPE`,
+- Runtime and behavior: `AGENT_ID`, `AGENTMEMORY_AGENT_SCOPE`,
   `AGENTMEMORY_ALLOW_AGENT_SDK`, `AGENTMEMORY_AUTO_COMPRESS`,
   `AGENTMEMORY_CONSOLIDATION_COOLDOWN_MS`, `AGENTMEMORY_DATA_DIR`,
   `AGENTMEMORY_DEBUG`, `AGENTMEMORY_DROP_STALE_INDEX`,
@@ -58,7 +57,7 @@ keys in the JSON map are rejected. The explicit allowlist is:
   `AGENTMEMORY_INJECT_CONTEXT`, `AGENTMEMORY_LLM_NOTHINK`,
   `AGENTMEMORY_LLM_TIMEOUT_MS`, `AGENTMEMORY_METRICS_PORT`,
   `AGENTMEMORY_PROBE_TIMEOUT_MS`, `AGENTMEMORY_PROJECT_NAME`,
-  `AGENTMEMORY_PROVIDER`, `AGENTMEMORY_REFLECT`, `AGENTMEMORY_SLOTS`,
+  `AGENTMEMORY_REFLECT`, `AGENTMEMORY_SLOTS`,
   `AGENTMEMORY_SUPPRESS_COST_WARNING`, `AGENTMEMORY_TOOLS`,
   `AGENTMEMORY_VERBOSE`, `AGENTMEMORY_VIEWER_HOST`, and
   `AGENTMEMORY_VIEWER_URL`.
@@ -82,9 +81,8 @@ Code Review Graph (CRG) builds and queries structural code intelligence graphs. 
 
 - `local` (default): Uses `sentence-transformers` with model `all-MiniLM-L6-v2` (configured via `CRG_EMBEDDING_MODEL`). Zero network egress required.
 - `openai`: OpenAI or OpenAI-compatible gateway (`CRG_OPENAI_API_KEY`, `CRG_OPENAI_BASE_URL`, `CRG_OPENAI_MODEL`). Falls back to `OPENAI_API_KEY` if authorized.
-- `voyage`: Voyage AI (`CRG_VOYAGE_API_KEY` / `VOYAGE_API_KEY`, `CRG_VOYAGE_MODEL`).
-- `google`: Google Gemini (`CRG_GOOGLE_API_KEY` / `GOOGLE_API_KEY` / `GEMINI_API_KEY`).
-- `minimax`: MiniMax (`CRG_MINIMAX_API_KEY` / `MINIMAX_API_KEY`).
+- `google`: Google Gemini (`GOOGLE_API_KEY`).
+- `minimax`: MiniMax (`MINIMAX_API_KEY`).
 
 Remote CRG providers require `MEGA_BRAIN_ALLOW_EGRESS=true`. When egress is authorized, `CRG_ACCEPT_CLOUD_EMBEDDINGS="1"` is automatically injected into the CRG child process.
 
@@ -108,7 +106,7 @@ The remote AgentMemory token is allowed only in the repository-local
 command automation; it is never written to runtime locks, host files, logs, or
 setup summaries.
 
-Each Git checkout/worktree, or plain directory when Git is not initialized yet, receives separate AgentMemory data, iii-engine, CRG data, provenance, IPC and four backend ports in managed mode. Managed dependency versions resolve from process environment, then project `.env`, then Mega Brain's bundled defaults; they are recorded in the runtime lock after install. Git-backed hooks, history, and commit evidence remain unavailable for plain directories. Remote AgentMemory
+Each Git checkout/worktree, or plain directory when Git is not initialized yet, receives separate AgentMemory data, iii-engine, CRG data, provenance, IPC and four backend ports in managed mode. Managed dependency versions resolve from process environment, then version variables in project `.env`, then Mega Brain's bundled defaults; backend settings in project `.env` are ignored and versions are recorded in runtime lock after install. Git-backed hooks, history, and commit evidence remain unavailable for plain directories. Remote AgentMemory
 is accepted only after its namespace A/B probe proves that one worktree cannot
 read another and confirms sentinel cleanup.
 
@@ -134,3 +132,20 @@ project knowledge after restoration.
 Codex may require project trust before loading `.codex/config.toml` or hooks;
 inspect with `/mcp` and `/hooks`. Claude Code exposes project MCP approval
 through `/mcp`.
+
+## Setup output modes
+
+- TTY uses transient explanatory panels and a live step table; important warnings remain visible.
+- Non-TTY progress writes one stable line per installation step.
+- `mega-brain setup --json` suppresses decorative panels and emits one redacted JSON result with `status`, `warnings`, and `steps`. Warning objects contain `level`, `code`, `message`, and `requiresAttention`.
+
+## Effective setup record
+
+Setup persists one local JSON envelope with:
+
+- `effective`: typed values used by Mega Brain, including plaintext secrets accepted by explicit security decision;
+- `sources`: `default`, `user`, `existing`, or `inferred` for each setting;
+- `status`: `applied`, `unset`, `skipped`, or `configured`;
+- `consents`: egress, LLM, cloud provider, and custom-version choices.
+
+Rendered summaries never persist and always redact secrets. Setup shows catalog variables grouped as `Core`, `Embedding`, `LLM`, `Runtime`, `Bridges`, and `Advanced`. Missing values remain `unset`; backend defaults such as `EMBEDDING_PROVIDER=local`, `AGENTMEMORY_AGENT_SCOPE=shared`, and `AGENTMEMORY_GRAPH_WEIGHT=0.2` appear as backend defaults without forcing environment entries.

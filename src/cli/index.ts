@@ -15,6 +15,7 @@ import { GitRepository, NO_GIT_HEAD } from '../adapters/git/repository.js';
 import { createLocalLogger, type LocalLogger } from '../observability/logger.js';
 import { loadConfig, loadManagedDependencyVersions } from '../config/load.js';
 import type { MegaBrainConfig } from '../config/schema.js';
+import { redactText } from '../security/redaction.js';
 import { discoverProjectIdentity } from '../projects/identity.js';
 import { openProvenanceDatabase } from '../provenance/database.js';
 import { ProvenanceRepository } from '../provenance/repository.js';
@@ -37,6 +38,8 @@ import { installProjectTransaction, inspectManagedRuntime } from './install.js';
 import { runMcpCommand } from './mcp.js';
 import {
   createOperationProgress,
+  installLogMatches,
+  installSteps,
   formatUninstallFailureReport,
   formatUninstallReport,
   formatUpgradeFailureReport,
@@ -47,7 +50,7 @@ import {
   upgradeSteps,
 } from './operation-progress.js';
 import { runInstallPreflight } from './preflight.js';
-import { createTerminalPrompts } from './prompts.js';
+import { createJsonPromptAdapter, createTerminalPrompts } from './prompts.js';
 import { runSetupWizard } from './setup.js';
 import { startManagedRuntime, waitForService } from './start.js';
 import { stopManagedRuntime } from './stop.js';
@@ -260,89 +263,140 @@ export async function main(args = process.argv.slice(2), output: (value: string)
     return;
   }
   if (command === 'setup') {
-    const prompts = createTerminalPrompts();
+    const jsonOutput = flag(args, '--json');
+    const terminalPrompts = createTerminalPrompts();
+    const structuredPrompts = jsonOutput ? createJsonPromptAdapter(terminalPrompts) : undefined;
+    const prompts = structuredPrompts?.prompts ?? terminalPrompts;
     const setupPython = option(args, '--python');
-    const result = await runSetupWizard({
-      prompts,
-      currentDirectory: path.resolve(option(args, '--repo') ?? process.cwd()),
-      defaultDataDir: path.join(
-        process.env.LOCALAPPDATA ?? process.env.XDG_DATA_HOME ?? path.join(homedir(), '.local', 'share'),
-        'mega-brain',
-      ),
-      environment: process.env,
-      preflight: (_repository) => runInstallPreflight({ ...(setupPython ? { pythonCommand: setupPython } : {}) }),
-      discoverIdentity: discoverProjectIdentity,
-      initializeGit: async (repository) => {
-        await execFileAsync('git', ['-C', repository, 'init'], { encoding: 'utf8', windowsHide: true });
-      },
-      probeRemote: ({ baseUrl, secret, identity }) => probeRemoteAgentMemoryIsolation(
-        new AgentMemoryClient({ baseUrl, authToken: secret, timeoutMs: REMOTE_AGENTMEMORY_SETUP_TIMEOUT_MS }),
-        {
-          projectA: identity.worktreeId,
-          projectB: `${identity.worktreeId}-isolation-control`,
-          sentinel: `mega-brain-setup-probe-${randomUUID()}`,
+    let setupSteps: ReturnType<ReturnType<typeof createOperationProgress>['snapshot']> = [];
+    try {
+      const result = await runSetupWizard({
+        prompts,
+        currentDirectory: path.resolve(option(args, '--repo') ?? process.cwd()),
+        defaultDataDir: path.join(
+          process.env.LOCALAPPDATA ?? process.env.XDG_DATA_HOME ?? path.join(homedir(), '.local', 'share'),
+          'mega-brain',
+        ),
+        environment: process.env,
+        preflight: (_repository) => runInstallPreflight({ ...(setupPython ? { pythonCommand: setupPython } : {}) }),
+        discoverIdentity: discoverProjectIdentity,
+        initializeGit: async (repository) => {
+          await execFileAsync('git', ['-C', repository, 'init'], { encoding: 'utf8', windowsHide: true });
         },
-      ),
-      async install(plan) {
-        const iiiArtifact = plan.iiiEngineConfirmed ? await downloadOfficialIiiEngine({ version: plan.dependencyVersions.iiiEngine }) : undefined;
-        const repository = await optionalGitRepository(plan.identity, logger);
-        const layout = runtimeLayout(plan.config.dataDir, plan.identity);
-        const backupDir = path.join(layout.projectRoot, 'integration-backups');
-        const managedHooksPath = path.join(layout.projectRoot, 'hooks', 'git');
-        const runtimeSwap = await runtimeSwapForExistingInstall(plan.config, plan.identity, logger);
-        await installProjectTransaction({
-          dataDir: plan.config.dataDir,
-          identity: plan.identity,
-          agentMemoryMode: plan.config.agentMemory.mode,
-          pythonCommand: plan.preflight.pythonCommand,
-          preflight: false,
-          platform: plan.preflight.platform,
-          dependencyVersions: plan.dependencyVersions,
-          codeReviewGraph: plan.codeReviewGraphMode === 'managed'
-            ? { mode: 'managed' }
-            : { mode: 'custom', command: plan.config.codeReviewGraph.command, args: plan.config.codeReviewGraph.args },
-          ...(iiiArtifact ? {
-            iiiEngine: {
-              confirmed: true,
-              expectedSha256: iiiArtifact.sha256,
-              download: async () => iiiArtifact.bytes,
-            },
-          } : {}),
-          ...(plan.config.agentMemory.mode === 'remote' ? {
-            remoteAgentMemory: {
-              baseUrl: plan.config.agentMemory.baseUrl,
-            },
-            remoteIsolationProbe: () => probeRemoteAgentMemoryIsolation(new AgentMemoryClient({
-              baseUrl: plan.config.agentMemory.baseUrl,
-              ...(plan.config.agentMemory.authToken ? { authToken: plan.config.agentMemory.authToken } : {}),
-              timeoutMs: REMOTE_AGENTMEMORY_SETUP_TIMEOUT_MS,
-            }), {
-              projectA: plan.identity.worktreeId,
-              projectB: `${plan.identity.worktreeId}-isolation-control`,
-              sentinel: `mega-brain-install-probe-${randomUUID()}`,
-            }),
-          } : {}),
-          ...runtimeSwap,
-          logger,
-          async configure(transaction) {
-            await snapshotFile(transaction, projectConfigPath(plan.identity.root));
-            await writeProjectConfig(plan.identity.root, plan.config);
-            await installHostMcpFiles({
-              root: plan.identity.root,
-              backupDir,
-              hosts: plan.hosts,
-              connection: currentCliStdioConnection(['mcp', '--repo', plan.identity.root]),
-              transaction,
-            });
-            for (const host of plan.hosts) {
-              await installHostHookFiles({ root: plan.identity.root, backupDir, hosts: [host], command: currentCliShellCommand(['hook', 'host', host]), transaction });
-            }
-            if (repository) await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: currentCliArgv(), transaction });
+        probeRemote: ({ baseUrl, secret, identity }) => probeRemoteAgentMemoryIsolation(
+          new AgentMemoryClient({ baseUrl, authToken: secret, timeoutMs: REMOTE_AGENTMEMORY_SETUP_TIMEOUT_MS }),
+          {
+            projectA: identity.worktreeId,
+            projectB: `${identity.worktreeId}-isolation-control`,
+            sentinel: `mega-brain-setup-probe-${randomUUID()}`,
           },
+        ),
+        async install(plan) {
+        const progress = createOperationProgress({
+          title: 'Install progress',
+          steps: installSteps({
+            agentMemoryMode: plan.config.agentMemory.mode,
+            managedIiiEngineRequired: plan.iiiEngineConfirmed,
+            managedCodeReviewGraph: plan.codeReviewGraphMode === 'managed',
+            repository: plan.identity.gitBacked,
+            preflightDetail: `${plan.preflight.nodeVersion}; ${plan.preflight.pythonVersion}; ${plan.preflight.gitVersion}`,
+          }),
+          enabled: !jsonOutput,
         });
-      },
-    });
-    if (result.status === 'cancelled') prompts.notify('Setup cancelled; no changes were applied.');
+        const progressLogger = progress.logger(installLogMatches, logger);
+        try {
+          const iiiArtifact = plan.iiiEngineConfirmed
+            ? await progress.run('iii-engine', () => downloadOfficialIiiEngine({ version: plan.dependencyVersions.iiiEngine }), plan.dependencyVersions.iiiEngine)
+            : undefined;
+          const repository = await optionalGitRepository(plan.identity, progressLogger);
+          const layout = runtimeLayout(plan.config.dataDir, plan.identity);
+          const backupDir = path.join(layout.projectRoot, 'integration-backups');
+          const managedHooksPath = path.join(layout.projectRoot, 'hooks', 'git');
+          const runtimeSwap = await runtimeSwapForExistingInstall(plan.config, plan.identity, progressLogger);
+          await installProjectTransaction({
+            dataDir: plan.config.dataDir,
+            identity: plan.identity,
+            agentMemoryMode: plan.config.agentMemory.mode,
+            pythonCommand: plan.preflight.pythonCommand,
+            preflight: false,
+            platform: plan.preflight.platform,
+            dependencyVersions: plan.dependencyVersions,
+            codeReviewGraph: plan.codeReviewGraphMode === 'managed'
+              ? { mode: 'managed' }
+              : { mode: 'custom', command: plan.config.codeReviewGraph.command, args: plan.config.codeReviewGraph.args },
+            ...(iiiArtifact ? {
+              iiiEngine: {
+                confirmed: true,
+                expectedSha256: iiiArtifact.sha256,
+                download: async () => iiiArtifact.bytes,
+              },
+            } : {}),
+            ...(plan.config.agentMemory.mode === 'remote' ? {
+              remoteAgentMemory: {
+                baseUrl: plan.config.agentMemory.baseUrl,
+              },
+              remoteIsolationProbe: () => probeRemoteAgentMemoryIsolation(new AgentMemoryClient({
+                baseUrl: plan.config.agentMemory.baseUrl,
+                ...(plan.config.agentMemory.authToken ? { authToken: plan.config.agentMemory.authToken } : {}),
+                timeoutMs: REMOTE_AGENTMEMORY_SETUP_TIMEOUT_MS,
+              }), {
+                projectA: plan.identity.worktreeId,
+                projectB: `${plan.identity.worktreeId}-isolation-control`,
+                sentinel: `mega-brain-install-probe-${randomUUID()}`,
+              }),
+            } : {}),
+            ...runtimeSwap,
+            logger: progressLogger,
+            async configure(transaction) {
+              await snapshotFile(transaction, projectConfigPath(plan.identity.root));
+              await writeProjectConfig(plan.identity.root, plan.config, plan.metadata);
+              await installHostMcpFiles({
+                root: plan.identity.root,
+                backupDir,
+                hosts: plan.hosts,
+                connection: currentCliStdioConnection(['mcp', '--repo', plan.identity.root]),
+                transaction,
+              });
+              for (const host of plan.hosts) {
+                await installHostHookFiles({ root: plan.identity.root, backupDir, hosts: [host], command: currentCliShellCommand(['hook', 'host', host]), transaction });
+              }
+              if (repository) await installGitHookMultiplexer({ repository, managedHooksPath, megaBrainCommand: currentCliArgv(), transaction });
+            },
+          });
+          progress.completeOpenSteps();
+        } catch (error) {
+          const runningStep = progress.snapshot().find((step) => step.status === 'running')?.id ?? 'runtime-installed';
+          progress.fail(runningStep, error);
+          throw error;
+        } finally {
+          setupSteps = progress.snapshot();
+          progress.close();
+        }
+        },
+      });
+      if (jsonOutput) {
+        output(JSON.stringify({
+          status: result.status,
+          ...(result.status === 'cancelled' ? {} : { summary: result.plan.summary }),
+          warnings: structuredPrompts?.warnings() ?? [],
+          steps: setupSteps,
+        }));
+      } else if (result.status === 'cancelled') {
+        prompts.notify('Setup cancelled; no changes were applied.');
+      }
+    } catch (error) {
+      if (!jsonOutput) throw error;
+      output(JSON.stringify({
+        status: 'failed',
+        level: 'error',
+        code: 'SETUP_FAILED',
+        message: redactText(error instanceof Error ? error.message : String(error)),
+        requiresAttention: true,
+        warnings: structuredPrompts?.warnings() ?? [],
+        steps: setupSteps,
+      }));
+      process.exitCode = 1;
+    }
     return;
   }
   const pythonOption = option(args, '--python');

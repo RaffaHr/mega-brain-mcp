@@ -12,6 +12,11 @@ import {
 } from '../runtime/dependency-versions.js';
 import { redactValue } from '../security/redaction.js';
 
+const PROJECT_CONFIG_DOTENV_KEYS = new Set([
+  ...Object.values(MANAGED_DEPENDENCY_VERSION_ENV),
+  LEGACY_III_ENGINE_VERSION_ENV,
+]);
+
 const EXECUTION_CONTROL_KEYS = new Set([
   'BASH_ENV',
   'COMSPEC',
@@ -33,6 +38,7 @@ const EXECUTION_CONTROL_KEYS = new Set([
 ]);
 
 export const AGENTMEMORY_ENV_ALLOWLIST = new Set([
+  'AGENT_ID',
   'AGENTMEMORY_CHEAP_MODEL',
   'AGENTMEMORY_CLAUDE_CODE_BRIDGE',
   'AGENTMEMORY_CLINE_BRIDGE',
@@ -62,7 +68,6 @@ export const AGENTMEMORY_ENV_ALLOWLIST = new Set([
   'AGENTMEMORY_METRICS_PORT',
   'AGENTMEMORY_PROBE_TIMEOUT_MS',
   'AGENTMEMORY_PROJECT_NAME',
-  'AGENTMEMORY_PROVIDER',
   'AGENTMEMORY_REFLECT',
   'AGENTMEMORY_SECRET',
   'AGENTMEMORY_SLOTS',
@@ -78,7 +83,6 @@ export const AGENTMEMORY_ENV_ALLOWLIST = new Set([
   'EMBEDDING_MODEL',
   'EMBEDDING_PROVIDER',
   'GEMINI_API_KEY',
-  'GOOGLE_API_KEY',
   'GRAPH_EXTRACTION_ENABLED',
   'MINIMAX_API_KEY',
   'OLLAMA_HOST',
@@ -124,6 +128,20 @@ export class UnsafeEnvironmentVariableError extends Error {
     super(`Environment variable ${variable} is not allowed for ${backend}`);
     this.name = 'UnsafeEnvironmentVariableError';
   }
+}
+
+function persistedConfigEffective(value: unknown): Partial<MegaBrainConfigInput> {
+  if (value && typeof value === 'object' && Array.isArray(value) === false) {
+    const record = value as Record<string, unknown>;
+    if (record.effective && typeof record.effective === 'object' && Array.isArray(record.effective) === false) {
+      return record.effective as Partial<MegaBrainConfigInput>;
+    }
+  }
+  return value as Partial<MegaBrainConfigInput>;
+}
+
+function projectDotEnvValues(values: Record<string, string>): Record<string, string> {
+  return Object.fromEntries(Object.entries(values).filter(([key]) => PROJECT_CONFIG_DOTENV_KEYS.has(key)));
 }
 
 function parseJsonRecord(raw: string | undefined, variable: string): Record<string, string> {
@@ -279,7 +297,6 @@ const REMOTE_EMBEDDING_CREDENTIALS = new Set([
 ]);
 const LLM_FEATURE_FLAGS = new Set([
   'AGENTMEMORY_AUTO_COMPRESS',
-  'AGENTMEMORY_INJECT_CONTEXT',
   'AGENTMEMORY_REFLECT',
   'CONSOLIDATION_ENABLED',
   'GRAPH_EXTRACTION_ENABLED',
@@ -303,22 +320,28 @@ function validateAgentMemoryOptIns(
       throw new Error(`${key} requires MEGA_BRAIN_ALLOW_EGRESS=true`);
     }
   }
+  const localLlmConfigured = Boolean(environment.OLLAMA_HOST);
   for (const key of LLM_FEATURE_FLAGS) {
-    if (enabled(environment[key]) && (!options.allowEgress || !options.allowLlm)) {
-      throw new Error(`${key} requires MEGA_BRAIN_ALLOW_EGRESS=true and MEGA_BRAIN_ALLOW_LLM=true`);
+    if (!enabled(environment[key])) continue;
+    if (!options.allowLlm) throw new Error(`${key} requires MEGA_BRAIN_ALLOW_LLM=true`);
+    if (!localLlmConfigured && !options.allowEgress) {
+      throw new Error(`${key} requires MEGA_BRAIN_ALLOW_EGRESS=true unless OLLAMA_HOST configures a local LLM`);
     }
   }
   const embeddingProvider = environment.EMBEDDING_PROVIDER?.toLowerCase();
   if (embeddingProvider && embeddingProvider !== 'local' && !options.allowEgress) {
     throw new Error('EMBEDDING_PROVIDER requires MEGA_BRAIN_ALLOW_EGRESS=true unless set to local');
   }
+  const agentScope = environment.AGENTMEMORY_AGENT_SCOPE?.toLowerCase();
+  if (agentScope === 'isolated' && !environment.AGENT_ID?.trim()) {
+    throw new Error('AGENT_ID is required when AGENTMEMORY_AGENT_SCOPE=isolated');
+  }
 }
 
 const CRG_REMOTE_KEYS = [
   'CRG_OPENAI_API_KEY',
-  'CRG_VOYAGE_API_KEY',
-  'CRG_GOOGLE_API_KEY',
-  'CRG_MINIMAX_API_KEY',
+  'GOOGLE_API_KEY',
+  'MINIMAX_API_KEY',
 ];
 
 function resolveAndValidateCrgEnvironment(
@@ -334,22 +357,12 @@ function resolveAndValidateCrgEnvironment(
     env.CRG_OPENAI_API_KEY = fallbackEnv.OPENAI_API_KEY;
   }
 
-  if (!env.CRG_VOYAGE_API_KEY && fallbackEnv.CRG_VOYAGE_API_KEY) {
-    env.CRG_VOYAGE_API_KEY = fallbackEnv.CRG_VOYAGE_API_KEY;
-  } else if (!env.CRG_VOYAGE_API_KEY && (fallbackEnv.VOYAGE_API_KEY || fallbackEnv.CRG_VOYAGE_KEY) && options.allowEgress) {
-    env.CRG_VOYAGE_API_KEY = (fallbackEnv.VOYAGE_API_KEY ?? fallbackEnv.CRG_VOYAGE_KEY)!;
+  if (!env.GOOGLE_API_KEY && (fallbackEnv.GOOGLE_API_KEY || fallbackEnv.GEMINI_API_KEY) && options.allowEgress) {
+    env.GOOGLE_API_KEY = (fallbackEnv.GOOGLE_API_KEY || fallbackEnv.GEMINI_API_KEY)!;
   }
 
-  if (!env.CRG_GOOGLE_API_KEY && fallbackEnv.CRG_GOOGLE_API_KEY) {
-    env.CRG_GOOGLE_API_KEY = fallbackEnv.CRG_GOOGLE_API_KEY;
-  } else if (!env.CRG_GOOGLE_API_KEY && (fallbackEnv.GOOGLE_API_KEY || fallbackEnv.GEMINI_API_KEY) && options.allowEgress) {
-    env.CRG_GOOGLE_API_KEY = (fallbackEnv.GOOGLE_API_KEY || fallbackEnv.GEMINI_API_KEY)!;
-  }
-
-  if (!env.CRG_MINIMAX_API_KEY && fallbackEnv.CRG_MINIMAX_API_KEY) {
-    env.CRG_MINIMAX_API_KEY = fallbackEnv.CRG_MINIMAX_API_KEY;
-  } else if (!env.CRG_MINIMAX_API_KEY && fallbackEnv.MINIMAX_API_KEY && options.allowEgress) {
-    env.CRG_MINIMAX_API_KEY = fallbackEnv.MINIMAX_API_KEY;
+  if (!env.MINIMAX_API_KEY && fallbackEnv.MINIMAX_API_KEY && options.allowEgress) {
+    env.MINIMAX_API_KEY = fallbackEnv.MINIMAX_API_KEY;
   }
 
   for (const key of CRG_REMOTE_KEYS) {
@@ -360,9 +373,8 @@ function resolveAndValidateCrgEnvironment(
 
   const hasCloudKey = Boolean(
     env.CRG_OPENAI_API_KEY
-    || env.CRG_VOYAGE_API_KEY
-    || env.CRG_GOOGLE_API_KEY
-    || env.CRG_MINIMAX_API_KEY
+    || env.GOOGLE_API_KEY
+    || env.MINIMAX_API_KEY
     || (env.CRG_OPENAI_BASE_URL && !/(?:127\.0\.0\.1|localhost|0\.0\.0\.0|::1)/iu.test(env.CRG_OPENAI_BASE_URL))
   );
 
@@ -389,28 +401,22 @@ export interface LoadConfigOptions {
 export async function loadConfigWithSources(options: LoadConfigOptions = {}): Promise<LoadedConfigWithSources> {
   const flags = options.flags ?? {};
   const repoPath = path.resolve(options.repoPath ?? process.cwd());
-  const envFilePath = options.envFilePath === false
-    ? undefined
-    : resolveAgainstRepo(repoPath, options.envFilePath ?? '.env');
-  const envFromFile = envFilePath ? await loadDotEnv(envFilePath) : {};
   const processEnvironment = options.env ?? process.env;
   let fileConfig: Partial<MegaBrainConfigInput> = options.fileConfig ?? {};
   if (!options.fileConfig && options.filePath !== false) {
     const configPath = resolveAgainstRepo(repoPath, options.filePath ?? path.join('.mega-brain', 'config.json'));
     try {
-      fileConfig = JSON.parse(await readFile(configPath, 'utf8')) as Partial<MegaBrainConfigInput>;
+      fileConfig = persistedConfigEffective(JSON.parse(await readFile(configPath, 'utf8')));
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
     }
   }
 
-  const env = { ...envFromFile, ...processEnvironment };
+  const env = { ...processEnvironment };
 
   const sourceEnv = (key: string): { value: string | undefined; source: ConfigSource | undefined } => {
     const processValue = nonEmpty(processEnvironment[key]);
     if (processValue !== undefined) return { value: processValue, source: 'process' };
-    const dotEnvValue = nonEmpty(envFromFile[key]);
-    if (dotEnvValue !== undefined) return { value: dotEnvValue, source: 'dotenv' };
     return { value: undefined, source: undefined };
   };
 
@@ -418,10 +424,7 @@ export async function loadConfigWithSources(options: LoadConfigOptions = {}): Pr
     processEnvironment.MEGA_BRAIN_CRG_ENV_JSON,
     'MEGA_BRAIN_CRG_ENV_JSON',
   ));
-  const dotEnvCrgEnvironment = filterBackendEnvironment('codeReviewGraph', parseJsonRecord(
-    envFromFile.MEGA_BRAIN_CRG_ENV_JSON,
-    'MEGA_BRAIN_CRG_ENV_JSON',
-  ));
+  const dotEnvCrgEnvironment: Record<string, string> = {};
 
   const defaults: MegaBrainConfigInput = {
     dataDir: path.join(homedir(), '.mega-brain'),
@@ -487,9 +490,9 @@ export async function loadConfigWithSources(options: LoadConfigOptions = {}): Pr
       ...filterBackendEnvironment('agentMemory', fileConfig.agentMemory?.environment ?? {}),
       ...filterBackendEnvironment(
         'agentMemory',
-        parseJsonRecord(envFromFile.MEGA_BRAIN_AGENTMEMORY_ENV_JSON, 'MEGA_BRAIN_AGENTMEMORY_ENV_JSON'),
+        parseJsonRecord(undefined, 'MEGA_BRAIN_AGENTMEMORY_ENV_JSON'),
       ),
-      ...directAgentMemoryEnvironment(envFromFile),
+      ...directAgentMemoryEnvironment({}),
       ...filterBackendEnvironment(
         'agentMemory',
         parseJsonRecord(processEnvironment.MEGA_BRAIN_AGENTMEMORY_ENV_JSON, 'MEGA_BRAIN_AGENTMEMORY_ENV_JSON'),
@@ -557,7 +560,7 @@ export async function loadConfigWithSources(options: LoadConfigOptions = {}): Pr
   const rawCrgEnvironment = {
     ...filterBackendEnvironment('codeReviewGraph', fileConfig.codeReviewGraph?.environment ?? {}),
     ...dotEnvCrgEnvironment,
-    ...directCrgEnvironment(envFromFile),
+    ...directCrgEnvironment({}),
     ...processCrgEnvironment,
     ...directCrgEnvironment(processEnvironment),
   };
@@ -623,11 +626,12 @@ export async function loadManagedDependencyVersions(
     ? undefined
     : resolveAgainstRepo(repoPath, options.envFilePath ?? '.env');
   const envFromFile = envFilePath ? await loadDotEnv(envFilePath) : {};
+  const projectDotEnv = projectDotEnvValues(envFromFile);
   const processEnvironment = options.env ?? process.env;
   const sourceEnv = (key: string): { value: string | undefined; source: ConfigSource | undefined } => {
     const processValue = nonEmpty(processEnvironment[key]);
     if (processValue !== undefined) return { value: processValue, source: 'process' };
-    const dotEnvValue = nonEmpty(envFromFile[key]);
+    const dotEnvValue = nonEmpty(projectDotEnv[key]);
     if (dotEnvValue !== undefined) return { value: dotEnvValue, source: 'dotenv' };
     return { value: undefined, source: undefined };
   };

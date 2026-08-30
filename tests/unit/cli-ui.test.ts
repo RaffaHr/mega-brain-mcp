@@ -25,6 +25,46 @@ test('setup summary renders as a native terminal table instead of a markdown pip
   expect(summary).not.toContain('| Setting | Value |');
 });
 
+test('setup summary mostra source, status, consumers e motivos de skip sem segredo', () => {
+  const configured = stripAnsi(formatSetupSummary({
+    repository: 'C:/repo',
+    hosts: ['codex'],
+    allowEgress: true,
+    allowLlm: true,
+    effective: {
+      allowEgress: true,
+      allowLlm: true,
+      agentMemory: {
+        mode: 'managed',
+        baseUrl: 'http://127.0.0.1:3111',
+        ports: { rest: 3111, streams: 3112, viewer: 3113, engine: 3114 },
+        environment: { OPENAI_API_KEY: '[REDACTED]' },
+      },
+      codeReviewGraph: { command: 'code-review-graph', args: [], environment: {} },
+    },
+    sources: { 'agentMemory.environment.OPENAI_API_KEY': 'user' },
+    status: { 'agentMemory.environment.OPENAI_API_KEY': 'configured' },
+  }));
+  expect(configured).toContain('Effective value');
+  expect(configured).toContain('Consumers');
+  expect(configured).toContain('[REDACTED]');
+  expect(configured).not.toContain('raw-openai-secret');
+
+  const local = stripAnsi(formatSetupSummary({
+    repository: 'C:/repo',
+    hosts: ['codex'],
+    allowEgress: false,
+    allowLlm: false,
+    effective: {
+      allowEgress: false,
+      allowLlm: false,
+      agentMemory: { mode: 'managed', environment: {} },
+      codeReviewGraph: { command: 'code-review-graph', args: [], environment: {} },
+    },
+  }));
+  expect(local).toContain('skipped: requires allowEgress=true and allowLlm=true');
+});
+
 test('setup glyphs avoid private-use font icons', () => {
   expect(Object.values(cliIcons).join('')).not.toMatch(/[\uE000-\uF8FF]/u);
 });

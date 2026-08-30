@@ -9,7 +9,7 @@ Semantic vectorization mechanism for agent memories and observations using local
 _Avoid_: Memory embeddings, agent vectors
 
 **Code Review Graph Embedding**:
-Vectorization mechanism for code symbols and structural graph nodes via local sentence-transformers or compatible endpoints (OpenAI, Voyage, Google Gemini, MiniMax).
+Vectorization mechanism for code symbols and structural graph nodes via local sentence-transformers or Code Review Graph 2.3.7 providers (OpenAI-compatible, Google Gemini, MiniMax).
 _Avoid_: Graph embeddings, symbol vectors
 
 **Network Egress**:
@@ -43,3 +43,56 @@ _Avoid_: chmod 0666 on runtime binaries
 **Pending Delete Queue**:
 Deferred deletion registry recording locked paths marked for purge upon subsequent supervisor boot or CLI runs.
 _Avoid_: Stale file ignore, silent delete failure
+## Setup Configuration
+
+**Mega Brain Project**:
+A repository installation with a valid Mega Brain manifest, compatible worktree identity, and isolated runtime directories. A Git repository or derived ID alone is not a Mega Brain Project.
+_Avoid_: Detected project, Git project
+
+**Effective Configuration**:
+Typed values selected for runtime use after defaults, existing values, user choices, and explicit overrides are resolved.
+_Avoid_: Raw config, prompt answers
+
+**Configuration Source**:
+The reason an effective value exists: `default`, `user`, `existing`, or `inferred`.
+_Avoid_: Origin text, provenance log
+
+**Configuration Status**:
+The state of a setting: `applied`, `unset`, `skipped`, or `configured`.
+_Avoid_: Boolean success, enabled flag
+
+**Configuration Consent**:
+Explicit record of user acceptance for egress, LLM use, cloud providers, or custom dependency versions.
+_Avoid_: Implicit opt-in, remembered warning
+
+**Environment Catalog**:
+Versioned Mega Brain metadata describing configurable backend variables, defaults, allowed values, secrets, consumers, and dependencies.
+_Avoid_: Environment dump, backend guess
+
+**Consumer Selection**:
+Explicit mapping that determines which managed child process may receive a configured secret.
+_Avoid_: Credential broadcast, provider autodetection
+
+**Runtime Secret Boundary**:
+The rule that secrets may exist in local project configuration but never in runtime locks, manifests, staging metadata, host files, logs, diagnostics, errors, progress details, or summaries.
+_Avoid_: Secret-safe runtime, hidden credentials
+
+**Adapter Egress**:
+Network permission for managed adapters and external LLM or embedding providers. It does not describe dependency downloads or registry access.
+_Avoid_: Global network lock, internet mode
+
+**Dependency Download**:
+Control-plane retrieval of managed packages, binaries, or engine versions during setup or upgrade. It is independent from Adapter Egress.
+_Avoid_: Provider request, backend egress
+
+**Registry Availability**:
+Whether a package or dependency version source can be reached and queried during setup or upgrade.
+_Avoid_: Egress health, provider health
+
+**Temporary Health Probe**:
+A short-lived managed backend process started only to validate an already provisioned project, then terminated with guaranteed cleanup.
+_Avoid_: Persistent doctor daemon, reused backend
+
+**Custom Dependency Version**:
+A target version selected outside the current Mega Brain catalog default, requiring operation-specific risk acceptance.
+_Avoid_: Unsupported version, permanent consent

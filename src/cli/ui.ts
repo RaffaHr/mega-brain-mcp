@@ -4,6 +4,7 @@ import pc from 'picocolors';
 
 let markdownRendererConfigured = false;
 
+import { BACKEND_ENVIRONMENT_CATALOG } from '../config/backend-environment-catalog.js';
 export const cliIcons = {
   ai: '✦',
   check: '✓',
@@ -48,8 +49,6 @@ const promptIcons: Record<string, string> = {
   crgOpenaiApiKey: cliIcons.ai,
   crgOpenaiBaseUrl: cliIcons.network,
   crgOpenaiModel: cliIcons.graph,
-  crgVoyageApiKey: cliIcons.ai,
-  crgVoyageModel: cliIcons.graph,
   crgGoogleApiKey: cliIcons.ai,
   crgMinimaxApiKey: cliIcons.ai,
   voyageApiKey: cliIcons.ai,
@@ -94,6 +93,8 @@ export function renderTerminalMarkdown(message: string, output: NodeJS.WriteStre
 }
 
 export function cliLabel(message: string): string {
+  if (/^\[IMPORTANT\]/u.test(message)) return pc.red(pc.bold(message));
+  if (/^\[WARNING\]/u.test(message)) return pc.yellow(pc.bold(message));
   return pc.cyan(pc.bold(message));
 }
 
@@ -190,23 +191,78 @@ export function formatPreflight(input: {
   ].join(' ');
 }
 
+
 export function formatSetupSummary(summary: Record<string, unknown>): string {
   const hosts = Array.isArray(summary.hosts) ? summary.hosts.join(', ') : String(summary.hosts ?? '');
-  const rows: Array<readonly [string, string]> = [
-    ['Repository', String(summary.repository ?? '')],
-    ['Hosts', hosts],
-    ['AgentMemory', String(summary.agentMemory ?? '')],
-    ...(summary.llmProvider ? [['LLM Provider', String(summary.llmProvider)] as const] : []),
-    ...(summary.embeddingProvider ? [['AgentMemory Embedding', String(summary.embeddingProvider)] as const] : []),
-    ...(summary.crgEmbeddingProvider ? [['CRG Embedding', String(summary.crgEmbeddingProvider)] as const] : []),
-    ...(summary.agentMemoryFeatures ? [['AgentMemory Features', String(summary.agentMemoryFeatures)] as const] : []),
-    ['Code Review Graph', String(summary.codeReviewGraphMode ?? summary.codeReviewGraph ?? '')],
-    ['Data root', String(summary.dataDir ?? '')],
-    ['Strict isolation', enabledLabel(Boolean(summary.strictIsolation))],
-    ['Network egress', enabledLabel(Boolean(summary.allowEgress))],
-    ['LLM providers', enabledLabel(Boolean(summary.allowLlm))],
+  const effective = (summary.effective ?? {}) as Record<string, unknown>;
+  const agentMemory = (effective.agentMemory ?? {}) as Record<string, unknown>;
+  const codeReviewGraph = (effective.codeReviewGraph ?? {}) as Record<string, unknown>;
+  const sources = (summary.sources ?? {}) as Record<string, string>;
+  const statuses = (summary.status ?? {}) as Record<string, string>;
+  const sourceFor = (key: string, fallback = 'user') => sources[key] ?? fallback;
+  const statusFor = (key: string, fallback = 'applied') => statuses[key] ?? fallback;
+  const rows: Array<readonly [string, string, string, string, string]> = [
+    ['Repository', String(summary.repository ?? ''), 'user', 'applied', 'Mega Brain'],
+    ['Hosts', hosts, 'user', 'applied', 'Mega Brain'],
+    ['dataDir', String(effective.dataDir ?? summary.dataDir ?? ''), sourceFor('dataDir', 'default'), statusFor('dataDir'), 'Mega Brain'],
+    ['port', String(effective.port ?? 3000), sourceFor('port', 'default'), statusFor('port'), 'Mega Brain'],
+    ['logLevel', String(effective.logLevel ?? 'info'), sourceFor('logLevel', 'default'), statusFor('logLevel'), 'Mega Brain'],
+    ['allowEgress', enabledLabel(Boolean(effective.allowEgress ?? summary.allowEgress)), sourceFor('allowEgress', 'default'), statusFor('allowEgress'), 'Mega Brain'],
+    ['allowLlm', enabledLabel(Boolean(effective.allowLlm ?? summary.allowLlm)), sourceFor('allowLlm', 'default'), statusFor('allowLlm'), 'Mega Brain'],
+    ['agentMemory.mode', String(agentMemory.mode ?? summary.agentMemory ?? ''), sourceFor('agentMemory.mode'), statusFor('agentMemory.mode'), 'AgentMemory'],
+    ['agentMemory.baseUrl', String(agentMemory.baseUrl ?? ''), sourceFor('agentMemory.baseUrl', 'inferred'), statusFor('agentMemory.baseUrl'), 'AgentMemory'],
+    ['agentMemory.ports', JSON.stringify(agentMemory.ports ?? {}), sourceFor('agentMemory.ports', 'inferred'), statusFor('agentMemory.ports'), 'AgentMemory'],
+    ['codeReviewGraph.command', String(codeReviewGraph.command ?? ''), sourceFor('codeReviewGraph.command', 'default'), statusFor('codeReviewGraph.command'), 'Code Review Graph'],
+    ['codeReviewGraph.args', JSON.stringify(codeReviewGraph.args ?? []), sourceFor('codeReviewGraph.args', 'default'), statusFor('codeReviewGraph.args'), 'Code Review Graph'],
+    ['codeReviewGraph.dataDir', String(codeReviewGraph.dataDir ?? 'unset'), sourceFor('codeReviewGraph.dataDir', 'inferred'), statusFor('codeReviewGraph.dataDir'), 'Code Review Graph'],
   ];
-  return `${pc.bold(pc.cyan('Setup summary'))}\n${formatTerminalTable(['Setting', 'Value'], rows)}`;
+  if (agentMemory.authToken !== undefined) {
+    rows.push(['agentMemory.authToken', String(agentMemory.authToken), sourceFor('agentMemory.authToken'), statusFor('agentMemory.authToken', 'configured'), 'AgentMemory']);
+  }
+  const environments: Record<string, Record<string, unknown> | undefined> = {
+    agentMemory: agentMemory.environment as Record<string, unknown> | undefined,
+    codeReviewGraph: codeReviewGraph.environment as Record<string, unknown> | undefined,
+  };
+  const groupOrder = ['Core', 'Embedding', 'LLM', 'Runtime', 'Bridges', 'Advanced'];
+  for (const group of groupOrder) {
+    for (const entry of BACKEND_ENVIRONMENT_CATALOG.filter((candidate) => candidate.group === group && candidate.forwarded)) {
+      const consumers = new Set<string>(entry.consumers);
+      for (const consumer of Object.keys(environments) as Array<keyof typeof environments>) {
+        if (environments[consumer]?.[entry.key] !== undefined) consumers.add(consumer);
+      }
+      for (const consumer of consumers) {
+        const value = environments[consumer]?.[entry.key];
+        const configured = value !== undefined;
+        const missingRequirements: string[] = [];
+        if (entry.requires?.includes('allowEgress') && !Boolean(summary.allowEgress)) missingRequirements.push('allowEgress=true');
+        if (entry.requires?.includes('allowLlm') && !Boolean(summary.allowLlm)) missingRequirements.push('allowLlm=true');
+        const skipped = missingRequirements.length > 0;
+        const effectiveValue = skipped
+          ? 'unset'
+          : configured
+            ? String(value)
+            : entry.defaultKind === 'value' ? String(entry.defaultValue) : 'unset';
+        const sourceKey = `${consumer}.environment.${entry.key}`;
+        const source = skipped ? 'default' : configured ? (sources[sourceKey] ?? 'user') : entry.defaultKind === 'value' ? 'backend default' : 'default';
+        const status = skipped
+          ? `skipped: requires ${missingRequirements.join(' and ')}`
+          : configured ? (statuses[sourceKey] ?? 'configured') : entry.defaultKind === 'value' ? 'applied' : 'unset';
+        const consumerLabel = consumer === 'agentMemory' ? 'AgentMemory' : 'Code Review Graph';
+        rows.push([`${group}.${entry.key}`, effectiveValue, source, status, consumerLabel]);
+      }
+    }
+  }
+  const rendered = [`${pc.bold(pc.cyan('Setup summary'))}`, formatTerminalTable(['Setting', 'Effective value', 'Source', 'Status', 'Consumers'], rows)];
+  if (Array.isArray(summary.diff)) {
+    const diff = summary.diff as Array<unknown>;
+    if (diff.length === 0) {
+      rendered.push(pc.green('No changes'));
+    } else {
+      rendered.push(pc.bold(pc.cyan('Configuration changes')));
+      rendered.push(formatTerminalTable(['Setting', 'Before', 'After', 'Status'], diff as Array<readonly [string, string, string, string]>));
+    }
+  }
+  return rendered.join('\n');
 }
 
 export interface CliChecklistItem {

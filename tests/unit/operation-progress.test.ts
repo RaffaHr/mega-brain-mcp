@@ -173,3 +173,15 @@ test('failure reports include the failed step and error message', () => {
   expect(uninstallFailure).toContain('backup missing');
 });
 
+test('operation progress redige segredos em erros', () => {
+  const progress = createOperationProgress({
+    title: 'Secure progress',
+    steps: [{ id: 'config', label: 'Write config' }],
+    enabled: false,
+  });
+  progress.fail('config', new Error('OPENAI_API_KEY=sk-secret-value'));
+  const serialized = JSON.stringify(progress.snapshot());
+  expect(serialized).not.toContain('sk-secret-value');
+  expect(serialized).toContain('[REDACTED]');
+});
+

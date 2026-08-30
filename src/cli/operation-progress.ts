@@ -1,5 +1,7 @@
 import pc from 'picocolors';
 
+import { redactText } from '../security/redaction.js';
+
 import type { LocalLogger, LogLevel } from '../observability/logger.js';
 import type { ProjectIdentity } from '../projects/identity.js';
 import type { RuntimeLockManifest } from '../runtime/lock-manifest.js';
@@ -39,7 +41,7 @@ export interface OperationProgress {
 const spinnerFrames = ['◐', '◓', '◑', '◒'] as const;
 
 function stringifyError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  return redactText(error instanceof Error ? error.message : String(error));
 }
 
 function visibleWidth(value: string): number {
