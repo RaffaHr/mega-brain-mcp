@@ -8,7 +8,7 @@ import { afterEach, expect, test } from "vitest";
 
 import { main } from "../../src/cli/index.js";
 import { installManagedRuntime } from "../../src/cli/install.js";
-import { deriveProjectIdentity } from "../../src/projects/identity.js";
+import { discoverProjectIdentity } from "../../src/projects/identity.js";
 import { writeProjectConfig } from "../../src/config/project-config.js";
 import { sha256Artifact } from "../../src/runtime/iii-engine.js";
 
@@ -55,7 +55,7 @@ test("doctor in provisioned repository runs temporary probes and cleans up", asy
   temporaryDirectories.push(dataDir, repoDir);
   await execFileAsync("git", ["-C", repoDir, "init"]);
 
-  const identity = deriveProjectIdentity({ root: repoDir, gitDir: ".git", commonGitDir: ".git" });
+  const identity = await discoverProjectIdentity(repoDir);
   await writeProjectConfig(repoDir, {
     dataDir,
     port: 3000,
