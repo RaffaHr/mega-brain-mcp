@@ -40,7 +40,7 @@ test('doctor report renders a structured terminal table with checks', async () =
         schemaVersion: 1,
         installedAt: '2026-08-24T12:00:00.000Z',
         project: { repositoryId: 'r', checkoutId: 'c', worktreeId: 'w' },
-        versions: { megaBrain: '0.1.6', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
+        versions: { megaBrain: '0.1.7', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
         backends: {
           agentMemory: { command: 'node', args: [], cwd: '.', lifecycle: 'daemon' },
           codeReviewGraph: { command: 'python', args: [], cwd: '.', lifecycle: 'on-demand' },
@@ -81,7 +81,7 @@ test('doctor report highlights degraded checks and warnings', async () => {
         schemaVersion: 1,
         installedAt: '2026-08-24T12:00:00.000Z',
         project: { repositoryId: 'r', checkoutId: 'c', worktreeId: 'w' },
-        versions: { megaBrain: '0.1.6', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
+        versions: { megaBrain: '0.1.7', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
         backends: {
           agentMemory: { command: 'node', args: [], cwd: '.', lifecycle: 'daemon' },
           codeReviewGraph: { command: 'python', args: [], cwd: '.', lifecycle: 'on-demand' },
@@ -138,7 +138,7 @@ test('doctor report displays Project Not provisioned and Not applicable for unpr
         schemaVersion: 1,
         installedAt: '',
         project: { repositoryId: '', checkoutId: '', worktreeId: '' },
-        versions: { megaBrain: '0.1.6', agentMemory: 'uninstalled', codeReviewGraph: 'uninstalled' },
+        versions: { megaBrain: '0.1.7', agentMemory: 'uninstalled', codeReviewGraph: 'uninstalled' },
         backends: {},
       },
     }),
@@ -171,7 +171,7 @@ test('doctor report displays granular status for backend probes and handles disa
         schemaVersion: 1,
         installedAt: '2026-08-24T12:00:00.000Z',
         project: { repositoryId: 'r', checkoutId: 'c', worktreeId: 'w' },
-        versions: { megaBrain: '0.1.6', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
+        versions: { megaBrain: '0.1.7', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
         backends: {
           agentMemory: { command: 'node', args: [], cwd: '.', lifecycle: 'daemon' },
           codeReviewGraph: { command: 'python', args: [], cwd: '.', lifecycle: 'on-demand' },

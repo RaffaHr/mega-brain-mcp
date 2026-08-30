@@ -74,7 +74,7 @@ npm ci
 
 npm pack
 
-npm install --global .\raffahr-mega-brain-mcp-0.1.6.tgz
+npm install --global .\raffahr-mega-brain-mcp-0.1.7.tgz
 
 mega-brain --help
 

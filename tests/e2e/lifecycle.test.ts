@@ -26,7 +26,7 @@ test('AC-016: status mostra saúde sem expor secrets @spec:AC-016', async () => 
     inspect: async () => ({ healthy: true, checks: { project: true }, manifest: {
       schemaVersion: 1, installedAt: '2026-08-24T12:00:00.000Z',
       project: { repositoryId: 'r', checkoutId: 'c', worktreeId: 'w' },
-      versions: { megaBrain: '0.1.6', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
+      versions: { megaBrain: '0.1.7', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
       backends: {
         agentMemory: { command: 'node', args: [], cwd: '.', lifecycle: 'daemon' },
         codeReviewGraph: { command: 'python', args: [], cwd: '.', lifecycle: 'on-demand' },
@@ -63,7 +63,7 @@ test('AC-022: doctor comprova o ciclo real dos backends @spec:AC-022', async () 
       healthy: true, checks: { project: true, agentMemory: true, codeReviewGraph: true },
       manifest: {
         schemaVersion: 1, installedAt: '2026-08-24T12:00:00.000Z', project: { repositoryId: 'r', checkoutId: 'c', worktreeId: 'w' },
-        versions: { megaBrain: '0.1.6', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
+        versions: { megaBrain: '0.1.7', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
         backends: {
           agentMemory: { command: 'node', args: [], cwd: '.', lifecycle: 'daemon' },
           codeReviewGraph: { command: 'python', args: [], cwd: '.', lifecycle: 'on-demand' },
