@@ -38,7 +38,7 @@ const entry = (
 
 export const BACKEND_ENVIRONMENT_CATALOG_VERSION = Object.freeze({
   agentMemory: '0.9.29',
-  codeReviewGraph: '2.3.7',
+  codeReviewGraph: '2.3.8',
 });
 export const BACKEND_ENVIRONMENT_CATALOG: readonly BackendEnvironmentCatalogEntry[] = [
   entry('AGENTMEMORY_PROVIDER', 'LLM', 'enum', { allowedValues: ['anthropic', 'openai', 'gemini', 'openrouter', 'minimax', 'ollama'], forwarded: false }),

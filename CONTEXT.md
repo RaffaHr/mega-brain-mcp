@@ -9,7 +9,7 @@ Semantic vectorization mechanism for agent memories and observations using local
 _Avoid_: Memory embeddings, agent vectors
 
 **Code Review Graph Embedding**:
-Vectorization mechanism for code symbols and structural graph nodes via local sentence-transformers or Code Review Graph 2.3.7 providers (OpenAI-compatible, Google Gemini, MiniMax).
+Vectorization mechanism for code symbols and structural graph nodes via local sentence-transformers or Code Review Graph 2.3.8 providers (OpenAI-compatible, Google Gemini, MiniMax).
 _Avoid_: Graph embeddings, symbol vectors
 
 **Network Egress**:

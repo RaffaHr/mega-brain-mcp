@@ -15,7 +15,7 @@ const tools = [
 ];
 
 const server = new Server(
-  { name: 'code-review-graph-fixture', version: '2.3.7' },
+  { name: 'code-review-graph-fixture', version: '2.3.8' },
   { capabilities: { tools: {} } },
 );
 
