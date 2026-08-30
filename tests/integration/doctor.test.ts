@@ -10,6 +10,7 @@ import { main } from "../../src/cli/index.js";
 import { installManagedRuntime } from "../../src/cli/install.js";
 import { deriveProjectIdentity } from "../../src/projects/identity.js";
 import { writeProjectConfig } from "../../src/config/project-config.js";
+import { sha256Artifact } from "../../src/runtime/iii-engine.js";
 
 const execFileAsync = promisify(execFile);
 const temporaryDirectories: string[] = [];
@@ -70,6 +71,12 @@ test("doctor in provisioned repository runs temporary probes and cleans up", asy
     identity,
     runner: { run: async () => undefined },
     preflight: false,
+    platform: "win32",
+    iiiEngine: {
+      confirmed: true,
+      expectedSha256: sha256Artifact(Buffer.from("dummy-engine-binary")),
+      download: async () => Buffer.from("dummy-engine-binary"),
+    },
   });
 
   const outputs: string[] = [];
