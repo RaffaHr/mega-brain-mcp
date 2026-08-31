@@ -5,7 +5,6 @@ import path from 'node:path';
 import { afterEach, expect, test, vi } from 'vitest';
 
 import { runSetupWizard, type SetupPlan } from '../../src/cli/setup.js';
-import { mergeEnvFile } from '../../src/cli/setup.js';
 import { loadConfig } from '../../src/config/load.js';
 import { writeProjectConfig } from '../../src/config/project-config.js';
 import { deriveProjectIdentity } from '../../src/projects/identity.js';
@@ -78,6 +77,48 @@ test('AC-042/AC-044: defaults geram plano managed estrito e só instalam após c
   expect(plan.config.agentMemory).toMatchObject({ mode: 'managed' });
   expect(plan.config.agentMemory.baseUrl).toBe(`http://127.0.0.1:${plan.config.agentMemory.ports.rest}`);
   expect(JSON.stringify(plan.summary)).not.toMatch(/secret|token/i);
+});
+
+test('rerun idêntico informa No changes sem confirmar ou reinstalar', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-setup-noop-'));
+  directories.push(root);
+  const identity = deriveProjectIdentity({ root, gitDir: '.git', commonGitDir: '.git' });
+  const firstInstall = vi.fn(async (_plan: SetupPlan) => undefined);
+  const firstPrompts = new ScriptedPrompts({
+    repository: [''], hosts: ['codex'], agentMemoryMode: ['managed'], advanced: [false], confirm: [true],
+  });
+  await runSetupWizard({
+    prompts: firstPrompts,
+    currentDirectory: root,
+    environment: {},
+    defaultDataDir: path.join(root, '.data-root'),
+    preflight: async () => preflight(),
+    discoverIdentity: async () => identity,
+    probeRemote: async () => undefined,
+    install: firstInstall,
+  });
+  const initialPlan = firstInstall.mock.calls[0]![0];
+  await writeProjectConfig(root, initialPlan.config, initialPlan.metadata);
+
+  const install = vi.fn(async (_plan: SetupPlan) => undefined);
+  const prompts = new ScriptedPrompts({
+    repository: [''], resetExisting: [false], hosts: ['codex'], agentMemoryMode: ['managed'], advanced: [false],
+  });
+  const result = await runSetupWizard({
+    prompts,
+    currentDirectory: root,
+    environment: {},
+    defaultDataDir: path.join(root, '.data-root'),
+    preflight: async () => preflight(),
+    discoverIdentity: async () => identity,
+    probeRemote: async () => undefined,
+    install,
+  });
+
+  expect(result.status).toBe('unchanged');
+  expect(install).not.toHaveBeenCalled();
+  expect(prompts.prompts.some(({ id }) => id === 'confirm')).toBe(false);
+  expect(prompts.messages.join('\n')).toContain('No changes');
 });
 test('setup usa versoes gerenciadas do ambiente no plano e no prompt do iii-engine', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-setup-versions-'));
@@ -378,7 +419,8 @@ test('setup em modo managed permite configurar variaveis de ambiente de AgentMem
     imageEmbeddings: [false],
     debugMode: [true],
     projectName: ['my-project'],
-    agentScope: ['developer'],
+    agentScope: ['isolated'],
+    agentId: ['codex-main'],
     bridges: [true],
     claudeBridge: [true],
     cursorBridge: [true],
@@ -400,9 +442,8 @@ test('setup em modo managed permite configurar variaveis de ambiente de AgentMem
 
   expect(result.status).toBe('installed');
   const plan = install.mock.calls[0]![0];
-  expect(plan.envFileEntries).toEqual({
+  expect(plan.config.agentMemory.environment).toEqual({
     ANTHROPIC_API_KEY: 'sk-ant-test-123',
-    AGENTMEMORY_PROVIDER: 'anthropic',
     EMBEDDING_PROVIDER: 'openai',
     OPENAI_API_KEY: 'sk-openai-embed-456',
     GRAPH_EXTRACTION_ENABLED: 'true',
@@ -413,54 +454,101 @@ test('setup em modo managed permite configurar variaveis de ambiente de AgentMem
     AGENTMEMORY_DROP_STALE_INDEX: 'true',
     AGENTMEMORY_DEBUG: 'true',
     AGENTMEMORY_PROJECT_NAME: 'my-project',
-    AGENTMEMORY_AGENT_SCOPE: 'developer',
+    AGENTMEMORY_AGENT_SCOPE: 'isolated',
+    AGENT_ID: 'codex-main',
     AGENTMEMORY_CLAUDE_CODE_BRIDGE: 'true',
     AGENTMEMORY_CURSOR_BRIDGE: 'true',
   });
-  expect(plan.config.agentMemory.environment).toEqual({
-    AGENTMEMORY_PROVIDER: 'anthropic',
-    EMBEDDING_PROVIDER: 'openai',
-    GRAPH_EXTRACTION_ENABLED: 'true',
-    CONSOLIDATION_ENABLED: 'true',
-    AGENTMEMORY_REFLECT: 'true',
-    AGENTMEMORY_INJECT_CONTEXT: 'true',
-    AGENTMEMORY_GRAPH_WEIGHT: '0.5',
-    AGENTMEMORY_DROP_STALE_INDEX: 'true',
-    AGENTMEMORY_DEBUG: 'true',
-    AGENTMEMORY_PROJECT_NAME: 'my-project',
-    AGENTMEMORY_AGENT_SCOPE: 'developer',
-    AGENTMEMORY_CLAUDE_CODE_BRIDGE: 'true',
-    AGENTMEMORY_CURSOR_BRIDGE: 'true',
+  expect(plan.metadata.consents).toMatchObject({
+    allowEgress: true,
+    allowLlm: true,
+    cloudProviders: ['anthropic', 'openai'],
   });
+  expect(JSON.stringify(plan.summary)).not.toContain('sk-ant-test-123');
   expect(plan.config.allowEgress).toBe(true);
   expect(plan.config.allowLlm).toBe(true);
 });
 
-test('mergeEnvFile escreve e preserva entradas no arquivo .env', async () => {
-  const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-envfile-'));
+test('scope isolado exige AGENT_ID explícito antes da instalação', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-setup-agent-id-'));
   directories.push(root);
-  const envPath = path.join(root, '.env');
-
-  await mergeEnvFile(envPath, {
-    ANTHROPIC_API_KEY: 'sk-ant-key',
-    GRAPH_EXTRACTION_ENABLED: 'true',
+  const identity = deriveProjectIdentity({ root, gitDir: '.git', commonGitDir: '.git' });
+  const install = vi.fn(async (_plan: SetupPlan) => undefined);
+  const prompts = new ScriptedPrompts({
+    repository: [root],
+    hosts: ['codex'],
+    agentMemoryMode: ['managed'],
+    advanced: [false],
+    configureMemory: [true],
+    llmProvider: ['none'],
+    embeddingProvider: ['default'],
+    injectContext: [false],
+    snapshots: [false],
+    advancedMemory: [true],
+    imageEmbeddings: [false],
+    debugMode: [false],
+    agentScope: ['isolated'],
+    agentId: ['   '],
   });
 
-  let content = await readFile(envPath, 'utf8');
-  expect(content).toContain('ANTHROPIC_API_KEY=sk-ant-key');
-  expect(content).toContain('GRAPH_EXTRACTION_ENABLED=true');
-
-  await mergeEnvFile(envPath, {
-    ANTHROPIC_API_KEY: 'sk-ant-updated',
-    CONSOLIDATION_ENABLED: 'true',
+  const result = await runSetupWizard({
+    prompts,
+    currentDirectory: root,
+    environment: {},
+    defaultDataDir: path.join(root, '.data-root'),
+    preflight: async () => preflight(),
+    discoverIdentity: async () => identity,
+    probeRemote: async () => undefined,
+    install,
   });
 
-  content = await readFile(envPath, 'utf8');
-  expect(content).toContain('ANTHROPIC_API_KEY=sk-ant-updated');
-  expect(content).toContain('GRAPH_EXTRACTION_ENABLED=true');
-  expect(content).toContain('CONSOLIDATION_ENABLED=true');
+  expect(result.status).toBe('cancelled');
+  expect(install).not.toHaveBeenCalled();
+  expect(prompts.messages.join('\n')).toContain('AGENT_ID is required');
 });
 
+test('Ollama local habilita LLM sem habilitar egress', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-setup-ollama-'));
+  directories.push(root);
+  const identity = deriveProjectIdentity({ root, gitDir: '.git', commonGitDir: '.git' });
+  const install = vi.fn(async (_plan: SetupPlan) => undefined);
+  const prompts = new ScriptedPrompts({
+    repository: [root],
+    hosts: ['codex'],
+    agentMemoryMode: ['managed'],
+    advanced: [false],
+    configureMemory: [true],
+    llmProvider: ['ollama'],
+    ollamaHost: ['http://127.0.0.1:11434'],
+    embeddingProvider: ['local'],
+    injectContext: [false],
+    snapshots: [false],
+    advancedMemory: [false],
+    configureCrg: [false],
+    confirm: [true],
+  });
+
+  const result = await runSetupWizard({
+    prompts,
+    currentDirectory: root,
+    environment: {},
+    defaultDataDir: path.join(root, '.data-root'),
+    preflight: async () => preflight(),
+    discoverIdentity: async () => identity,
+    probeRemote: async () => undefined,
+    install,
+  });
+
+  expect(result.status).toBe('installed');
+  const plan = install.mock.calls[0]![0];
+  expect(plan.config.allowEgress).toBe(false);
+  expect(plan.config.allowLlm).toBe(true);
+  expect(plan.metadata.consents.cloudProviders).toEqual([]);
+  expect(plan.config.agentMemory.environment).toMatchObject({
+    OLLAMA_HOST: 'http://127.0.0.1:11434',
+    EMBEDDING_PROVIDER: 'local',
+  });
+});
 
 test('setup permite configurar embeddings dedicados para Code Review Graph', async () => {
   const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-setup-crg-embed-'));
@@ -500,4 +588,51 @@ test('setup permite configurar embeddings dedicados para Code Review Graph', asy
     CRG_ACCEPT_CLOUD_EMBEDDINGS: '1',
   });
   expect(plan.config.allowEgress).toBe(true);
+});
+
+
+test('setup pede consumidor explícito e reutiliza segredo somente quando ambos selecionados', async () => {
+  const root = await mkdtemp(path.join(tmpdir(), 'mega-brain-setup-secret-consumers-'));
+  directories.push(root);
+  const identity = deriveProjectIdentity({ root, gitDir: '.git', commonGitDir: '.git' });
+  const install = vi.fn(async () => undefined);
+  const prompts = new ScriptedPrompts({
+    repository: [root],
+    hosts: ['codex'],
+    agentMemoryMode: ['managed'],
+    advanced: [true],
+    dataDir: [path.join(root, '.data-root')],
+    crgMode: ['managed'],
+    allowEgress: [true],
+    allowLlm: [true],
+    configureMemory: [true],
+    llmProvider: ['openai'],
+    openaiApiKey: ['shared-openai-secret'],
+    openaiApiKeyConsumers: ['both'],
+    embeddingProvider: ['default'],
+    advancedMemory: [false],
+    configureCrg: [true],
+    crgEmbeddingProvider: ['openai'],
+    crgOpenaiBaseUrl: ['http://127.0.0.1:3000/v1'],
+    crgOpenaiModel: ['text-embedding-3-small'],
+    confirm: [true],
+  });
+
+  const result = await runSetupWizard({
+    prompts,
+    currentDirectory: root,
+    environment: {},
+    defaultDataDir: path.join(root, '.data-root'),
+    preflight: async () => preflight(),
+    discoverIdentity: async () => identity,
+    probeRemote: async () => undefined,
+    install,
+  });
+
+  expect(result.status).toBe('installed');
+  const plan = install.mock.calls[0]![0];
+  expect(plan.config.agentMemory.environment.OPENAI_API_KEY).toBe('shared-openai-secret');
+  expect(plan.config.codeReviewGraph.environment.CRG_OPENAI_API_KEY).toBe('shared-openai-secret');
+  expect(prompts.prompts.filter(({ id }) => id === 'openaiApiKey')).toHaveLength(1);
+  expect(JSON.stringify(plan.summary)).not.toContain('shared-openai-secret');
 });

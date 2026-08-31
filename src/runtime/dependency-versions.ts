@@ -6,7 +6,7 @@ export const managedDependencyVersionSchema = z.string()
 
 export const DEFAULT_MANAGED_DEPENDENCY_VERSIONS = {
   agentMemory: '0.9.29',
-  codeReviewGraph: '2.3.7',
+  codeReviewGraph: '2.3.8',
   iiiEngine: '0.11.2',
 } as const;
 

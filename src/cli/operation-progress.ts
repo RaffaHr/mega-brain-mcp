@@ -1,4 +1,44 @@
+import { DEFAULT_MANAGED_DEPENDENCY_VERSIONS, type ManagedDependencyVersions } from '../runtime/dependency-versions.js';
+
+function parseSemverTuple(value: string): [number, number, number] | null {
+  const match = value.match(/^(\d+)\.(\d+)(?:\.(\d+))?/);
+  return match ? [Number(match[1]), Number(match[2]), Number(match[3] ?? 0)] : null;
+}
+
+export function compareSemver(a: string, b: string): number {
+  const left = parseSemverTuple(a);
+  const right = parseSemverTuple(b);
+  if (!left || !right) return a.localeCompare(b);
+  for (let i = 0; i < 3; i++) {
+    if (left[i]! < right[i]!) return -1;
+    if (left[i]! > right[i]!) return 1;
+  }
+  return 0;
+}
+
+export function formatVersionTransition(input: {
+  current?: string | undefined;
+  target: string;
+  catalogDefault?: string | undefined;
+}): string {
+  const current = input.current && input.current !== 'uninstalled' ? input.current : undefined;
+  const target = input.target;
+  const isDefault = !input.catalogDefault || input.catalogDefault === target;
+  if (!current || current === 'n/a') {
+    return `n/a -> ${target} (${isDefault ? 'latest' : 'target'})`;
+  }
+  if (current === target) {
+    return `${current} (current, up-to-date)`;
+  }
+  const cmp = compareSemver(target, current);
+  if (cmp < 0) {
+    return `${current} (current) -> ${target} (target, downgrade)`;
+  }
+  return `${current} (current) -> ${target} (${isDefault ? 'latest' : 'target'})`;
+}
 import pc from 'picocolors';
+
+import { redactText } from '../security/redaction.js';
 
 import type { LocalLogger, LogLevel } from '../observability/logger.js';
 import type { ProjectIdentity } from '../projects/identity.js';
@@ -39,7 +79,7 @@ export interface OperationProgress {
 const spinnerFrames = ['◐', '◓', '◑', '◒'] as const;
 
 function stringifyError(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  return redactText(error instanceof Error ? error.message : String(error));
 }
 
 function visibleWidth(value: string): number {
@@ -307,16 +347,35 @@ export function upgradeSteps(input: {
   agentMemoryMode: 'managed' | 'remote';
   managedIiiEngineRequired: boolean;
   managedCodeReviewGraph: boolean;
+  currentVersions?: { [K in keyof ManagedDependencyVersions]?: string | undefined } | undefined;
+  targetVersions?: { [K in keyof ManagedDependencyVersions]?: string | undefined } | undefined;
 }): OperationStep[] {
+  const current = input.currentVersions ?? {};
+  const target = input.targetVersions ?? {};
+  const iiiDetail = target.iiiEngine ? formatVersionTransition({
+    current: current.iiiEngine,
+    target: target.iiiEngine,
+    catalogDefault: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.iiiEngine,
+  }) : undefined;
+  const amDetail = target.agentMemory ? formatVersionTransition({
+    current: current.agentMemory,
+    target: target.agentMemory,
+    catalogDefault: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory,
+  }) : undefined;
+  const crgDetail = target.codeReviewGraph ? formatVersionTransition({
+    current: current.codeReviewGraph,
+    target: target.codeReviewGraph,
+    catalogDefault: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph,
+  }) : undefined;
   return [
     { id: 'preflight', label: 'Preflight' },
     ...(input.agentMemoryMode === 'remote' ? [{ id: 'remote-probe', label: 'Remote AgentMemory probe' }] : []),
     { id: 'prepare-runtime', label: 'Prepare runtime' },
-    ...(input.managedIiiEngineRequired ? [{ id: 'iii-engine', label: 'iii-engine' }] : []),
-    ...(input.agentMemoryMode === 'managed' ? [{ id: 'agentmemory', label: 'AgentMemory packages' }] : []),
+    ...(input.managedIiiEngineRequired ? [{ id: 'iii-engine', label: 'iii-engine', ...(iiiDetail ? { detail: iiiDetail } : {}) }] : []),
+    ...(input.agentMemoryMode === 'managed' ? [{ id: 'agentmemory', label: 'AgentMemory packages', ...(amDetail ? { detail: amDetail } : {}) }] : []),
     ...(input.managedCodeReviewGraph ? [
       { id: 'crg-venv', label: 'Code Review Graph virtualenv' },
-      { id: 'crg-package', label: 'Code Review Graph package' },
+      { id: 'crg-package', label: 'Code Review Graph package', ...(crgDetail ? { detail: crgDetail } : {}) },
     ] : []),
     { id: 'crg-index', label: 'Code Review Graph index' },
     { id: 'runtime-drain', label: 'Drain previous runtime', status: 'skipped', detail: 'only when an installed runtime is active' },

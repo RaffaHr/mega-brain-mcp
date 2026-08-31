@@ -3,6 +3,19 @@ import { z } from 'zod';
 export const logLevelSchema = z.enum(['error', 'warn', 'info', 'debug']);
 export const tcpPortSchema = z.number().int().min(1).max(65_535);
 
+export const configurationSourceSchema = z.enum(['default', 'user', 'existing', 'inferred']);
+export const configurationStatusSchema = z.enum(['applied', 'unset', 'skipped', 'configured']);
+export const projectConfigMetadataSchema = z.object({
+  sources: z.record(z.string(), configurationSourceSchema).default({}),
+  status: z.record(z.string(), configurationStatusSchema).default({}),
+  consents: z.object({
+    allowEgress: z.boolean().optional(),
+    allowLlm: z.boolean().optional(),
+    cloudProviders: z.array(z.string()).default([]),
+    customVersions: z.record(z.string(), z.string()).default({}),
+  }).default({ cloudProviders: [], customVersions: {} }),
+});
+
 export const agentMemoryPortsSchema = z.object({
   rest: tcpPortSchema.default(3111),
   streams: tcpPortSchema.default(3112),
@@ -38,6 +51,7 @@ export const megaBrainConfigSchema = z.object({
 
 export type MegaBrainConfig = z.infer<typeof megaBrainConfigSchema>;
 export type MegaBrainConfigInput = z.input<typeof megaBrainConfigSchema>;
+export type ProjectConfigMetadata = z.infer<typeof projectConfigMetadataSchema>;
 
 export const DEFAULT_CONFIG = {
   port: 3000,

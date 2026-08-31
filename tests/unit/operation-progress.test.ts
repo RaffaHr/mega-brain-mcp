@@ -41,7 +41,7 @@ const inspection: RuntimeInspection = {
     installedAt: '2026-08-28T00:00:00.000Z',
     agentMemoryMode: 'managed',
     project: { repositoryId: 'repo-id', checkoutId: 'checkout-id', worktreeId: 'worktree-id' },
-    versions: { megaBrain: '0.1.6', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph, iiiEngine: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.iiiEngine },
+    versions: { megaBrain: '0.1.7', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph, iiiEngine: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.iiiEngine },
     backends: {
       agentMemory: { command: 'node', args: [], cwd: '.', lifecycle: 'daemon' },
       codeReviewGraph: { command: 'python', args: [], cwd: '.', lifecycle: 'on-demand' },
@@ -173,3 +173,57 @@ test('failure reports include the failed step and error message', () => {
   expect(uninstallFailure).toContain('backup missing');
 });
 
+test('operation progress redige segredos em erros', () => {
+  const progress = createOperationProgress({
+    title: 'Secure progress',
+    steps: [{ id: 'config', label: 'Write config' }],
+    enabled: false,
+  });
+  progress.fail('config', new Error('OPENAI_API_KEY=sk-secret-value'));
+  const serialized = JSON.stringify(progress.snapshot());
+  expect(serialized).not.toContain('sk-secret-value');
+  expect(serialized).toContain('[REDACTED]');
+});
+
+
+test("formatVersionTransition renders explicit version comparisons and downgrade markers", async () => {
+  const { formatVersionTransition } = await import("../../src/cli/operation-progress.js");
+
+  expect(formatVersionTransition({ current: "2.3.7", target: "2.3.8", catalogDefault: "2.3.8" }))
+    .toBe("2.3.7 (current) -> 2.3.8 (latest)");
+
+  expect(formatVersionTransition({ current: "2.3.8", target: "2.3.7", catalogDefault: "2.3.8" }))
+    .toBe("2.3.8 (current) -> 2.3.7 (target, downgrade)");
+
+  expect(formatVersionTransition({ current: "2.3.7", target: "2.3.7", catalogDefault: "2.3.7" }))
+    .toBe("2.3.7 (current, up-to-date)");
+
+  expect(formatVersionTransition({ current: undefined, target: "2.3.8", catalogDefault: "2.3.8" }))
+    .toBe("n/a -> 2.3.8 (latest)");
+});
+
+test("upgradeSteps populates version transition details when versions are provided", () => {
+  const steps = upgradeSteps({
+    agentMemoryMode: "managed",
+    managedIiiEngineRequired: true,
+    managedCodeReviewGraph: true,
+    currentVersions: {
+      agentMemory: "0.9.28",
+      codeReviewGraph: "2.3.7",
+      iiiEngine: "0.11.1",
+    },
+    targetVersions: {
+      agentMemory: "0.9.29",
+      codeReviewGraph: "2.3.6",
+      iiiEngine: "0.11.2",
+    },
+  });
+
+  const amStep = steps.find((s) => s.id === "agentmemory");
+  const crgStep = steps.find((s) => s.id === "crg-package");
+  const iiiStep = steps.find((s) => s.id === "iii-engine");
+
+  expect(amStep?.detail).toBe("0.9.28 (current) -> 0.9.29 (latest)");
+  expect(crgStep?.detail).toBe("2.3.7 (current) -> 2.3.6 (target, downgrade)");
+  expect(iiiStep?.detail).toBe("0.11.1 (current) -> 0.11.2 (latest)");
+});

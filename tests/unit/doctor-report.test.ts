@@ -40,7 +40,7 @@ test('doctor report renders a structured terminal table with checks', async () =
         schemaVersion: 1,
         installedAt: '2026-08-24T12:00:00.000Z',
         project: { repositoryId: 'r', checkoutId: 'c', worktreeId: 'w' },
-        versions: { megaBrain: '0.1.6', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
+        versions: { megaBrain: '0.1.7', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
         backends: {
           agentMemory: { command: 'node', args: [], cwd: '.', lifecycle: 'daemon' },
           codeReviewGraph: { command: 'python', args: [], cwd: '.', lifecycle: 'on-demand' },
@@ -81,7 +81,7 @@ test('doctor report highlights degraded checks and warnings', async () => {
         schemaVersion: 1,
         installedAt: '2026-08-24T12:00:00.000Z',
         project: { repositoryId: 'r', checkoutId: 'c', worktreeId: 'w' },
-        versions: { megaBrain: '0.1.6', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
+        versions: { megaBrain: '0.1.7', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
         backends: {
           agentMemory: { command: 'node', args: [], cwd: '.', lifecycle: 'daemon' },
           codeReviewGraph: { command: 'python', args: [], cwd: '.', lifecycle: 'on-demand' },
@@ -114,4 +114,94 @@ test('runDoctorFix purges pending delete queues and sweeps runtime', async () =>
   const fixResult = await runDoctorFix({ dataDir, identity, layout });
 
   expect(fixResult.purged).toContain(path.resolve(targetDir));
+});
+test('doctor report displays Project Not provisioned and Not applicable for unprovisioned repository', async () => {
+  const response = await runDoctor({
+    project: 'Not provisioned',
+    provisioned: false,
+    hooksHealthy: true,
+    queueDepth: 0,
+    config: {
+      dataDir: 'C:/data',
+      port: 3000,
+      logLevel: 'info',
+      allowEgress: false,
+      allowLlm: false,
+      agentMemory: { mode: 'managed', baseUrl: 'http://127.0.0.1:12000' },
+      codeReviewGraph: { command: 'code-review-graph' },
+    },
+  }, {
+    inspect: async () => ({
+      healthy: true,
+      checks: {},
+      manifest: {
+        schemaVersion: 1,
+        installedAt: '',
+        project: { repositoryId: '', checkoutId: '', worktreeId: '' },
+        versions: { megaBrain: '0.1.7', agentMemory: 'uninstalled', codeReviewGraph: 'uninstalled' },
+        backends: {},
+      },
+    }),
+    probeAgentMemory: async () => ({ status: 'not_applicable', healthy: true, version: null, endpoints: [] }),
+    probeCodeReviewGraph: async () => ({ status: 'not_applicable', healthy: true, version: null, graphHead: null, tools: [] }),
+    gitHead: async () => '10f6b21d',
+  });
+
+  const report = stripAnsi(formatDoctorReport(response));
+  expect(report).toContain('Project        │ Not provisioned');
+  expect(report).toContain('Git HEAD       │ 10f6b21d');
+  expect(report).toContain('AgentMemory       │ ○ Not applicable');
+  expect(report).toContain('Code Review Graph │ ○ Not applicable');
+  expect(report).toContain('No isolated ports reported');
+  expect(report).not.toContain('× Degraded');
+  expect(report).not.toContain('× Unavailable');
+});
+
+test('doctor report displays granular status for backend probes and handles disabled backends', async () => {
+  const response = await runDoctor({
+    project: 'shop',
+    provisioned: true,
+    hooksHealthy: true,
+    queueDepth: 0,
+  }, {
+    inspect: async () => ({
+      healthy: true,
+      checks: { project: true, agentMemory: true, codeReviewGraph: true },
+      manifest: {
+        schemaVersion: 1,
+        installedAt: '2026-08-24T12:00:00.000Z',
+        project: { repositoryId: 'r', checkoutId: 'c', worktreeId: 'w' },
+        versions: { megaBrain: '0.1.7', agentMemory: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, codeReviewGraph: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.codeReviewGraph },
+        backends: {
+          agentMemory: { command: 'node', args: [], cwd: '.', lifecycle: 'daemon' },
+          codeReviewGraph: { command: 'python', args: [], cwd: '.', lifecycle: 'on-demand' },
+        },
+      },
+    }),
+    probeAgentMemory: async () => ({
+      status: 'healthy',
+      healthy: true,
+      process: 'ok',
+      endpoint: 'ok',
+      version: { status: 'ok', detected: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory, expected: DEFAULT_MANAGED_DEPENDENCY_VERSIONS.agentMemory },
+      capabilities: 'ok',
+      endpoints: ['rest', 'streams', 'viewer', 'engine'],
+      lifecycle: 'temporary probe',
+    }),
+    probeCodeReviewGraph: async () => ({
+      status: 'not_configured',
+      healthy: true,
+      process: 'not_configured',
+      version: { status: 'not_configured', detected: null, expected: null },
+      tools: [],
+      lifecycle: 'temporary probe',
+    }),
+    gitHead: async () => 'head',
+  });
+
+  const report = stripAnsi(formatDoctorReport(response));
+  expect(report).toContain('AgentMemory       │ ✓ Healthy');
+  expect(report).toContain('Code Review Graph │ ○ Not configured');
+  expect(report).toContain('temporary probe');
+  expect(report).not.toContain('× Degraded');
 });

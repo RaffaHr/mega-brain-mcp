@@ -1,9 +1,10 @@
-import { mkdtemp, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
+import { mkdir, mkdtemp, writeFile } from 'node:fs/promises';
+import { homedir, tmpdir } from 'node:os';
 import path from 'node:path';
 
 import { expect, test } from 'vitest';
 
+import { BACKEND_ENVIRONMENT_CATALOG } from '../../src/config/backend-environment-catalog.js';
 import {
   filterBackendEnvironment,
   loadConfig,
@@ -123,14 +124,11 @@ test('AC-027: modo gerenciado combina .env e processo por allowlist e reutiliza 
 
   expect(config.agentMemory).toEqual({
     mode: 'managed',
-    baseUrl: 'http://127.0.0.1:4111',
-    authToken: 'managed-local-secret',
+    baseUrl: 'http://127.0.0.1:3111',
     ports: { rest: 3111, streams: 3112, viewer: 3113, engine: 3114 },
     environment: {
       AGENTMEMORY_VERBOSE: 'true',
       AGENTMEMORY_TOOLS: 'all',
-      SNAPSHOT_ENABLED: 'false',
-      AGENTMEMORY_SECRET: 'managed-local-secret',
       AGENTMEMORY_DEBUG: 'true',
     },
   });
@@ -147,13 +145,11 @@ test('AC-028: credenciais e recursos remotos ou LLM exigem opt-ins e permanecem 
     env: { VOYAGE_API_KEY: 'embedding-secret' },
   })).rejects.toThrow(/VOYAGE_API_KEY.*MEGA_BRAIN_ALLOW_EGRESS=true/);
 
-  await expect(loadConfig({
+  const localContext = await loadConfig({
     envFilePath: false,
-    env: {
-      MEGA_BRAIN_ALLOW_EGRESS: 'true',
-      AGENTMEMORY_INJECT_CONTEXT: 'true',
-    },
-  })).rejects.toThrow(/AGENTMEMORY_INJECT_CONTEXT.*MEGA_BRAIN_ALLOW_LLM=true/);
+    env: { AGENTMEMORY_INJECT_CONTEXT: 'true' },
+  });
+  expect(localContext.agentMemory.environment.AGENTMEMORY_INJECT_CONTEXT).toBe('true');
 
   const config = await loadConfig({
     envFilePath: false,
@@ -190,14 +186,14 @@ test('CRG environment resolution suporta chaves diretas, fallbacks e injeta CRG_
     env: {
       MEGA_BRAIN_ALLOW_EGRESS: 'true',
       CRG_OPENAI_API_KEY: 'sk-crg-openai',
-      CRG_VOYAGE_API_KEY: 'pa-crg-voyage',
+      GOOGLE_API_KEY: 'google-crg-key',
       CRG_EMBEDDING_MODEL: 'text-embedding-3-small',
     },
   });
 
   expect(withDirect.codeReviewGraph.environment).toEqual({
     CRG_OPENAI_API_KEY: 'sk-crg-openai',
-    CRG_VOYAGE_API_KEY: 'pa-crg-voyage',
+    GOOGLE_API_KEY: 'google-crg-key',
     CRG_EMBEDDING_MODEL: 'text-embedding-3-small',
     CRG_ACCEPT_CLOUD_EMBEDDINGS: '1',
   });
@@ -208,17 +204,62 @@ test('CRG environment resolution suporta chaves diretas, fallbacks e injeta CRG_
       MEGA_BRAIN_ALLOW_EGRESS: 'true',
       MEGA_BRAIN_ALLOW_LLM: 'true',
       OPENAI_API_KEY: 'sk-global-openai',
-      VOYAGE_API_KEY: 'pa-global-voyage',
+      MINIMAX_API_KEY: 'minimax-global-key',
       CRG_EMBEDDING_MODEL: 'text-embedding-3-small',
     },
   });
 
   expect(withFallback.codeReviewGraph.environment).toEqual({
     CRG_OPENAI_API_KEY: 'sk-global-openai',
-    CRG_VOYAGE_API_KEY: 'pa-global-voyage',
+    MINIMAX_API_KEY: 'minimax-global-key',
     CRG_EMBEDDING_MODEL: 'text-embedding-3-small',
     CRG_ACCEPT_CLOUD_EMBEDDINGS: '1',
   });
+});
+
+
+test('catalogo de ambiente preserva defaults upstream e grupos configuráveis', () => {
+  const scope = BACKEND_ENVIRONMENT_CATALOG.find((entry) => entry.key === 'AGENTMEMORY_AGENT_SCOPE');
+  const embedding = BACKEND_ENVIRONMENT_CATALOG.find((entry) => entry.key === 'EMBEDDING_PROVIDER');
+  const graphWeight = BACKEND_ENVIRONMENT_CATALOG.find((entry) => entry.key === 'AGENTMEMORY_GRAPH_WEIGHT');
+  expect(scope).toMatchObject({ defaultKind: 'value', defaultValue: 'shared', allowedValues: ['shared', 'isolated'] });
+  expect(embedding).toMatchObject({ defaultKind: 'value', defaultValue: 'local' });
+  expect(graphWeight).toMatchObject({ defaultKind: 'value', defaultValue: '0.2' });
+  expect(new Set(BACKEND_ENVIRONMENT_CATALOG.map((entry) => entry.group))).toEqual(
+    new Set(['Core', 'Embedding', 'LLM', 'Runtime', 'Bridges', 'Advanced']),
+  );
+});
+
+test('configuração persistida em envelope carrega effective e ignora backend settings em .env', async () => {
+  const repoPath = await mkdtemp(path.join(tmpdir(), 'mega-brain-envelope-'));
+  await writeFile(path.join(repoPath, '.env'), 'MEGA_BRAIN_PORT=9999\nOPENAI_API_KEY=must-ignore\n');
+  const config = await loadConfig({
+    repoPath,
+    fileConfig: {
+      dataDir: '.data',
+      port: 4321,
+      agentMemory: {
+        mode: 'managed',
+        baseUrl: 'http://127.0.0.1:3111',
+        environment: { AGENTMEMORY_AGENT_SCOPE: 'isolated', AGENT_ID: 'codex-main' },
+      },
+    },
+    env: {},
+  });
+  expect(config.port).toBe(4321);
+  expect(config.agentMemory.environment).toEqual({ AGENTMEMORY_AGENT_SCOPE: 'isolated', AGENT_ID: 'codex-main' });
+});
+
+test('resolver principal não lê arquivo .env; somente resolução de versões usa esse caminho', async () => {
+  const repoPath = await mkdtemp(path.join(tmpdir(), 'mega-brain-no-dotenv-read-'));
+  const invalidEnvPath = path.join(repoPath, '.env-as-directory');
+  await mkdir(invalidEnvPath);
+
+  const config = await loadConfig({ repoPath, envFilePath: invalidEnvPath, env: {} });
+
+  expect(config.port).toBe(3000);
+  expect(config.agentMemory.environment).toEqual({});
+  expect(config.codeReviewGraph.environment).toEqual({});
 });
 
 test('AC-050: resolver canônico aplica precedência e expõe somente a origem redigida @spec:AC-050', async () => {
@@ -290,13 +331,13 @@ test('AC-051: porta e diretórios relativos do .env são resolvidos contra o rep
 
   const resolved = await resolveProjectConfig({ repoPath, env: {} });
 
-  expect(resolved.config.dataDir).toBe(path.resolve(repoPath, '.runtime-data'));
-  expect(resolved.config.port).toBe(4567);
-  expect(resolved.config.codeReviewGraph.dataDir).toBe(path.resolve(repoPath, '.runtime-data/crg'));
+  expect(resolved.config.dataDir).toBe(path.join(homedir(), '.mega-brain'));
+  expect(resolved.config.port).toBe(3000);
+  expect(resolved.config.codeReviewGraph.dataDir).toBeUndefined();
   expect(resolved.sources).toMatchObject({
-    dataDir: 'dotenv',
-    port: 'dotenv',
-    'codeReviewGraph.dataDir': 'dotenv',
+    dataDir: 'default',
+    port: 'default',
+    'codeReviewGraph.dataDir': 'default',
   });
 });
 
