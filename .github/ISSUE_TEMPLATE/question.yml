@@ -1,0 +1,27 @@
+name: "❓ Question & Support"
+description: "Ask a question about configuration, architecture, or usage"
+title: "❓ Question: "
+labels: ["needs-triage", "question"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before asking, please check:
+        - [README.md](https://github.com/RaffaHr/mega-brain-mcp#readme) and [Troubleshooting Guide](https://github.com/RaffaHr/mega-brain-mcp/blob/main/docs/troubleshooting.md)
+        - [Architecture Context (CONTEXT.md)](https://github.com/RaffaHr/mega-brain-mcp/blob/main/CONTEXT.md)
+        - Existing [Discussions](https://github.com/RaffaHr/mega-brain-mcp/discussions) and [Issues](https://github.com/RaffaHr/mega-brain-mcp/issues)
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know or clarify about Mega Brain MCP?
+      placeholder: "How do I configure custom embeddings provider when running in offline mode?"
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context & What You've Tried
+      description: Tell us what you've already attempted or looked into.
+    validations:
+      required: false

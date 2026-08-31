@@ -4,6 +4,10 @@ Mega Brain MCP is a local-first knowledge control plane for software projects. I
 
 The public MCP surface is exactly `brain_recall`, `brain_learn`, `brain_change_context`, `brain_history`, `brain_validate`, and `brain_status`.
 
+### Repo activity
+
+![Mega Brain Repo Activity](https://repobeats.axiom.co/api/embed/d6d23e89b0244fd405642c2e7e14168bb7f95e41.svg "Repobeats analytics image")
+
 > [!NOTE]
 > Agents talk to one Mega Brain MCP server. They do not call AgentMemory or Code Review Graph directly. Mega Brain owns routing, provenance, freshness, hooks, queueing, and backend isolation.
 
@@ -844,6 +848,16 @@ npm pack --dry-run
 ```
 
 `test:isolated` builds the tarball and uses disposable Docker containers to prove supported installation plus rejection of old Node, missing or pre-3.10 Python, and Python without `venv`, before any project mutation.
+
+## Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduct, development setup, testing guidelines, and the process for submitting pull requests.
+
+### We couldn't have done this without you.
+
+<a href="https://github.com/RaffaHr/mega-brain-mcp/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=RaffaHr/mega-brain-mcp" />
+</a>
 
 ## License
 

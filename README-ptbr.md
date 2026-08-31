@@ -4,6 +4,10 @@ Mega Brain MCP é um plano de controle de conhecimento local-first para projetos
 
 A interface MCP pública é composta exatamente por `brain_recall`, `brain_learn`, `brain_change_context`, `brain_history`, `brain_validate` e `brain_status`.
 
+### Atividade no repositório
+
+![Mega Brain Repo Activity](https://repobeats.axiom.co/api/embed/d6d23e89b0244fd405642c2e7e14168bb7f95e41.svg "Repobeats analytics image")
+
 > [!NOTE]
 
 > Os agentes se comunicam com um único servidor Mega Brain MCP. Eles não chamam AgentMemory ou Code Review Graph diretamente. O Mega Brain é responsável por roteamento, proveniência, atualização, hooks, enfileiramento e isolamento dos backends.
@@ -1051,6 +1055,17 @@ npm pack --dry-run
 ```
 
 `test:isolated` gera o tarball e usa containers Docker descartáveis para comprovar a instalação suportada, além de rejeitar versões antigas do Node, ausência de Python ou Python anterior à 3.10 e Python sem `venv`, antes de qualquer alteração no projeto.
+
+## Contribuindo
+
+Contribuições são muito bem-vindas! Consulte o arquivo [CONTRIBUTING.md](CONTRIBUTING.md) para detalhes sobre guia de estilo, configuração do ambiente de desenvolvimento, execução de testes e processo de envio de Pull Requests.
+
+### Não teríamos conseguido isso sem você.
+
+<a href="https://github.com/RaffaHr/mega-brain-mcp/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=RaffaHr/mega-brain-mcp" />
+</a>
+
 
 ## Licença
 

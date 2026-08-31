@@ -1,0 +1,95 @@
+name: "🐛 Bug Report"
+description: "Create a report to help us fix a bug in Mega Brain MCP"
+title: "🐛 Bug: "
+labels: ["needs-triage", "bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report!
+        Please search existing issues before submitting to ensure it has not been reported already.
+  - type: input
+    id: version
+    attributes:
+      label: Mega Brain MCP Version
+      description: What version of Mega Brain MCP are you using? Run mega-brain --version or check your package.json.
+      placeholder: "e.g., 0.1.7"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What operating system are you running Mega Brain on?
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other (specify in description)
+    validations:
+      required: true
+  - type: input
+    id: runtime_env
+    attributes:
+      label: Node.js / Python Environment
+      description: Provide the output of node -v and python --version (or python3 --version).
+      placeholder: "Node v22.22.0, Python 3.11.8"
+    validations:
+      required: true
+  - type: dropdown
+    id: host_agent
+    attributes:
+      label: AI Host / Client
+      description: Which AI coding host or MCP client are you integrating with?
+      options:
+        - Codex CLI
+        - Claude Desktop / Claude Code
+        - Cursor
+        - Windsurf
+        - Standalone stdio / HTTP
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description of the Bug
+      description: A clear and concise description of what the bug is.
+      placeholder: "When invoking rain_recall, the process exits unexpectedly if..."
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Step-by-step instructions to reproduce the behavior.
+      value: |
+        1. Run mega-brain setup
+        2. Execute tool ...
+        3. See error
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What did you expect to happen?
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Doctor Output
+      description: Output of `mega-brain doctor` or relevant terminal logs. Ensure all secrets/tokens are redacted!
+      render: shell
+    validations:
+      required: false
+  - type: checkboxes
+    id: checkboxes
+    attributes:
+      label: Checklist
+      options:
+        - label: I searched open and closed issues and did not find a duplicate.
+          required: true
+        - label: I verified that no sensitive credentials, API keys, or bearer tokens are exposed in this report.
+          required: true

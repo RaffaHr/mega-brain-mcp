@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Security Advisory
+    url: https://github.com/RaffaHr/mega-brain-mcp/security/advisories/new
+    about: Report sensitive security vulnerabilities privately instead of public issues.
+  - name: 💬 Community Discussions
+    url: https://github.com/RaffaHr/mega-brain-mcp/discussions
+    about: Ask questions, share architecture thoughts, or get community help.

@@ -1,0 +1,46 @@
+name: "🚀 Feature Request"
+description: "Suggest an idea or enhancement for Mega Brain MCP"
+title: "🚀 Feature: "
+labels: ["needs-triage", "enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thank you for suggesting a new idea or feature!
+        Please check existing issues and discussions first to make sure your proposal is not already being tracked.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature request related to a problem? Please describe.
+      description: A clear and concise description of what the problem or limitation is.
+      placeholder: "I find it difficult to..."
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Describe the Solution You'd Like
+      description: A clear and concise description of what you want to happen, including proposed tool changes, CLI flags, or workflow improvements.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Describe Alternatives You've Considered
+      description: Any alternative solutions, workarounds, or features you have considered.
+    validations:
+      required: false
+  - type: textarea
+    id: additional_context
+    attributes:
+      label: Additional Context
+      description: Add any other context, diagrams, mockups, or architectural notes (referencing CONTEXT.md / ADRs where applicable).
+    validations:
+      required: false
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Implementation Intent
+      options:
+        - label: I am willing to submit a Pull Request to implement this feature.
+          required: false
